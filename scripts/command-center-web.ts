@@ -82,94 +82,68 @@ let cacheTime = 0;
 let lastIngestTime = 0;
 
 async function getStats(): Promise<{ counties: CountyStats[]; totals: { properties: number; rent: number; mortgage: number; mortgage_total: number; mortgage_with_amounts: number } }> {
-  // Cache longer (30s) and check if ingest is active
-  const isIngestActive = Date.now() - lastIngestTime < 60_000;
-  const cacheExpiry = isIngestActive ? 30_000 : 60_000; // Longer cache during ingest to reduce load
-
+  // Cache longer during active ingest
+  const cacheExpiry = 15_000; // 15s cache always (stats refresh every 15s on homepage anyway)
   if (cachedStats && Date.now() - cacheTime < cacheExpiry) return cachedStats;
 
   try {
-    // Read materialized views in parallel but with timeout protection
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Query timeout')), 8000)
-    );
+    // Query actual tables directly (not MV which may be stale during ingest)
+    const [propCountResult, rentCountResult, mortCountResult, mortAmountResult] = await Promise.all([
+      db.from("properties").select("count", { count: "exact", head: true }),
+      db.from("rent_snapshots").select("count", { count: "exact", head: true }),
+      db.from("mortgage_records").select("count", { count: "exact", head: true }),
+      db.from("mortgage_records").select("count", { count: "exact", head: true }).not("loan_amount", "is", null).gt("loan_amount", 0),
+    ]);
 
-    const [propResult, rentResult, lienResult, mlsResult, globalRent, globalMort, globalMortAmt] = await Promise.race([
-      Promise.all([
-        db.from("county_stats_mv").select("*"),
-        db.from("county_rent_counts").select("*"),
-        db.from("county_lien_counts").select("*"),
-        db.from("county_mls_counts").select("*"),
-        db.from("rent_snapshots").select("count", { count: "exact", head: true }),
-        db.from("mortgage_records").select("count", { count: "exact", head: true }),
-        db.from("mortgage_records").select("count", { count: "exact", head: true }).not("loan_amount", "is", null).gt("loan_amount", 0),
-      ]),
-      timeoutPromise
-    ]) as any;
+    const totalProps = propCountResult.count ?? 0;
+    const totalRent = rentCountResult.count ?? 0;
+    const totalMort = mortCountResult.count ?? 0;
+    const totalMortAmounts = mortAmountResult.count ?? 0;
 
-    const countyStats = propResult.data;
-    const totalRent = globalRent.count ?? 0;
-    const mortTotal = globalMort.count ?? 0;
-    const mortWithAmounts = globalMortAmt.count ?? 0;
-
-    // If MV failed but we have cached stats, extend cache and return cached version
-    if ((!countyStats || countyStats.length === 0) && cachedStats) {
-      cacheTime = Date.now();
-      return cachedStats;
+    // County breakdown (from county_stats_mv if available, otherwise empty)
+    let counties: CountyStats[] = [];
+    try {
+      const { data: countyData, error } = await db.from("county_stats_mv").select("*");
+      if (!error && countyData) {
+        counties = countyData.map((r: any) => ({
+          county_name: r.county_name,
+          state_code: r.state_code,
+          total: Number(r.total_props),
+          estimated: KNOWN_TOTALS[`${r.county_name}_${r.state_code}`] || 0,
+          with_address: Number(r.with_address),
+          with_assessed: Number(r.with_assessed),
+          with_tax: Number(r.with_tax),
+          with_rent: 0,
+          with_mortgage: 0,
+        }));
+      }
+    } catch (mvErr) {
+      console.warn('MV query failed, using totals only:', (mvErr as Error).message);
     }
 
-    if (!countyStats || countyStats.length === 0) {
-      cachedStats = { counties: [], totals: { properties: 0, rent: totalRent, mortgage: 0, mortgage_total: mortTotal, mortgage_with_amounts: mortWithAmounts } };
-      cacheTime = Date.now();
-      return cachedStats;
-    }
-
-    // Build lookup maps for rent/lien/MLS counts by county_id
-    const { data: countiesData } = await db.from("counties").select("id, county_name, state_code").eq("active", true);
-    const countyIdMap = new Map<string, number>();
-    for (const c of countiesData || []) {
-      countyIdMap.set(`${c.county_name}_${c.state_code}`, c.id);
-    }
-
-    const rentMap = new Map<number, number>();
-    for (const r of rentResult.data || []) rentMap.set(r.county_id, Number(r.with_rent));
-
-    const lienMap = new Map<number, number>();
-    for (const r of lienResult.data || []) lienMap.set(r.county_id, Number(r.with_mortgage || r.with_lien_amounts));
-
-    const mlsMap = new Map<number, number>();
-    for (const r of mlsResult.data || []) mlsMap.set(r.county_id, Number(r.with_mls));
-
-    const stats: CountyStats[] = countyStats.map((r: any) => {
-      const key = `${r.county_name}_${r.state_code}`;
-      const cid = countyIdMap.get(key) || 0;
-      return {
-        county_name: r.county_name,
-        state_code: r.state_code,
-        total: Number(r.total_props),
-        estimated: KNOWN_TOTALS[key] || 0,
-        with_address: Number(r.with_address),
-        with_assessed: Number(r.with_assessed),
-        with_tax: Number(r.with_tax),
-        with_rent: rentMap.get(cid) || 0,
-        with_mortgage: lienMap.get(cid) || 0,
-      };
-    });
-
-    const totalProps = stats.reduce((a, c) => a + c.total, 0);
-    const totalRentLinked = stats.reduce((a, c) => a + c.with_rent, 0);
-    const totalMortLinked = stats.reduce((a, c) => a + c.with_mortgage, 0);
-
-    cachedStats = { counties: stats, totals: { properties: totalProps, rent: totalRentLinked, mortgage: totalMortLinked, mortgage_total: mortTotal, mortgage_with_amounts: mortWithAmounts } };
+    // Cache real numbers even if county breakdown is empty
+    cachedStats = {
+      counties,
+      totals: {
+        properties: totalProps,
+        rent: totalRent,
+        mortgage: totalMort,
+        mortgage_total: totalMort,
+        mortgage_with_amounts: totalMortAmounts,
+      },
+    };
     cacheTime = Date.now();
     return cachedStats;
   } catch (err) {
     console.error('Stats query error:', (err as Error).message);
     if (cachedStats) {
-      cacheTime = Date.now();
       return cachedStats;
     }
-    throw err;
+    // Return zeros rather than failing
+    return {
+      counties: [],
+      totals: { properties: 0, rent: 0, mortgage: 0, mortgage_total: 0, mortgage_with_amounts: 0 },
+    };
   }
 }
 
@@ -1611,32 +1585,33 @@ server.listen(PORT, () => {
 
 // Auto-refresh materialized views every 5 minutes
 async function refreshMVs() {
-  const isIngestActive = Date.now() - lastIngestTime < 60_000;
-  if (isIngestActive) {
-    console.log(`  Skipping MV refresh (ingest active)`);
-    return;
-  }
-
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
     for (const view of ["county_stats_mv", "county_lien_counts", "county_rent_counts"]) {
-      const res = await fetch(`${SUPABASE_URL}/pg/query`, {
-        method: "POST",
-        headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}` }),
-        signal: controller.signal as any,
-      });
-      if (!res.ok) console.error(`  MV refresh ${view} failed: ${res.status}`);
+      try {
+        const res = await fetch(`${SUPABASE_URL}/pg/query`, {
+          method: "POST",
+          headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: `REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}` }),
+          signal: controller.signal as any,
+        });
+        if (res.ok) {
+          console.log(`  ✓ MV ${view} refreshed`);
+        } else {
+          console.error(`  ✗ MV ${view} failed: ${res.status}`);
+        }
+      } catch (viewErr) {
+        console.error(`  ✗ MV ${view} error: ${(viewErr as Error).message}`);
+      }
     }
     clearTimeout(timeoutId);
-    console.log(`  MVs refreshed at ${new Date().toLocaleTimeString()}`);
   } catch (err) {
     console.error(`  MV refresh error: ${(err as Error).message}`);
   }
 }
 
-// Refresh on startup, then every 10 minutes, skip if ingest active
-setTimeout(refreshMVs, 30_000);
-setInterval(refreshMVs, 10 * 60 * 1000);
+// Refresh immediately, then every 5 minutes (concurrent refresh doesn't block reads)
+refreshMVs();
+setInterval(refreshMVs, 5 * 60 * 1000);
