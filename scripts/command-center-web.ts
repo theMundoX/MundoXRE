@@ -107,63 +107,70 @@ async function getStats(): Promise<{ counties: CountyStats[]; totals: { properti
       timeoutPromise
     ]) as any;
 
-  const countyStats = propResult.data;
-  const totalRent = globalRent.count ?? 0;
-  const mortTotal = globalMort.count ?? 0;
-  const mortWithAmounts = globalMortAmt.count ?? 0;
+    const countyStats = propResult.data;
+    const totalRent = globalRent.count ?? 0;
+    const mortTotal = globalMort.count ?? 0;
+    const mortWithAmounts = globalMortAmt.count ?? 0;
 
-  // If MV failed but we have cached stats, extend cache and return cached version
-  if ((!countyStats || countyStats.length === 0) && cachedStats) {
+    // If MV failed but we have cached stats, extend cache and return cached version
+    if ((!countyStats || countyStats.length === 0) && cachedStats) {
+      cacheTime = Date.now();
+      return cachedStats;
+    }
+
+    if (!countyStats || countyStats.length === 0) {
+      cachedStats = { counties: [], totals: { properties: 0, rent: totalRent, mortgage: 0, mortgage_total: mortTotal, mortgage_with_amounts: mortWithAmounts } };
+      cacheTime = Date.now();
+      return cachedStats;
+    }
+
+    // Build lookup maps for rent/lien/MLS counts by county_id
+    const { data: countiesData } = await db.from("counties").select("id, county_name, state_code").eq("active", true);
+    const countyIdMap = new Map<string, number>();
+    for (const c of countiesData || []) {
+      countyIdMap.set(`${c.county_name}_${c.state_code}`, c.id);
+    }
+
+    const rentMap = new Map<number, number>();
+    for (const r of rentResult.data || []) rentMap.set(r.county_id, Number(r.with_rent));
+
+    const lienMap = new Map<number, number>();
+    for (const r of lienResult.data || []) lienMap.set(r.county_id, Number(r.with_mortgage || r.with_lien_amounts));
+
+    const mlsMap = new Map<number, number>();
+    for (const r of mlsResult.data || []) mlsMap.set(r.county_id, Number(r.with_mls));
+
+    const stats: CountyStats[] = countyStats.map((r: any) => {
+      const key = `${r.county_name}_${r.state_code}`;
+      const cid = countyIdMap.get(key) || 0;
+      return {
+        county_name: r.county_name,
+        state_code: r.state_code,
+        total: Number(r.total_props),
+        estimated: KNOWN_TOTALS[key] || 0,
+        with_address: Number(r.with_address),
+        with_assessed: Number(r.with_assessed),
+        with_tax: Number(r.with_tax),
+        with_rent: rentMap.get(cid) || 0,
+        with_mortgage: lienMap.get(cid) || 0,
+      };
+    });
+
+    const totalProps = stats.reduce((a, c) => a + c.total, 0);
+    const totalRentLinked = stats.reduce((a, c) => a + c.with_rent, 0);
+    const totalMortLinked = stats.reduce((a, c) => a + c.with_mortgage, 0);
+
+    cachedStats = { counties: stats, totals: { properties: totalProps, rent: totalRentLinked, mortgage: totalMortLinked, mortgage_total: mortTotal, mortgage_with_amounts: mortWithAmounts } };
     cacheTime = Date.now();
     return cachedStats;
+  } catch (err) {
+    console.error('Stats query error:', (err as Error).message);
+    if (cachedStats) {
+      cacheTime = Date.now();
+      return cachedStats;
+    }
+    throw err;
   }
-
-  if (!countyStats || countyStats.length === 0) {
-    cachedStats = { counties: [], totals: { properties: 0, rent: totalRent, mortgage: 0, mortgage_total: mortTotal, mortgage_with_amounts: mortWithAmounts } };
-    cacheTime = Date.now();
-    return cachedStats;
-  }
-
-  // Build lookup maps for rent/lien/MLS counts by county_id
-  // We need county_id -> county_name mapping from a counties query
-  const { data: countiesData } = await db.from("counties").select("id, county_name, state_code").eq("active", true);
-  const countyIdMap = new Map<string, number>();
-  for (const c of countiesData || []) {
-    countyIdMap.set(`${c.county_name}_${c.state_code}`, c.id);
-  }
-
-  const rentMap = new Map<number, number>();
-  for (const r of rentResult.data || []) rentMap.set(r.county_id, Number(r.with_rent));
-
-  const lienMap = new Map<number, number>();
-  for (const r of lienResult.data || []) lienMap.set(r.county_id, Number(r.with_mortgage || r.with_lien_amounts));
-
-  const mlsMap = new Map<number, number>();
-  for (const r of mlsResult.data || []) mlsMap.set(r.county_id, Number(r.with_mls));
-
-  const stats: CountyStats[] = countyStats.map((r: any) => {
-    const key = `${r.county_name}_${r.state_code}`;
-    const cid = countyIdMap.get(key) || 0;
-    return {
-      county_name: r.county_name,
-      state_code: r.state_code,
-      total: Number(r.total_props),
-      estimated: KNOWN_TOTALS[key] || 0,
-      with_address: Number(r.with_address),
-      with_assessed: Number(r.with_assessed),
-      with_tax: Number(r.with_tax),
-      with_rent: rentMap.get(cid) || 0,
-      with_mortgage: lienMap.get(cid) || 0,
-    };
-  });
-
-  const totalProps = stats.reduce((a, c) => a + c.total, 0);
-  const totalRentLinked = stats.reduce((a, c) => a + c.with_rent, 0);
-  const totalMortLinked = stats.reduce((a, c) => a + c.with_mortgage, 0);
-
-  cachedStats = { counties: stats, totals: { properties: totalProps, rent: totalRentLinked, mortgage: totalMortLinked, mortgage_total: mortTotal, mortgage_with_amounts: mortWithAmounts } };
-  cacheTime = Date.now();
-  return cachedStats;
 }
 
 function pct(n: number, d: number): number {
