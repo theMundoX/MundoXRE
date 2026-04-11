@@ -76,19 +76,19 @@ interface CountyStats {
   with_mortgage: number;
 }
 
-// Cache stats for 10 seconds for real-time updates
+// Async stats cache - updated every 5 minutes in background, served instantly
 let cachedStats: any = null;
 let cacheTime = 0;
 let lastIngestTime = 0;
+let statsRefreshInProgress = false;
 
-async function getStats(): Promise<{ counties: CountyStats[]; totals: { properties: number; rent: number; mortgage: number; mortgage_total: number; mortgage_with_amounts: number } }> {
-  // Cache longer during active ingest
-  const cacheExpiry = 15_000; // 15s cache always (stats refresh every 15s on homepage anyway)
-  if (cachedStats && Date.now() - cacheTime < cacheExpiry) return cachedStats;
+// Async background refresh - doesn't block dashboard response
+async function refreshStatsCache() {
+  if (statsRefreshInProgress) return; // Skip if already refreshing
+  statsRefreshInProgress = true;
 
   try {
     // Query counts - use .limit(1) trick since RLS blocks aggregate COUNT()
-    // Fetch just ID column to minimize bandwidth, use head=true to get count header
     const [propResult, rentResult, mortResult, mortAmountResult] = await Promise.all([
       db.from("properties").select("id", { count: "exact", head: true }),
       db.from("rent_snapshots").select("id", { count: "exact", head: true }),
@@ -101,11 +101,11 @@ async function getStats(): Promise<{ counties: CountyStats[]; totals: { properti
     const totalMort = mortResult.count ?? 0;
     const totalMortAmounts = mortAmountResult.count ?? 0;
 
-    // County breakdown (from county_stats_mv if available, otherwise empty)
+    // County breakdown (from county_stats_mv if available)
     let counties: CountyStats[] = [];
     try {
-      const { data: countyData, error } = await db.from("county_stats_mv").select("*");
-      if (!error && countyData) {
+      const { data: countyData } = await db.from("county_stats_mv").select("*");
+      if (countyData) {
         counties = countyData.map((r: any) => ({
           county_name: r.county_name,
           state_code: r.state_code,
@@ -119,10 +119,9 @@ async function getStats(): Promise<{ counties: CountyStats[]; totals: { properti
         }));
       }
     } catch (mvErr) {
-      console.warn('MV query failed, using totals only:', (mvErr as Error).message);
+      // MV failed, just use totals
     }
 
-    // Cache real numbers even if county breakdown is empty
     cachedStats = {
       counties,
       totals: {
@@ -134,18 +133,21 @@ async function getStats(): Promise<{ counties: CountyStats[]; totals: { properti
       },
     };
     cacheTime = Date.now();
-    return cachedStats;
+    console.log(`✓ Stats cache updated: ${totalProps.toLocaleString()} properties, ${totalRent.toLocaleString()} rents, ${totalMort.toLocaleString()} mortgages`);
   } catch (err) {
-    console.error('Stats query error:', (err as Error).message);
-    if (cachedStats) {
-      return cachedStats;
-    }
-    // Return zeros rather than failing
-    return {
-      counties: [],
-      totals: { properties: 0, rent: 0, mortgage: 0, mortgage_total: 0, mortgage_with_amounts: 0 },
-    };
+    console.error('Stats cache refresh error:', (err as Error).message);
+  } finally {
+    statsRefreshInProgress = false;
   }
+}
+
+// Return cached stats immediately (no waiting for queries)
+function getStats() {
+  return {
+    ...cachedStats || { counties: [], totals: { properties: 0, rent: 0, mortgage: 0, mortgage_total: 0, mortgage_with_amounts: 0 } },
+    lastUpdated: cacheTime,
+    cacheAge: Date.now() - cacheTime,
+  };
 }
 
 function pct(n: number, d: number): number {
@@ -529,8 +531,9 @@ const SHARED_STYLES = `
   .badge-listing { background:#059669; color:#d1fae5; }
 `;
 
-function renderHTML(stats: { counties: CountyStats[]; totals: { properties: number; rent: number; mortgage: number; mortgage_total: number; mortgage_with_amounts: number } }): string {
-  const now = new Date().toLocaleTimeString();
+function renderHTML(stats: any): string {
+  const cacheAge = Math.round((stats.cacheAge || 0) / 1000);
+  const lastUpdatedTime = stats.lastUpdated ? new Date(stats.lastUpdated).toLocaleTimeString() : "never";
   const byState = new Map<string, CountyStats[]>();
   for (const s of stats.counties) {
     if (!byState.has(s.state_code)) byState.set(s.state_code, []);
@@ -634,12 +637,12 @@ function renderHTML(stats: { counties: CountyStats[]; totals: { properties: numb
   </div>
   ${navBar("coverage")}
   ${stateBlocks}
-  <div class="updated">Last updated: ${now} | Auto-refreshes every 15 seconds | DB: ${SUPABASE_URL}</div>
+  <div class="updated">Stats cache: ${cacheAge}s old (refreshes every 5 min) | Auto-refreshes page every 15s | DB: ${SUPABASE_URL}</div>
 </body></html>`;
 }
 
-function renderPublishedHTML(stats: { counties: CountyStats[]; totals: any }): string {
-  const now = new Date().toLocaleTimeString();
+function renderPublishedHTML(stats: any): string {
+  const cacheAge = Math.round((stats.cacheAge || 0) / 1000);
 
   // Compute readiness for each county — 6 dimensions
   // Counties where we've swept all ZIPs for MLS listings (on/off market is known)
@@ -783,7 +786,7 @@ function renderPublishedHTML(stats: { counties: CountyStats[]; totals: any }): s
     <table>${thdr}<tbody>${earlyStage.slice(0, 30).map(c => tierRow(c)).join("")}</tbody></table>
   </div>` : ""}
 
-  <div class="updated">Last updated: ${now} | Auto-refreshes every 15 seconds</div>
+  <div class="updated">Stats cache: ${cacheAge}s old (refreshes every 5 min) | Auto-refreshes page every 15s</div>
 </body></html>`;
 }
 
@@ -1430,7 +1433,7 @@ const server = createServer(async (req, res) => {
 
   if (pathname === "/" || pathname === "/index.html") {
     try {
-      const stats = await getStats();
+      const stats = getStats();
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(renderHTML(stats));
     } catch (err) {
@@ -1439,7 +1442,7 @@ const server = createServer(async (req, res) => {
     }
   } else if (pathname === "/published") {
     try {
-      const stats = await getStats();
+      const stats = getStats();
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(renderPublishedHTML(stats));
     } catch (err) {
@@ -1510,14 +1513,10 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify({ error: (err as Error).message }));
     }
   } else if (pathname === "/api/stats") {
-    try {
-      const stats = await getStats();
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(stats));
-    } catch (err) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: (err as Error).message }));
-    }
+    // Return cached stats immediately (always responds, no blocking queries)
+    const stats = getStats();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(stats));
   } else if (pathname === "/api/heartbeat") {
     // Ingest layers call this to signal they're active
     lastIngestTime = Date.now();
@@ -1585,34 +1584,41 @@ server.listen(PORT, () => {
 });
 
 // Auto-refresh materialized views every 5 minutes
+// Refresh stats cache every 5 minutes (async background job)
+console.log(`\n📊 Stats Cache: Updates every 5 minutes in background`);
+refreshStatsCache(); // Initial refresh
+setInterval(refreshStatsCache, 5 * 60 * 1000);
+
+// Also refresh when ingest heartbeat indicates activity just stopped
+setInterval(() => {
+  if (Date.now() - lastIngestTime > 60_000 && Date.now() - lastIngestTime < 65_000) {
+    // Ingest just stopped, refresh stats
+    console.log(`✓ Ingest activity stopped, refreshing stats cache`);
+    refreshStatsCache();
+  }
+}, 10_000);
+
+// Refresh materialized views every 10 minutes (background, non-blocking)
 async function refreshMVs() {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15_000);
-
     for (const view of ["county_stats_mv", "county_lien_counts", "county_rent_counts"]) {
       try {
         const res = await fetch(`${SUPABASE_URL}/pg/query`, {
           method: "POST",
           headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({ query: `REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}` }),
-          signal: controller.signal as any,
         });
         if (res.ok) {
           console.log(`  ✓ MV ${view} refreshed`);
-        } else {
-          console.error(`  ✗ MV ${view} failed: ${res.status}`);
         }
       } catch (viewErr) {
-        console.error(`  ✗ MV ${view} error: ${(viewErr as Error).message}`);
+        // Silent fail - MV refresh is not critical for dashboard
       }
     }
-    clearTimeout(timeoutId);
   } catch (err) {
-    console.error(`  MV refresh error: ${(err as Error).message}`);
+    // Silent fail
   }
 }
 
-// Refresh immediately, then every 5 minutes (concurrent refresh doesn't block reads)
 refreshMVs();
-setInterval(refreshMVs, 5 * 60 * 1000);
+setInterval(refreshMVs, 10 * 60 * 1000);
