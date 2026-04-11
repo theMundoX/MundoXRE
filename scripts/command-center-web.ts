@@ -87,17 +87,18 @@ async function getStats(): Promise<{ counties: CountyStats[]; totals: { properti
   if (cachedStats && Date.now() - cacheTime < cacheExpiry) return cachedStats;
 
   try {
-    // Query actual tables directly (not MV which may be stale during ingest)
-    const [propCountResult, rentCountResult, mortCountResult, mortAmountResult] = await Promise.all([
-      db.from("properties").select("count", { count: "exact", head: true }),
-      db.from("rent_snapshots").select("count", { count: "exact", head: true }),
-      db.from("mortgage_records").select("count", { count: "exact", head: true }),
-      db.from("mortgage_records").select("count", { count: "exact", head: true }).not("loan_amount", "is", null).gt("loan_amount", 0),
+    // Query counts - use .limit(1) trick since RLS blocks aggregate COUNT()
+    // Fetch just ID column to minimize bandwidth, use head=true to get count header
+    const [propResult, rentResult, mortResult, mortAmountResult] = await Promise.all([
+      db.from("properties").select("id", { count: "exact", head: true }),
+      db.from("rent_snapshots").select("id", { count: "exact", head: true }),
+      db.from("mortgage_records").select("id", { count: "exact", head: true }),
+      db.from("mortgage_records").select("id", { count: "exact", head: true }).not("loan_amount", "is", null).gt("loan_amount", 0),
     ]);
 
-    const totalProps = propCountResult.count ?? 0;
-    const totalRent = rentCountResult.count ?? 0;
-    const totalMort = mortCountResult.count ?? 0;
+    const totalProps = propResult.count ?? 0;
+    const totalRent = rentResult.count ?? 0;
+    const totalMort = mortResult.count ?? 0;
     const totalMortAmounts = mortAmountResult.count ?? 0;
 
     // County breakdown (from county_stats_mv if available, otherwise empty)
