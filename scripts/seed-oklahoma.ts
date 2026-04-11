@@ -64,7 +64,7 @@ async function main() {
   console.log("\nDone.");
 }
 
-main().catch((err) => {
-  console.error("Seed failed:", err);
+main().catch(() => {
+  console.error("Seed failed. Check your .env configuration.");
   process.exit(1);
 });

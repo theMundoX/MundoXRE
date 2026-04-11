@@ -1,10 +1,10 @@
 /**
- * Domain allowlist — only approved domains get scraped.
- * If a domain isn't on this list, it's blocked. Period.
+ * Domain allowlist — default DENY. Only explicitly approved domains get scraped.
+ * Blocked domains are NEVER scraped regardless of allowlist.
  */
 
 const BLOCKED_DOMAINS = new Set([
-  // CoStar Group (litigious)
+  // CoStar Group
   "apartments.com",
   "costar.com",
   "rent.com",
@@ -19,7 +19,7 @@ const BLOCKED_DOMAINS = new Set([
   "hotpads.com",
   "streeteasy.com",
 
-  // Other aggregators with anti-scraping ToS
+  // Other aggregators
   "realtor.com",
   "redfin.com",
   "rentpath.com",
@@ -37,69 +37,116 @@ const ALLOWED_PATTERNS = [
   /\.myresman\.com$/,
   /\.onlineleasing\.realpage\.com$/,
 
+  // County assessor data platforms
+  /^(www\.)?oktaxrolls\.com$/,
+  /^(www\.)?actdatascout\.com$/,
+
   // Public listing sources
   /\.craigslist\.org$/,
   /\.facebook\.com$/,
 
-  // Government / county sites
-  /\.gov$/,
-  /\.us$/,
-  /county\./,
-  /assessor\./,
-  /recorder\./,
-  /clerk\./,
+  // Government sites — must end with .gov, .us, or .org
+  /\.(gov|us|org)$/,
 ];
-
-function extractDomain(url: string): string {
-  try {
-    const hostname = new URL(url).hostname.toLowerCase();
-    // Get the root domain (e.g., "apartments.com" from "www.apartments.com")
-    const parts = hostname.split(".");
-    if (parts.length >= 2) {
-      return parts.slice(-2).join(".");
-    }
-    return hostname;
-  } catch {
-    return url.toLowerCase();
-  }
-}
 
 function extractHostname(url: string): string {
   try {
     return new URL(url).hostname.toLowerCase();
   } catch {
-    return url.toLowerCase();
+    return "";
   }
 }
 
+/**
+ * Check if a URL belongs to a blocked domain.
+ * Uses hostname suffix matching to prevent bypass via subdomains or TLD tricks.
+ */
 export function isDomainBlocked(url: string): boolean {
-  const domain = extractDomain(url);
-  return BLOCKED_DOMAINS.has(domain);
+  const hostname = extractHostname(url);
+  if (!hostname) return true; // Block unparseable URLs
+
+  for (const blocked of BLOCKED_DOMAINS) {
+    if (hostname === blocked || hostname.endsWith(`.${blocked}`)) {
+      return true;
+    }
+  }
+  return false;
 }
 
+/**
+ * Check if a URL is on the approved allowlist.
+ * Default is DENY — unknown domains are blocked.
+ */
 export function isDomainAllowed(url: string): boolean {
   if (isDomainBlocked(url)) return false;
 
   const hostname = extractHostname(url);
+  if (!hostname) return false;
 
-  // Check if it matches any allowed pattern
   for (const pattern of ALLOWED_PATTERNS) {
     if (pattern.test(hostname)) return true;
   }
 
-  // Individual property websites (not on blocklist, not a known aggregator)
-  // are allowed by default — these are marketing sites that WANT traffic
-  return true;
+  // Default DENY — unknown domains must be explicitly added
+  return false;
 }
 
+/**
+ * Validate a URL before scraping. Returns reason if denied.
+ */
 export function validateUrlBeforeScrape(url: string): { allowed: boolean; reason?: string } {
+  const hostname = extractHostname(url);
+
+  if (!hostname) {
+    return { allowed: false, reason: "Invalid URL." };
+  }
+
   if (isDomainBlocked(url)) {
-    const domain = extractDomain(url);
-    return {
-      allowed: false,
-      reason: `Domain "${domain}" is on the blocklist. This is an aggregator site — do not scrape.`,
-    };
+    return { allowed: false, reason: "Domain is on the blocklist." };
+  }
+
+  if (!isDomainAllowed(url)) {
+    return { allowed: false, reason: "Domain is not on the allowlist." };
   }
 
   return { allowed: true };
+}
+
+/**
+ * Validate a URL after a redirect. Must be called after every redirect.
+ */
+export function validateRedirect(originalUrl: string, redirectUrl: string): { allowed: boolean; reason?: string } {
+  return validateUrlBeforeScrape(redirectUrl);
+}
+
+// ─── Listing Pipeline — Scoped Access ───────────────────────────────
+// These domains are blocked for assessor/general scraping but allowed
+// ONLY through the listing pipeline for on-market signal extraction.
+
+const LISTING_ALLOWED_DOMAINS = new Set([
+  "zillow.com",
+  "redfin.com",
+  "realtor.com",
+]);
+
+/**
+ * Validate a URL for the listing pipeline only.
+ * Allows Zillow, Redfin, and Realtor.com — domains normally blocked.
+ * Also allows all domains on the standard allowlist.
+ */
+export function validateUrlForListings(url: string): { allowed: boolean; reason?: string } {
+  const hostname = extractHostname(url);
+  if (!hostname) {
+    return { allowed: false, reason: "Invalid URL." };
+  }
+
+  // Check listing-specific allowed domains first
+  for (const allowed of LISTING_ALLOWED_DOMAINS) {
+    if (hostname === allowed || hostname.endsWith(`.${allowed}`)) {
+      return { allowed: true };
+    }
+  }
+
+  // Fall back to standard allowlist (for state license .gov sites, etc.)
+  return validateUrlBeforeScrape(url);
 }

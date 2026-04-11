@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mxre": {
+      "command": "node",
+      "args": ["C:/Users/msanc/mxre/dist/index.js"],
+      "env": {
+        "SUPABASE_URL": "http://207.244.225.239:8000",
+        "SUPABASE_SERVICE_KEY": "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogInNlcnZpY2Vfcm9sZSIsICJpc3MiOiAic3VwYWJhc2UiLCAiaWF0IjogMTc3NDUyNDk2MiwgImV4cCI6IDIwODk4ODQ5NjJ9.Ex_u9UIYpPmJ0G8H3deic-zRulLOmgNZudMps2eSMJmmT03Arl-U"
+      }
+    }
+  }
+}

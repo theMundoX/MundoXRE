@@ -1,5 +1,12 @@
 node_modules/
 dist/
 .env
+.env.*
 .cache/
 *.log
+*.map
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.dmp

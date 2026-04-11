@@ -1,7 +1,6 @@
 /**
  * Local filesystem cache for raw HTTP responses.
- * Prevents re-fetching pages we already have.
- * Stored in .cache/ directory, organized by domain.
+ * Uses hashed directory/file names — no domain names on disk.
  */
 
 import { createHash } from "node:crypto";
@@ -19,24 +18,28 @@ function ensureCacheDir(subdir: string) {
   return dir;
 }
 
-function cacheKey(url: string): string {
-  return createHash("sha256").update(url).digest("hex").slice(0, 32);
+function hashStr(input: string): string {
+  return createHash("sha256").update(input).digest("hex").slice(0, 16);
 }
 
-function domainDir(url: string): string {
+function domainHash(url: string): string {
   try {
-    return new URL(url).hostname.replace(/[^a-z0-9.-]/gi, "_");
+    return hashStr(new URL(url).hostname);
   } catch {
-    return "unknown";
+    return hashStr("unknown");
   }
+}
+
+function urlHash(url: string): string {
+  return hashStr(url);
 }
 
 /**
  * Get a cached response for a URL. Returns null if not cached or expired.
  */
 export function getCached(url: string, ttlMs = DEFAULT_TTL_MS): string | null {
-  const dir = join(CACHE_DIR, domainDir(url));
-  const file = join(dir, cacheKey(url));
+  const dir = join(CACHE_DIR, domainHash(url));
+  const file = join(dir, urlHash(url));
 
   if (!existsSync(file)) return null;
 
@@ -51,8 +54,8 @@ export function getCached(url: string, ttlMs = DEFAULT_TTL_MS): string | null {
  * Store a response in the cache.
  */
 export function setCache(url: string, content: string) {
-  const dir = ensureCacheDir(domainDir(url));
-  const file = join(dir, cacheKey(url));
+  const dir = ensureCacheDir(domainHash(url));
+  const file = join(dir, urlHash(url));
   writeFileSync(file, content, "utf-8");
 }
 

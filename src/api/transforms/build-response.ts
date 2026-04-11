@@ -1,0 +1,432 @@
+import type {
+  MXREPropertyResponse,
+  SaleRecord,
+  RentHistory,
+  MLSHistoryEntry,
+  DataQualityEntry,
+  FMRData,
+} from '../types.js';
+import { parseOwnerName } from './parse-owner.js';
+import { splitLiens } from './split-liens.js';
+import { computeSignals } from './compute-signals.js';
+
+type Row = Record<string, unknown>;
+
+/**
+ * Build a complete MXREPropertyResponse from DB rows.
+ */
+export function buildPropertyResponse(
+  propertyRow: Row,
+  county: Row,
+  mortgages: Row[],
+  rentSnapshots: Row[],
+  listingSignals: Row[],
+  saleHistory: Row[],
+  mlsHistory: Row[],
+  demographics: Row | null,
+  foreclosures: Row[],
+): MXREPropertyResponse {
+  const p = propertyRow;
+  const c = county;
+
+  const marketValue = (p.market_value as number) ?? null;
+  const { summary: lienSummary, current: currentLiens, history: lienHistory } = splitLiens(mortgages, marketValue);
+
+  const signals = computeSignals({
+    property: p,
+    currentLiens,
+    equityPercent: lienSummary.equityPercent,
+    freeClear: lienSummary.freeClear,
+    sales: saleHistory,
+    foreclosures,
+  });
+
+  const owner1 = parseOwnerName(p.owner_name as string | null);
+  const owner2 = parseOwnerName(p.owner2_name as string | null);
+
+  const ownershipStart = (p.ownership_start_date as string) ?? null;
+  let ownershipLengthMonths: number | null = null;
+  if (ownershipStart) {
+    const months = (Date.now() - new Date(ownershipStart).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    ownershipLengthMonths = Math.round(months);
+  }
+
+  // Latest rent snapshot
+  const latestRent = rentSnapshots.length > 0 ? rentSnapshots[0] : null;
+  const livingSqft = (p.living_sqft as number) ?? (p.sqft as number) ?? null;
+
+  // Latest listing signal — normalize actual column names
+  // Schema: mls_list_price, is_on_market (bool), listing_agent_name, listing_brokerage,
+  //         listing_source, listing_url, days_on_market, first_seen_at
+  const rawListing = listingSignals.length > 0 ? listingSignals[0] : null;
+  const latestListing: Record<string, unknown> | null = rawListing ? {
+    ...rawListing,
+    list_price: rawListing.mls_list_price ?? rawListing.list_price ?? null,
+    status: rawListing.is_on_market != null
+      ? (rawListing.is_on_market ? 'Active' : 'Off Market')
+      : (rawListing.listing_status ?? null),
+    agent_name: rawListing.listing_agent_name ?? rawListing.agent_name ?? null,
+    brokerage: rawListing.listing_brokerage ?? rawListing.brokerage ?? null,
+    source: rawListing.listing_source ?? rawListing.source ?? null,
+    listing_url: rawListing.listing_url ?? null,
+    list_date: rawListing.first_seen_at ?? rawListing.list_date ?? rawListing.snapshot_date ?? null,
+  } : null;
+
+  // Build MLS history
+  const mlsHistoryMapped: MLSHistoryEntry[] = mlsHistory.map((m) => ({
+    status: (m.status as string) ?? 'unknown',
+    statusDate: (m.status_date as string) ?? '',
+    lastStatusDate: (m.last_status_date as string) ?? null,
+    price: (m.price as number) ?? null,
+    pricePerSqft: (m.price_per_sqft as number) ?? null,
+    daysOnMarket: (m.days_on_market as number) ?? null,
+    agentName: (m.agent_name as string) ?? null,
+    agentPhone: (m.agent_phone as string) ?? null,
+    agentEmail: (m.agent_email as string) ?? null,
+    brokerage: (m.brokerage as string) ?? null,
+    listingType: (m.listing_type as string) ?? null,
+    source: (m.source as string) ?? 'unknown',
+  }));
+
+  // Build rent history
+  const rentHistory: RentHistory[] = rentSnapshots.map((r) => ({
+    date: (r.observed_at as string) ?? '',
+    askingRent: (r.asking_rent as number) ?? (r.rent as number) ?? 0,
+    effectiveRent: (r.effective_rent as number) ?? null,
+    beds: (r.beds as number) ?? null,
+    sqft: (r.sqft as number) ?? null,
+  }));
+
+  // Build sales
+  const salesMapped: SaleRecord[] = saleHistory.map((s) => ({
+    saleDate: (s.sale_date as string) ?? null,
+    recordingDate: (s.recording_date as string) ?? '',
+    saleAmount: (s.sale_amount as number) ?? (s.amount as number) ?? null,
+    documentType: (s.document_type as string) ?? 'Unknown',
+    documentNumber: (s.document_number as string) ?? null,
+    bookPage: s.book && s.page ? `${s.book}/${s.page}` : null,
+    buyerNames: (s.buyer_names as string) ?? (s.grantee as string) ?? '',
+    sellerNames: (s.seller_names as string) ?? (s.grantor as string) ?? '',
+    armsLength: (s.arms_length as boolean) ?? null,
+    purchaseMethod: (s.purchase_method as 'cash' | 'financed') ?? null,
+    downPayment: (s.down_payment as number) ?? null,
+    ltv: (s.ltv as number) ?? null,
+    source: (s.source as string) ?? 'unknown',
+  }));
+
+  // Demographics / FMR
+  const fmr: FMRData | null = demographics ? {
+    efficiency: (demographics.fmr_0 as number) ?? null,
+    oneBed: (demographics.fmr_1 as number) ?? null,
+    twoBed: (demographics.fmr_2 as number) ?? null,
+    threeBed: (demographics.fmr_3 as number) ?? null,
+    fourBed: (demographics.fmr_4 as number) ?? null,
+    year: (demographics.fmr_year as number) ?? null,
+    hudArea: (demographics.hud_area_name as string) ?? null,
+    medianIncome: (demographics.median_income as number) ?? null,
+  } : null;
+
+  // Listing status
+  const listStatus = latestListing?.status as string | null;
+  const marketStatus = mapMarketStatus(listStatus);
+  const listDate = (latestListing?.list_date as string) ?? (latestListing?.first_seen_at as string) ?? null;
+  const daysOnMarket = listDate
+    ? Math.round((Date.now() - new Date(listDate).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // Meta
+  const { dataSources, dataQuality } = buildMeta(p, c, mortgages, rentSnapshots, listingSignals, saleHistory, mlsHistory, demographics, foreclosures);
+  const completeness = computeCompleteness(p, owner1, marketValue, lienSummary.openMortgageBalance, latestRent, latestListing, fmr);
+
+  const currentRent = (latestRent?.asking_rent as number) ?? (latestRent?.rent as number) ?? null;
+  const rentSqft = (latestRent?.sqft as number) ?? null;
+
+  return {
+    id: p.id as number,
+
+    property: {
+      address: (p.address as string) ?? '',
+      city: (p.city as string) ?? '',
+      state: (c.state_code as string) ?? '',
+      zip: (p.zip as string) ?? '',
+      county: (c.county_name as string) ?? '',
+      parcelId: (p.parcel_id as string) ?? '',
+      apn: (p.apn_formatted as string) ?? (p.parcel_id as string) ?? '',
+      lat: (p.latitude as number) ?? (p.lat as number) ?? null,
+      lng: (p.longitude as number) ?? (p.lng as number) ?? null,
+      type: (p.property_type as string) ?? 'SFR',
+      use: (p.property_use as string) ?? null,
+      landUse: (p.land_use as string) ?? null,
+      zoning: (p.zoning as string) ?? null,
+      yearBuilt: (p.year_built as number) ?? null,
+      yearRemodeled: (p.year_remodeled as number) ?? null,
+      stories: (p.stories as number) ?? null,
+      livingSqft,
+      totalSqft: (p.total_sqft as number) ?? (p.sqft as number) ?? null,
+      lotSqft: (p.lot_sqft as number) ?? null,
+      lotAcres: (p.lot_acres as number) ?? null,
+      lotDepthFeet: (p.lot_depth_feet as number) ?? null,
+      lotWidthFeet: (p.lot_width_feet as number) ?? null,
+      bedrooms: (p.bedrooms as number) ?? null,
+      bathroomsFull: (p.bathrooms_full as number) ?? null,
+      bathroomsHalf: (p.bathrooms_half as number) ?? null,
+      totalRooms: (p.total_rooms as number) ?? null,
+      basement: (p.basement as string) ?? null,
+      basementSqft: (p.basement_sqft as number) ?? null,
+      basementFinishedPct: (p.basement_finished_pct as number) ?? null,
+      garage: (p.garage as string) ?? null,
+      garageSqft: (p.garage_sqft as number) ?? null,
+      garageSpaces: (p.garage_spaces as number) ?? null,
+      heating: (p.heating as string) ?? null,
+      fuelType: (p.fuel_type as string) ?? null,
+      airConditioning: (p.air_conditioning as string) ?? null,
+      exteriorWalls: (p.exterior_walls as string) ?? null,
+      roofType: (p.roof_type as string) ?? null,
+      foundation: (p.foundation as string) ?? null,
+      condition: (p.condition as string) ?? null,
+      fireplace: Boolean(p.fireplace),
+      fireplaceCount: (p.fireplace_count as number) ?? null,
+      pool: Boolean(p.pool),
+      deck: Boolean(p.deck),
+      deckSqft: (p.deck_sqft as number) ?? null,
+      porch: Boolean(p.porch),
+      porchSqft: (p.porch_sqft as number) ?? null,
+      parkingSpaces: (p.parking_spaces as number) ?? null,
+      hoa: Boolean(p.hoa),
+      hoaAmount: (p.hoa_amount as number) ?? null,
+      legalDescription: (p.legal_description as string) ?? null,
+      subdivision: (p.subdivision as string) ?? null,
+      lotNumber: (p.lot_number as string) ?? null,
+      censusTract: (p.census_tract as string) ?? null,
+      censusBlock: (p.census_block as string) ?? null,
+      floodZone: Boolean(p.flood_zone),
+      floodZoneType: (p.flood_zone_type as string) ?? null,
+      pricePerSqft: marketValue && livingSqft ? Math.round((marketValue / livingSqft) * 100) / 100 : null,
+    },
+
+    ownership: {
+      owner1,
+      owner2,
+      companyName: (p.company_name as string) ?? null,
+      mailingAddress: p.mail_address ? {
+        address: (p.mail_address as string) ?? '',
+        city: (p.mail_city as string) ?? '',
+        state: (p.mail_state as string) ?? '',
+        zip: (p.mail_zip as string) ?? '',
+      } : null,
+      ownerOccupied: Boolean(p.owner_occupied),
+      absenteeOwner: Boolean(p.absentee_owner),
+      inStateAbsentee: Boolean(p.in_state_absentee),
+      outOfStateAbsentee: Boolean(p.absentee_owner) && !Boolean(p.in_state_absentee),
+      corporateOwned: Boolean(p.corporate_owned),
+      ownershipStartDate: ownershipStart,
+      ownershipLengthMonths,
+    },
+
+    valuation: {
+      marketValue,
+      assessedValue: (p.assessed_value as number) ?? null,
+      appraisedLand: (p.appraised_land as number) ?? null,
+      appraisedBuilding: (p.appraised_building as number) ?? null,
+      taxableValue: (p.taxable_value as number) ?? null,
+      annualTax: (p.annual_tax as number) ?? null,
+      annualTaxSource: (p.annual_tax_source as 'county_auditor' | 'computed_from_millage') ?? null,
+      taxYear: (p.tax_year as number) ?? null,
+      taxDelinquentYear: (p.tax_delinquent_year as number) ?? null,
+      assessmentYear: (p.assessment_year as number) ?? null,
+      estimatedValue: (p.estimated_value as number) ?? null,
+    },
+
+    liens: {
+      summary: lienSummary,
+      current: currentLiens,
+      history: lienHistory,
+    },
+
+    sales: salesMapped,
+
+    rent: {
+      currentRent,
+      rentSource: latestRent ? 'scraped' : (fmr ? 'fmr' : null),
+      observedAt: (latestRent?.observed_at as string) ?? null,
+      beds: (latestRent?.beds as number) ?? null,
+      baths: (latestRent?.baths as number) ?? null,
+      sqft: rentSqft,
+      rentPerSqft: currentRent && rentSqft ? Math.round((currentRent / rentSqft) * 100) / 100 : null,
+      fmr,
+      history: rentHistory,
+    },
+
+    market: {
+      onMarket: marketStatus === 'active' || marketStatus === 'pending',
+      listPrice: (latestListing?.list_price as number) ?? (latestListing?.price as number) ?? null,
+      listDate,
+      daysOnMarket,
+      status: marketStatus,
+      listingSource: (latestListing?.source as string) ?? null,
+      listingUrl: (latestListing?.listing_url as string) ?? (latestListing?.url as string) ?? null,
+      agent: latestListing?.agent_name ? {
+        name: (latestListing.agent_name as string) ?? null,
+        firstName: (latestListing.agent_first_name as string) ?? null,
+        lastName: (latestListing.agent_last_name as string) ?? null,
+        phone: (latestListing.agent_phone as string) ?? null,
+        email: (latestListing.agent_email as string) ?? null,
+        brokerage: (latestListing.brokerage as string) ?? null,
+        office: (latestListing.office as string) ?? null,
+        licenseNumber: (latestListing.license_number as string) ?? null,
+        licenseState: (latestListing.license_state as string) ?? null,
+        licenseStatus: (latestListing.license_status as string) ?? null,
+        licenseType: (latestListing.license_type as string) ?? null,
+        source: (latestListing.agent_source as 'state_license_db' | 'mls') ?? null,
+      } : null,
+      history: mlsHistoryMapped,
+    },
+
+    signals,
+
+    meta: {
+      lastUpdated: new Date().toISOString(),
+      dataSources,
+      completeness,
+      dataQuality,
+    },
+  };
+}
+
+function mapMarketStatus(status: string | null): MXREPropertyResponse['market']['status'] {
+  if (!status) return 'off_market';
+  const lower = status.toLowerCase();
+  if (lower.includes('active')) return 'active';
+  if (lower.includes('pending') || lower.includes('contingent')) return 'pending';
+  if (lower.includes('sold') || lower.includes('closed')) return 'sold';
+  if (lower.includes('cancel') || lower.includes('withdrawn') || lower.includes('expired')) return 'cancelled';
+  return 'off_market';
+}
+
+function buildMeta(
+  p: Row,
+  c: Row,
+  mortgages: Row[],
+  rents: Row[],
+  listings: Row[],
+  sales: Row[],
+  mls: Row[],
+  demographics: Row | null,
+  foreclosures: Row[],
+): { dataSources: string[]; dataQuality: DataQualityEntry[] } {
+  const sources = new Set<string>();
+  const quality: DataQualityEntry[] = [];
+
+  // County assessor as property source
+  const countyName = (c.county_name as string) ?? 'unknown';
+  const stateCode = (c.state_code as string) ?? '';
+  sources.add(`${countyName.toLowerCase().replace(/\s+/g, '_')}_county_assessor`);
+
+  // Property fields from assessor
+  const assessorFields = ['address', 'market_value', 'assessed_value', 'year_built', 'sqft', 'bedrooms', 'owner_name'];
+  for (const f of assessorFields) {
+    if (p[f] != null) {
+      quality.push({ field: f, source: `${stateCode.toLowerCase()}_assessor`, type: 'actual' });
+    }
+  }
+
+  if (p.annual_tax != null) {
+    const taxSource = (p.annual_tax_source as string) ?? 'county_auditor';
+    quality.push({ field: 'annual_tax', source: taxSource, type: taxSource === 'computed_from_millage' ? 'computed' : 'actual' });
+  }
+
+  // Mortgage sources
+  for (const m of mortgages) {
+    const src = (m.source as string) ?? 'recorder';
+    sources.add(src);
+  }
+  if (mortgages.length > 0) {
+    quality.push({ field: 'liens', source: (mortgages[0].source as string) ?? 'recorder', type: 'actual' });
+  }
+
+  // Rent sources
+  for (const r of rents) {
+    const src = (r.source as string) ?? 'scraped';
+    sources.add(src);
+  }
+  if (rents.length > 0) {
+    quality.push({ field: 'rent', source: (rents[0].source as string) ?? 'scraped', type: 'actual' });
+  }
+
+  // Listing sources
+  for (const l of listings) {
+    const src = (l.source as string) ?? 'listing_site';
+    sources.add(src);
+  }
+
+  // Sale sources
+  for (const s of sales) {
+    const src = (s.source as string) ?? 'recorder';
+    sources.add(src);
+  }
+
+  // MLS sources
+  for (const m of mls) {
+    const src = (m.source as string) ?? 'mls';
+    sources.add(src);
+  }
+
+  // Demographics
+  if (demographics) {
+    sources.add('hud_fmr');
+    quality.push({ field: 'fmr', source: 'hud_fmr', type: 'actual' });
+  }
+
+  // Foreclosures
+  if (foreclosures.length > 0) {
+    sources.add('foreclosure_filings');
+    quality.push({ field: 'foreclosure', source: 'foreclosure_filings', type: 'actual' });
+  }
+
+  // Computed signals
+  quality.push({ field: 'signals', source: 'mxre_engine', type: 'computed' });
+  quality.push({ field: 'equity', source: 'mxre_engine', type: 'computed' });
+
+  return { dataSources: [...sources], dataQuality: quality };
+}
+
+function computeCompleteness(
+  p: Row,
+  owner1: ReturnType<typeof parseOwnerName>,
+  marketValue: number | null,
+  mortgageBalance: number | null,
+  latestRent: Row | null,
+  latestListing: Row | null,
+  fmr: FMRData | null,
+): number {
+  const checks = [
+    p.address != null,
+    p.city != null,
+    p.zip != null,
+    p.parcel_id != null,
+    p.year_built != null,
+    (p.living_sqft ?? p.sqft) != null,
+    p.bedrooms != null,
+    p.bathrooms_full != null,
+    (p.lot_sqft != null && (p.lot_sqft as number) > 0),
+    marketValue != null,
+    p.assessed_value != null,
+    p.annual_tax != null,
+    owner1 != null,
+    (p.latitude ?? p.lat) != null,
+    (p.longitude ?? p.lng) != null,
+    p.property_type != null,
+    mortgageBalance != null,
+    latestRent != null,
+    latestListing != null,
+    fmr != null,
+    p.basement != null,
+    p.garage != null,
+    p.heating != null,
+    p.roof_type != null,
+    p.foundation != null,
+  ];
+
+  const populated = checks.filter(Boolean).length;
+  return Math.round((populated / checks.length) * 100);
+}

@@ -1,7 +1,7 @@
 /**
  * Proxy rotation with health tracking.
- * Loads proxy URLs from environment variables.
  * Supports separate pools for county sites vs property sites.
+ * Never logs proxy credentials.
  */
 
 interface ProxyEntry {
@@ -12,6 +12,7 @@ interface ProxyEntry {
 }
 
 const MAX_FAILURES = 5;
+const RECOVERY_MS = 30 * 60 * 1000; // 30 minutes — retry dead proxies
 
 let residentialProxies: ProxyEntry[] = [];
 let datacenterProxies: ProxyEntry[] = [];
@@ -27,6 +28,20 @@ function parseProxyList(envVar: string | undefined): ProxyEntry[] {
     .map((url) => ({ url, failures: 0, lastUsed: 0, dead: false }));
 }
 
+/**
+ * Redact credentials from a proxy URL for safe logging.
+ */
+export function redactProxyUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.username) parsed.username = "***";
+    if (parsed.password) parsed.password = "***";
+    return parsed.toString();
+  } catch {
+    return "[invalid proxy]";
+  }
+}
+
 export function initProxies() {
   residentialProxies = parseProxyList(process.env.PROXY_URL);
   datacenterProxies = parseProxyList(process.env.PROXY_DATACENTER_URL);
@@ -36,18 +51,22 @@ function nextAlive(pool: ProxyEntry[], startIndex: number): { proxy: ProxyEntry;
   const len = pool.length;
   for (let i = 0; i < len; i++) {
     const idx = (startIndex + i) % len;
-    if (!pool[idx].dead) {
-      pool[idx].lastUsed = Date.now();
-      return { proxy: pool[idx], index: (idx + 1) % len };
+    const entry = pool[idx];
+
+    // Recover dead proxies after timeout
+    if (entry.dead && Date.now() - entry.lastUsed > RECOVERY_MS) {
+      entry.dead = false;
+      entry.failures = 0;
+    }
+
+    if (!entry.dead) {
+      entry.lastUsed = Date.now();
+      return { proxy: entry, index: (idx + 1) % len };
     }
   }
   return null;
 }
 
-/**
- * Get the next residential proxy URL (for property websites).
- * Returns null if no proxies configured or all are dead.
- */
 export function getResidentialProxy(): string | null {
   if (residentialProxies.length === 0) return null;
   const result = nextAlive(residentialProxies, currentResidentialIndex);
@@ -56,10 +75,6 @@ export function getResidentialProxy(): string | null {
   return result.proxy.url;
 }
 
-/**
- * Get the next datacenter proxy URL (for county/government sites).
- * Falls back to residential if no datacenter proxies configured.
- */
 export function getDatacenterProxy(): string | null {
   if (datacenterProxies.length === 0) return getResidentialProxy();
   const result = nextAlive(datacenterProxies, currentDatacenterIndex);
@@ -68,9 +83,6 @@ export function getDatacenterProxy(): string | null {
   return result.proxy.url;
 }
 
-/**
- * Report a proxy failure. After MAX_FAILURES consecutive failures, mark as dead.
- */
 export function reportProxyFailure(proxyUrl: string) {
   const allProxies = [...residentialProxies, ...datacenterProxies];
   const entry = allProxies.find((p) => p.url === proxyUrl);
@@ -82,9 +94,6 @@ export function reportProxyFailure(proxyUrl: string) {
   }
 }
 
-/**
- * Report a proxy success. Resets failure counter.
- */
 export function reportProxySuccess(proxyUrl: string) {
   const allProxies = [...residentialProxies, ...datacenterProxies];
   const entry = allProxies.find((p) => p.url === proxyUrl);
@@ -93,9 +102,6 @@ export function reportProxySuccess(proxyUrl: string) {
   }
 }
 
-/**
- * Get proxy health stats.
- */
 export function getProxyStats() {
   return {
     residential: {
