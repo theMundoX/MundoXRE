@@ -79,25 +79,44 @@ interface CountyStats {
 // Cache stats for 10 seconds for real-time updates
 let cachedStats: any = null;
 let cacheTime = 0;
+let lastIngestTime = 0;
 
 async function getStats(): Promise<{ counties: CountyStats[]; totals: { properties: number; rent: number; mortgage: number; mortgage_total: number; mortgage_with_amounts: number } }> {
-  if (cachedStats && Date.now() - cacheTime < 10_000) return cachedStats;
+  // Cache longer (30s) and check if ingest is active
+  const isIngestActive = Date.now() - lastIngestTime < 60_000;
+  const cacheExpiry = isIngestActive ? 30_000 : 60_000; // Longer cache during ingest to reduce load
 
-  // Read all materialized views in parallel (instant — precomputed)
-  const [propResult, rentResult, lienResult, mlsResult, globalRent, globalMort, globalMortAmt] = await Promise.all([
-    db.from("county_stats_mv").select("*"),
-    db.from("county_rent_counts").select("*"),
-    db.from("county_lien_counts").select("*"),
-    db.from("county_mls_counts").select("*"),
-    db.from("rent_snapshots").select("*", { count: "exact", head: true }),
-    db.from("mortgage_records").select("*", { count: "exact", head: true }),
-    db.from("mortgage_records").select("*", { count: "exact", head: true }).not("loan_amount", "is", null).gt("loan_amount", 0),
-  ]);
+  if (cachedStats && Date.now() - cacheTime < cacheExpiry) return cachedStats;
+
+  try {
+    // Read materialized views in parallel but with timeout protection
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Query timeout')), 8000)
+    );
+
+    const [propResult, rentResult, lienResult, mlsResult, globalRent, globalMort, globalMortAmt] = await Promise.race([
+      Promise.all([
+        db.from("county_stats_mv").select("*"),
+        db.from("county_rent_counts").select("*"),
+        db.from("county_lien_counts").select("*"),
+        db.from("county_mls_counts").select("*"),
+        db.from("rent_snapshots").select("count", { count: "exact", head: true }),
+        db.from("mortgage_records").select("count", { count: "exact", head: true }),
+        db.from("mortgage_records").select("count", { count: "exact", head: true }).not("loan_amount", "is", null).gt("loan_amount", 0),
+      ]),
+      timeoutPromise
+    ]) as any;
 
   const countyStats = propResult.data;
   const totalRent = globalRent.count ?? 0;
   const mortTotal = globalMort.count ?? 0;
   const mortWithAmounts = globalMortAmt.count ?? 0;
+
+  // If MV failed but we have cached stats, extend cache and return cached version
+  if ((!countyStats || countyStats.length === 0) && cachedStats) {
+    cacheTime = Date.now();
+    return cachedStats;
+  }
 
   if (!countyStats || countyStats.length === 0) {
     cachedStats = { counties: [], totals: { properties: 0, rent: totalRent, mortgage: 0, mortgage_total: mortTotal, mortgage_with_amounts: mortWithAmounts } };
@@ -1333,29 +1352,15 @@ async function searchProperties(params: PropertySearchParams) {
   return { properties: enriched, total: enriched.length, page, perPage, hasMore: enriched.length === perPage };
 }
 
-async function getPropertyDetail(id: number) {
+async function getPropertyBasic(id: number) {
   const { data: property, error } = await db.from("properties")
     .select(`
       id, address, city, zip, state_code, property_type, property_use, land_use,
       owner_name, company_name,
-      mail_address, mail_city, mail_state, mail_zip,
-      owner_occupied, absentee_owner, in_state_absentee, corporate_owned,
-      ownership_start_date,
-      assessed_value, market_value, taxable_value, estimated_value,
-      appraised_land, appraised_building,
+      assessed_value, market_value, taxable_value,
       last_sale_price, last_sale_date,
-      property_tax, annual_tax, tax_year, tax_delinquent_year, assessment_year,
-      year_built, year_remodeled, stories,
-      total_sqft, living_sqft, lot_sqft, lot_acres,
-      bedrooms, bathrooms, bathrooms_full, bathrooms_half, total_rooms,
-      basement, basement_sqft,
-      garage, garage_sqft, garage_spaces,
-      heating, air_conditioning, fuel_type,
-      exterior_walls, roof_type, foundation, condition,
-      fireplace, fireplace_count, pool, deck, deck_sqft, porch,
-      hoa, hoa_amount,
-      zoning, subdivision, flood_zone, flood_zone_type,
-      parcel_id, apn_formatted, legal_description, census_tract,
+      property_tax, annual_tax, tax_year,
+      year_built, bedrooms, bathrooms, total_sqft, lot_acres,
       lat, lng,
       counties(county_name, state_code)
     `)
@@ -1363,60 +1368,55 @@ async function getPropertyDetail(id: number) {
   if (error) throw new Error(error.message);
   if (!property) throw new Error("Property not found");
 
-  // Flatten county fields
   if (property.counties) {
     (property as any).county_name = (property.counties as any).county_name;
     (property as any).state = (property.counties as any).state_code;
   }
 
-  // Ownership length
   if (property.ownership_start_date) {
     const months = (Date.now() - new Date(property.ownership_start_date as string).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
     (property as any).ownership_length_months = Math.round(months);
   }
 
+  return property;
+}
+
+async function getPropertySupplemental(id: number, property: any) {
   const [rentResult, mortResult, listingByIdResult, demoResult] = await Promise.all([
-    db.from("rent_snapshots").select("*").eq("property_id", id).order("snapshot_date", { ascending: false }),
+    db.from("rent_snapshots").select("*").eq("property_id", id).order("snapshot_date", { ascending: false }).limit(5),
     db.from("mortgage_records")
-      .select("id, document_type, deed_type, recording_date, loan_amount, original_amount, borrower_name, lender_name, document_number, book_page, source_url, interest_rate, interest_rate_type, estimated_monthly_payment, estimated_current_balance, maturity_date, balance_as_of")
+      .select("id, document_type, deed_type, recording_date, loan_amount, borrower_name, lender_name, document_number")
       .eq("property_id", id)
-      .order("recording_date", { ascending: false }),
-    db.from("listing_signals").select("*").eq("property_id", id).order("first_seen_at", { ascending: false }).limit(20),
-    // Fetch FMR/demographics by zip
+      .order("recording_date", { ascending: false })
+      .limit(10),
+    db.from("listing_signals").select("*").eq("property_id", id).order("first_seen_at", { ascending: false }).limit(5),
     property.zip
-      ? db.from("zip_demographics").select("fmr_0,fmr_1,fmr_2,fmr_3,fmr_4,fmr_year,hud_area_name,median_income").eq("zip", property.zip as string).single()
+      ? db.from("zip_demographics").select("fmr_0,fmr_1,fmr_2,fmr_3,fmr_year").eq("zip", property.zip as string).single()
       : Promise.resolve({ data: null, error: null }),
   ]);
 
-  // Listing signals: if no property_id match, fall back to address+state match
-  // (listing_signals are often stored by address without property_id linked)
   let listingResult = listingByIdResult;
-  if ((!listingResult.data || listingResult.data.length === 0) && property.address && (property as any).state) {
+  if ((!listingResult.data || listingResult.data.length === 0) && property.address && property.state_code) {
     const addr = (property.address as string).replace(/[,()]/g, " ").trim();
-    const stateCode = ((property as any).state || property.state_code) as string;
     const { data: byAddr } = await db.from("listing_signals")
       .select("*")
       .ilike("address", addr)
-      .eq("state_code", stateCode.toUpperCase())
+      .eq("state_code", property.state_code.toUpperCase())
       .order("first_seen_at", { ascending: false })
-      .limit(10);
+      .limit(5);
     if (byAddr && byAddr.length > 0) {
       listingResult = { data: byAddr, error: null } as any;
     }
   }
 
-  // Deduplicate liens by document_number
   const seen = new Set<string>();
   const mortgage_records = (mortResult.data || []).filter((m: any) => {
-    const key = m.document_number
-      ? `doc:${m.document_number}`
-      : `amt:${m.recording_date}:${m.loan_amount}:${m.lender_name}`;
+    const key = m.document_number ? `doc:${m.document_number}` : `amt:${m.recording_date}:${m.loan_amount}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 
-  // Compute equity summary from active liens
   const marketValue = (property.market_value as number) ?? 0;
   let openBalance = 0;
   for (const m of mortgage_records) {
@@ -1428,13 +1428,18 @@ async function getPropertyDetail(id: number) {
   const freeClear = mortgage_records.length === 0 || openBalance === 0;
 
   return {
-    property,
     rent_snapshots: rentResult.data || [],
     mortgage_records,
     listing_signals: listingResult.data || [],
     demographics: demoResult.data || null,
     equity: { openBalance, equityPercent, freeClear },
   };
+}
+
+async function getPropertyDetail(id: number) {
+  const property = await getPropertyBasic(id);
+  const supplemental = await getPropertySupplemental(id, property);
+  return { property, ...supplemental };
 }
 
 const server = createServer(async (req, res) => {
@@ -1488,6 +1493,29 @@ const server = createServer(async (req, res) => {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: (err as Error).message }));
     }
+  } else if (pathname.match(/^\/api\/property\/\d+\/basic$/)) {
+    try {
+      const id = parseInt(pathname.split("/")[3] || "0", 10);
+      if (!id) throw new Error("Invalid property ID");
+      const property = await getPropertyBasic(id);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(property));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
+  } else if (pathname.match(/^\/api\/property\/\d+\/supplemental$/)) {
+    try {
+      const id = parseInt(pathname.split("/")[3] || "0", 10);
+      if (!id) throw new Error("Invalid property ID");
+      const property = await getPropertyBasic(id);
+      const supplemental = await getPropertySupplemental(id, property);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(supplemental));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: (err as Error).message }));
+    }
   } else if (pathname.startsWith("/api/property/")) {
     try {
       const id = parseInt(pathname.split("/").pop() || "0", 10);
@@ -1508,6 +1536,11 @@ const server = createServer(async (req, res) => {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: (err as Error).message }));
     }
+  } else if (pathname === "/api/heartbeat") {
+    // Ingest layers call this to signal they're active
+    lastIngestTime = Date.now();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok" }));
   } else if (pathname === "/properties") {
     // Properties filter page
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
@@ -1571,20 +1604,32 @@ server.listen(PORT, () => {
 
 // Auto-refresh materialized views every 5 minutes
 async function refreshMVs() {
+  const isIngestActive = Date.now() - lastIngestTime < 60_000;
+  if (isIngestActive) {
+    console.log(`  Skipping MV refresh (ingest active)`);
+    return;
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
     for (const view of ["county_stats_mv", "county_lien_counts", "county_rent_counts"]) {
       const res = await fetch(`${SUPABASE_URL}/pg/query`, {
         method: "POST",
         headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `REFRESH MATERIALIZED VIEW ${view}` }),
+        body: JSON.stringify({ query: `REFRESH MATERIALIZED VIEW CONCURRENTLY ${view}` }),
+        signal: controller.signal as any,
       });
       if (!res.ok) console.error(`  MV refresh ${view} failed: ${res.status}`);
     }
+    clearTimeout(timeoutId);
     console.log(`  MVs refreshed at ${new Date().toLocaleTimeString()}`);
   } catch (err) {
     console.error(`  MV refresh error: ${(err as Error).message}`);
   }
 }
-// Refresh immediately on startup, then every 5 minutes
-refreshMVs();
-setInterval(refreshMVs, 5 * 60 * 1000);
+
+// Refresh on startup, then every 10 minutes, skip if ingest active
+setTimeout(refreshMVs, 30_000);
+setInterval(refreshMVs, 10 * 60 * 1000);
