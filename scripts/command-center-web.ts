@@ -1581,13 +1581,13 @@ server.listen(PORT, () => {
   console.log(`Database: ${SUPABASE_URL}`);
   console.log(`Auto-refreshes every 15 seconds`);
   console.log(`MVs auto-refresh every 5 minutes\n`);
-});
 
-// Auto-refresh materialized views every 5 minutes
-// Refresh stats cache every 5 minutes (async background job)
-console.log(`\n📊 Stats Cache: Updates every 5 minutes in background`);
-refreshStatsCache(); // Initial refresh
-setInterval(refreshStatsCache, 5 * 60 * 1000);
+  // Auto-refresh materialized views every 5 minutes
+  // Refresh stats cache every 5 minutes (async background job)
+  console.log(`📊 Stats Cache: Updating in background...`);
+  refreshStatsCache().catch(err => console.error("Cache refresh error:", err.message));
+  setInterval(refreshStatsCache, 5 * 60 * 1000);
+});
 
 // Also refresh when ingest heartbeat indicates activity just stopped
 setInterval(() => {
@@ -1620,5 +1620,5 @@ async function refreshMVs() {
   }
 }
 
-refreshMVs();
+refreshMVs().catch(err => console.error("MV refresh error:", err.message));
 setInterval(refreshMVs, 10 * 60 * 1000);
