@@ -216,11 +216,26 @@ async function toolRunIngest(from, args) {
 
   const args2 = ["scripts/ingest-county.ts", `--county=${county}`, `--state=${state}`];
   if (mode === "dry") args2.push("--dry-run");
+
+  // Windows: `spawn('npx', ...)` fails with ENOENT because npx is a .cmd shim,
+  // not an .exe. Use shell: true so Windows resolves through cmd.exe; on Linux
+  // this is a no-op since `npx` resolves via PATH normally.
   const child = spawn("npx", ["tsx", ...args2], {
     cwd: process.cwd(),
     detached: false,
     stdio: ["ignore", logFd, logFd],
     env: process.env,
+    shell: true,
+  });
+
+  // CRITICAL: error handler on the child must be attached BEFORE the process
+  // can fail. Without this an ENOENT (binary not found) becomes an unhandled
+  // 'error' event and crashes the WORKER itself, not just the child.
+  child.on("error", (err) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = "failed"; job.spawn_error = err.message; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+    console.error(`  ✗ run_ingest spawn failed for ${county_fips}: ${err.message}`);
   });
 
   ingestJobs.set(jobId, {
@@ -230,7 +245,8 @@ async function toolRunIngest(from, args) {
   child.on("exit", (code) => {
     const job = ingestJobs.get(jobId);
     if (job) { job.status = code === 0 ? "succeeded" : "failed"; job.exit_code = code; job.finished = Date.now(); }
-    fs.closeSync(logFd);
+    try { fs.closeSync(logFd); } catch {}
+    console.log(`  • ingest job ${jobId} exited code ${code}`);
   });
 
   // Persist to managed Supabase so Command Center can show it
@@ -283,12 +299,58 @@ async function recordSuccess(agent_id) {
 
 // ── Ollama ───────────────────────────────────────────────────────────────────
 
+// Robust JSON tool-call extraction. Models wrap JSON in ```json fences,
+// emit trailing prose, or pad with commentary. Strategy:
+//  1. Strip markdown fences
+//  2. Walk forward from each '{' and use depth tracking to find the matching '}'
+//  3. Return the first balanced JSON object that parses AND has a recognized shape.
+function parseToolCall(text) {
+  if (!text) return null;
+  // Strip ```json ... ``` and ``` ... ``` fences if present
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidates = [];
+  if (fenceMatch) candidates.push(fenceMatch[1]);
+  candidates.push(text);
+  for (const blob of candidates) {
+    for (let i = 0; i < blob.length; i++) {
+      if (blob[i] !== "{") continue;
+      let depth = 0, inStr = false, esc = false;
+      for (let j = i; j < blob.length; j++) {
+        const ch = blob[j];
+        if (esc) { esc = false; continue; }
+        if (ch === "\\") { esc = true; continue; }
+        if (ch === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (ch === "{") depth++;
+        else if (ch === "}") {
+          depth--;
+          if (depth === 0) {
+            const slice = blob.slice(i, j + 1);
+            try {
+              const obj = JSON.parse(slice);
+              if (obj && (obj.tool || obj.done)) return obj;
+            } catch {}
+            break;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 async function ollama(model, messages) {
+  // keep_alive=60s — Ollama unloads the model 60s after the last request, so
+  // we don't pile multiple models in memory across runs. Critical on
+  // memory-tight boxes (a 32B qwen pin can eat 20GB+ for hours otherwise).
   const res = await fetch(`${OLLAMA}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages, stream: false, options: { temperature: 0.3 } }),
-    // allow local calls with no timeout baked in
+    body: JSON.stringify({
+      model, messages, stream: false,
+      keep_alive: process.env.OLLAMA_KEEP_ALIVE ?? "60s",
+      options: { temperature: 0.3 },
+    }),
   });
   if (!res.ok) throw new Error(`ollama ${res.status}: ${await res.text()}`);
   const data = await res.json();
@@ -358,8 +420,7 @@ Rules:
       ]);
       totalIn += msg.in; totalOut += msg.out;
 
-      let call;
-      try { const m = msg.content.match(/\{[\s\S]*\}/); call = m ? JSON.parse(m[0]) : null; } catch { call = null; }
+      let call = parseToolCall(msg.content);
       if (!call) { output += `Iter ${iter}: no parsable tool call. Raw: ${msg.content.slice(0, 300)}\n`; break; }
       if (call.done) { output += `Done: ${call.summary ?? ""}\n`; break; }
 
