@@ -21,11 +21,11 @@ try {
 
 // Direct postgres connection via Supavisor session mode (port 5432, user=postgres.your-tenant-id)
 const pool = new Pool({
-  host: "207.244.225.239",
+  host: (process.env.MXRE_PG_HOST ?? ""),
   port: 5432,
   database: "postgres",
   user: "postgres.your-tenant-id",
-  password: "d6168ff6e8d9559d62642418bafb3d17",
+  password: "${process.env.MXRE_PG_PASSWORD}",
   max: 3,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,

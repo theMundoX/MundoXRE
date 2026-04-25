@@ -66,7 +66,7 @@ async function checkStatus() {
   let propCount = lastPropertyCount;
   try {
     const output = execSync(
-      `curl -s -m 3 -H "apikey: eyJhbGciOiAiSFMyNTYiLCAidHlwIjogInNlcnZpY2Vfcm9sZSIsICJpc3MiOiAic3VwYWJhc2UiLCAiaWF0IjogMTc3NDUyNDk2MiwgImV4cCI6IDIwODk4ODQ5NjJ9.Ex_u9UIYpPmJ0G8H3deic-zRulLOmgNZJS3hw7azoKU" "http://207.244.225.239:8000/rest/v1/properties?limit=1" 2>/dev/null | wc -c`,
+      `curl -s -m 3 -H "apikey: ${process.env.SUPABASE_SERVICE_KEY}" "${process.env.SUPABASE_URL}/rest/v1/properties?limit=1" 2>/dev/null | wc -c`,
       { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
     );
     propCount = parseInt(output.trim()) || lastPropertyCount;

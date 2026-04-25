@@ -12,11 +12,11 @@ async function main() {
   console.log(`Applying migration 007 (${sql.length} bytes) via direct postgres...`);
 
   const client = new Client({
-    host: "207.244.225.239",
+    host: (process.env.MXRE_PG_HOST ?? ""),
     port: 5432,
     database: "postgres",
     user: "postgres.your-tenant-id",
-    password: "d6168ff6e8d9559d62642418bafb3d17",
+    password: "${process.env.MXRE_PG_PASSWORD}",
     connectionTimeoutMillis: 10000,
   });
   await client.connect();

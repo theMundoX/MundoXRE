@@ -21,7 +21,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const ADD_COLUMNS_ONLY = process.argv.includes("--add-columns");
 
 const SSH_KEY = "/tmp/mxre_db_key";
-const SSH_HOST = "root@207.244.225.239";
+const SSH_HOST = "root@${process.env.MXRE_PG_HOST}";
 const SSH_OPTS = `-i ${SSH_KEY} -o StrictHostKeyChecking=no`;
 const PSQL_CMD = `docker exec -i supabase-db psql -U supabase_admin -d postgres`;
 

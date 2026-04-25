@@ -348,15 +348,15 @@ function runAddressMatch() {
   const sql = `UPDATE listing_signals ls SET property_id = p.id FROM properties p JOIN counties c ON c.id = p.county_id WHERE ls.property_id IS NULL AND ls.state_code = c.state_code AND UPPER(TRIM(ls.city)) = UPPER(TRIM(p.city)) AND UPPER(TRIM(ls.address)) = UPPER(TRIM(p.address));`;
 
   try {
-    const cmd = `ssh -i /tmp/mxre_db_key -o StrictHostKeyChecking=no root@207.244.225.239 "docker exec -i supabase-db psql -U postgres -d postgres -c \\"${sql}\\""`;
-    const output = execSync(cmd, { encoding: "utf-8", timeout: 60_000 });
+    const cmd = `ssh -i /tmp/mxre_db_key -o StrictHostKeyChecking=no root@${process.env.MXRE_PG_HOST} "docker exec -i supabase-db psql -U postgres -d postgres -c \\"${sql}\\""`;
+    const output = execSync(cmd, { encoding: "utf-8", timeout: 300_000 });
     console.log("Address match result:", output.trim());
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Address match failed:", msg);
     console.log("You can run it manually with:");
     console.log(
-      `  ssh -i /tmp/mxre_db_key -o StrictHostKeyChecking=no root@207.244.225.239 "docker exec -i supabase-db psql -U postgres -d postgres -c \\"${sql}\\""`,
+      `  ssh -i /tmp/mxre_db_key -o StrictHostKeyChecking=no root@${process.env.MXRE_PG_HOST} "docker exec -i supabase-db psql -U postgres -d postgres -c \\"${sql}\\""`,
     );
   }
 }

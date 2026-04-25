@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MXRE VPS security check — run on 207.244.225.239 after connecting via SSH.
+# MXRE VPS security check — run on ${process.env.MXRE_PG_HOST} after connecting via SSH.
 # Verifies what's exposed and locks down what shouldn't be.
 set -euo pipefail
 

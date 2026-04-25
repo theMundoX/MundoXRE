@@ -11,7 +11,7 @@
  *   - Page stays at same URL; form values are updated for each search
  *
  * Usage:
- *   SUPABASE_URL=http://207.244.225.239:8000 \
+ *   SUPABASE_URL=${process.env.SUPABASE_URL} \
  *   SUPABASE_SERVICE_KEY="..." \
  *   PROXY_URL="http://user:pass@host:port" \
  *   npx tsx scripts/fast-ingest-v2.ts

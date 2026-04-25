@@ -3,7 +3,7 @@
 # Requires 2-word name match. Skips if multiple properties match same name.
 # FIPS join: mr.county_fips = c.state_fips || c.county_fips
 
-export PGPASSWORD="d6168ff6e8d9559d62642418bafb3d17"
+export PGPASSWORD="${process.env.MXRE_PG_PASSWORD}"
 PSQL="psql -h 127.0.0.1 -p 5432 -U postgres.your-tenant-id -d postgres"
 
 echo "=== MXRE Bulk SQL Property Linker ==="

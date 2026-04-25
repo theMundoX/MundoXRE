@@ -14,8 +14,8 @@ while true; do
 
     # Query database
     RESPONSE=$(curl -s -m 5 \
-      -H "apikey: eyJhbGciOiAiSFMyNTYiLCAidHlwIjogInNlcnZpY2Vfcm9sZSIsICJpc3MiOiAic3VwYWJhc2UiLCAiaWF0IjogMTc3NDUyNDk2MiwgImV4cCI6IDIwODk4ODQ5NjJ9.Ex_u9UIYpPmJ0G8H3deic-zRulLOmgNZJS3hw7azoKU" \
-      "http://207.244.225.239:8000/rest/v1/properties?select=id&limit=1" 2>/dev/null)
+      -H "apikey: ${process.env.SUPABASE_SERVICE_KEY}" \
+      "${process.env.SUPABASE_URL}/rest/v1/properties?select=id&limit=1" 2>/dev/null)
 
     if echo "$RESPONSE" | grep -q '"id"'; then
       COUNT=$(echo "$RESPONSE" | wc -c)

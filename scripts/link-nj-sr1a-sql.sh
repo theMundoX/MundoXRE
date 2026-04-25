@@ -14,7 +14,7 @@
 # mortgage_records document_number: "BOOK-PAGE"
 
 set -e
-export PGPASSWORD="d6168ff6e8d9559d62642418bafb3d17"
+export PGPASSWORD="${process.env.MXRE_PG_PASSWORD}"
 PSQL="psql -h 127.0.0.1 -p 5432 -U postgres.your-tenant-id -d postgres"
 
 echo "=== MXRE Fast NJ SR1A Linker (SQL) ==="

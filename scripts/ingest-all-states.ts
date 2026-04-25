@@ -27,7 +27,8 @@
  *   npx tsx scripts/ingest-all-states.ts --skip=CA,MN  # Skip specific states
  */
 import "dotenv/config";
-import { execSync, type ExecSyncOptions } from "node:child_process";
+import { execSync } from "node:child_process";
+import fs from "node:fs";
 
 interface StateIngest {
   code: string;
@@ -95,31 +96,41 @@ async function main() {
   }
 
   const results: Array<{ state: string; status: string; duration: number }> = [];
+  const failureLog = "logs/state-failures.log";
+
+  function logFailure(state: string, duration: number, reason: string) {
+    const ts = new Date().toISOString();
+    const line = `[${ts}] FAIL ${state} after ${duration.toFixed(0)}s: ${reason}\n`;
+    fs.appendFileSync(failureLog, line);
+    console.error(`\n${"!".repeat(60)}`);
+    console.error(`  FAILED: ${state} — ${reason}`);
+    console.error(`${"!".repeat(60)}\n`);
+  }
 
   for (const state of ingests) {
     console.log(`\n${"═".repeat(60)}`);
     console.log(`  ${state.code} — ${state.name} (est. ${state.estimatedParcels} parcels)`);
     console.log(`${"═".repeat(60)}\n`);
 
-    const start = Date.now();
+    const duration_start = Date.now();
     try {
-      const opts: ExecSyncOptions = {
-        stdio: "inherit",
-        timeout: 4 * 60 * 60 * 1000, // 4 hour timeout per state
+      execSync(`npx tsx ${state.script}`, {
+        stdio: ["inherit", "inherit", "pipe"],
+        timeout: 4 * 60 * 60 * 1000,
         env: process.env,
         cwd: process.cwd(),
-      };
-      execSync(`npx tsx ${state.script}`, opts);
-      const duration = (Date.now() - start) / 1000;
+      });
+      const duration = (Date.now() - duration_start) / 1000;
       results.push({ state: state.code, status: "OK", duration });
       console.log(`\n  ✓ ${state.code} complete in ${duration.toFixed(0)}s`);
-    } catch (err) {
-      const duration = (Date.now() - start) / 1000;
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      results.push({ state: state.code, status: `FAIL: ${msg.slice(0, 50)}`, duration });
-      console.error(`\n  ✗ ${state.code} failed after ${duration.toFixed(0)}s: ${msg}`);
-      // Continue to next state — don't stop on failure
+    } catch (err: any) {
+      const duration = (Date.now() - duration_start) / 1000;
+      const stderr = err.stderr?.toString().trim().slice(-500) ?? "";
+      const reason = stderr || err.message?.slice(0, 200) || "Unknown";
+      results.push({ state: state.code, status: `FAIL: exit ${err.status ?? "?"}`, duration });
+      logFailure(state.code, duration, reason);
     }
+    // Always continues to next state
   }
 
   // Summary

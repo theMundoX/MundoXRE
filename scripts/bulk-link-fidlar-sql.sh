@@ -5,7 +5,7 @@
 
 set -e
 
-PSQL="PGPASSWORD=d6168ff6e8d9559d62642418bafb3d17 psql -h 127.0.0.1 -p 5432 -U postgres.your-tenant-id -d postgres"
+PSQL="PGPASSWORD=${process.env.MXRE_PG_PASSWORD} psql -h 127.0.0.1 -p 5432 -U postgres.your-tenant-id -d postgres"
 
 echo "=== MXRE Bulk Fidlar Linker (SQL) ==="
 echo "$(date)"

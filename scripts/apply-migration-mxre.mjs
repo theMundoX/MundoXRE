@@ -4,7 +4,7 @@
 import fs from "node:fs";
 
 import "dotenv/config";
-const MXRE_PG  = (process.env.SUPABASE_URL ?? "http://207.244.225.239:8000") + "/pg/query";
+const MXRE_PG  = (process.env.SUPABASE_URL ?? "${process.env.SUPABASE_URL}") + "/pg/query";
 const MXRE_SVC = process.env.SUPABASE_SERVICE_KEY;
 if (!MXRE_SVC) { console.error("Set SUPABASE_SERVICE_KEY in mxre/.env"); process.exit(1); }
 

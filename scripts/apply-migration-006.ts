@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
-const PG_META = process.env.SUPABASE_PG_META_URL || "http://207.244.225.239:8000/pg/query";
+const PG_META = process.env.SUPABASE_PG_META_URL || "${process.env.SUPABASE_URL}/pg/query";
 const AUTH = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 async function runSQL(sql: string) {
