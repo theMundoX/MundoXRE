@@ -256,3 +256,13 @@ BEGIN
   REFRESH MATERIALIZED VIEW CONCURRENTLY mv_county_coverage;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ───────────────────────────────────────────────────────────────────────
+-- HOTFIX 003a — broaden mv_sales_monthly doc_type filter.
+-- The original filter looked for 'warranty_deed' / 'grant_deed' / 'sale' but
+-- the actual mortgage_records corpus uses just 'deed' (2.08M rows).
+-- Without 'deed' in the filter, mv_sales_monthly was empty even though sales
+-- data was in the DB. Adding 'deed' brings 2M+ historical sales into scope
+-- and makes mv_appreciation_yearly compute correctly.
+-- (Already applied to live MXRE pg via direct re-create.)
+-- ───────────────────────────────────────────────────────────────────────
