@@ -135,7 +135,7 @@ SELECT
   max(mr.original_amount)                AS max_price
 FROM mortgage_records mr
 LEFT JOIN properties p ON mr.property_id = p.id
-WHERE mr.document_type IN ('warranty_deed', 'special_warranty_deed', 'grant_deed', 'sale')
+WHERE mr.document_type IN ('deed', 'warranty_deed', 'special_warranty_deed', 'grant_deed', 'sale')
   AND mr.original_amount IS NOT NULL
   AND mr.original_amount > 1000
   AND mr.recording_date IS NOT NULL
