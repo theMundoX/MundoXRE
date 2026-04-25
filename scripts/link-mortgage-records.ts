@@ -99,6 +99,10 @@ const SOURCE_PATTERNS: Array<{ pattern: string; county_name: string; state_code:
   { pattern: "ava.fidlar.com/NHSullivan", county_name: "Sullivan", state_code: "NH" },
   // Washington
   { pattern: "ava.fidlar.com/WAYakima", county_name: "Yakima", state_code: "WA" },
+  // Indiana — Marion uses Fidlar Direct Search (not the ava.fidlar /AVA path)
+  { pattern: "inmarion.fidlar.com/INMarion", county_name: "Marion", state_code: "IN" },
+  { pattern: "inallen.fidlar.com/INAllen",   county_name: "Allen",  state_code: "IN" },
+  { pattern: "instjoseph.fidlar.com",         county_name: "St. Joseph", state_code: "IN" },
 ];
 
 function findCountyFromUrl(url: string): CountyInfo | null {
@@ -484,21 +488,49 @@ async function main() {
   if (limitArg) console.log(`  Limit: ${limitArg.toLocaleString()}`);
   console.log();
 
-  // Discover which counties have unlinked records by pulling distinct source_urls
-  const { data: sampleRecords } = await db
-    .from("mortgage_records")
-    .select("source_url")
-    .is("property_id", null)
-    .not("source_url", "is", null)
-    .limit(1000);
-
-  if (!sampleRecords || sampleRecords.length === 0) {
-    console.log("No unlinked mortgage records found.");
-    return;
+  // Discover which counties have unlinked records.
+  // If --state or --county filter is given, find the source_url(s) for that
+  // county directly via SOURCE_PATTERNS — sampling 1000 rows misses long-tail
+  // counties (a county with 60K records is invisible if there's a county
+  // with 1.6M records dominating the sample).
+  let sourceUrls: string[];
+  if (stateFilter || countyFilter) {
+    const matching = SOURCE_PATTERNS.filter((p) =>
+      (!stateFilter || p.state_code === stateFilter) &&
+      (!countyFilter || p.county_name.toLowerCase() === countyFilter.toLowerCase())
+    );
+    if (matching.length === 0) {
+      console.log(`No SOURCE_PATTERNS entries match state=${stateFilter} county=${countyFilter}.`);
+      return;
+    }
+    // Probe DB for which of those patterns actually have unlinked records
+    sourceUrls = [];
+    for (const p of matching) {
+      const { data } = await db
+        .from("mortgage_records")
+        .select("source_url")
+        .ilike("source_url", `%${p.pattern}%`)
+        .is("property_id", null)
+        .limit(1);
+      if (data && data.length > 0) sourceUrls.push(data[0].source_url as string);
+    }
+    if (sourceUrls.length === 0) {
+      console.log("No matching counties found with unlinked records.");
+      return;
+    }
+  } else {
+    const { data: sampleRecords } = await db
+      .from("mortgage_records")
+      .select("source_url")
+      .is("property_id", null)
+      .not("source_url", "is", null)
+      .limit(1000);
+    if (!sampleRecords || sampleRecords.length === 0) {
+      console.log("No unlinked mortgage records found.");
+      return;
+    }
+    sourceUrls = [...new Set(sampleRecords.map((r) => r.source_url as string))];
   }
-
-  // Deduplicate source_urls and map to counties
-  const sourceUrls = [...new Set(sampleRecords.map((r) => r.source_url as string))];
   const countiesToProcess = new Map<string, { countyId: number; countyName: string; stateCode: string; sourceUrls: string[] }>();
 
   for (const url of sourceUrls) {
