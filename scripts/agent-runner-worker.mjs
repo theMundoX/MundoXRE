@@ -26,6 +26,8 @@
 import { config as loadEnv } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import path from "node:path";
+import { spawn } from "node:child_process";
+import fs from "node:fs";
 // Load .env.worker specifically (not the default .env which is for ingest scripts)
 loadEnv({ path: path.join(process.cwd(), ".env.worker") });
 
@@ -56,6 +58,82 @@ const supa = createClient(VS_URL, VS_KEY, { auth: { persistSession: false } });
 
 const MAX_ITERS = 6;
 const LOOP_THRESHOLD = 3;
+
+// ── Schema doc — pinned in every agent prompt to stop column hallucination ──
+// Pulled live via `npm run schema:dump` (see scripts/dump-schema.mjs). Update
+// this constant when migrations land.
+const MXRE_SCHEMA_DOC = `
+DATABASE: PostgreSQL 15 (self-hosted Supabase). Use Postgres syntax ONLY:
+- Date math: NOW() - INTERVAL '7 days'   NOT DATE_SUB / CURDATE / GETDATE
+- String concat: ||                       NOT CONCAT()
+- Limit: LIMIT N                          NOT TOP N
+- Booleans: true / false                  NOT 1/0
+
+TABLES (selected columns; * for full set):
+
+properties (98M rows)
+  id integer PK, county_id integer FK→counties.id, parcel_id text,
+  address text, city text, state_code char(2), zip text,
+  lat numeric, lng numeric, msa text,
+  property_type text, total_units int, year_built int, total_sqft int,
+  is_sfr bool, is_apartment bool, is_condo bool,
+  owner_name text, mgmt_company text,
+  assessed_value int, market_value int, last_sale_price int, last_sale_date date,
+  property_tax int, annual_tax int, tax_year int,
+  bedrooms int, bathrooms numeric, total_rooms int,
+  corporate_owned bool, absentee_owner bool, owner_occupied bool,
+  legal_description text, subdivision text,
+  created_at timestamptz, updated_at timestamptz, last_seen_at timestamptz
+  NOTE: properties has NO county_fips column. To filter by FIPS, JOIN counties.
+
+counties
+  id int PK, state_fips char(2), county_fips char(3),  -- 3-digit suffix only!
+  state_code char(2), county_name text, msa text, active bool
+  Full FIPS = state_fips || county_fips. Marion/Indianapolis = '18' || '097' = '18097'.
+
+mortgage_records (9M rows)
+  id int PK, property_id int FK→properties.id, document_type text,
+  recording_date date, loan_amount int, original_amount int,
+  lender_name text, borrower_name text, document_number text,
+  county_fips char(5),  -- HAS county_fips directly (5-digit full)
+  document_type IN ('mortgage','lien','deed_of_trust','satisfaction','release','assignment','foreclosure','lis_pendens')
+  open bool, position int, interest_rate numeric
+
+hmda_lar (51M rows)
+  id bigint PK, activity_year smallint, lei text,
+  state_code char(2), county_code char(3),  -- HMDA uses split codes
+  loan_amount numeric, interest_rate numeric, property_value numeric,
+  action_taken smallint, loan_type smallint, loan_purpose smallint
+
+rent_snapshots (13M rows)
+  id int PK, property_id int FK, observed_at date,
+  beds int, baths int, sqft int, asking_rent int, effective_rent int
+
+listing_signals
+  id bigint PK, property_id bigint FK, address text, city text, state_code char(2),
+  is_on_market bool, mls_list_price int, days_on_market int,
+  listing_source text, first_seen_at timestamptz, delisted_at timestamptz
+
+entities / entity_relationships (knowledge graph)
+  entities: id text PK, entity_type text, name text, aliases text[]
+  entity_relationships: from_entity, to_entity, relationship_type, property_id text, county_fips text
+
+COMMON PATTERNS:
+-- All Indianapolis (Marion County) properties:
+SELECT p.* FROM properties p JOIN counties c ON p.county_id=c.id
+WHERE c.state_fips='18' AND c.county_fips='097' LIMIT 100;
+
+-- Recent foreclosures in a FIPS:
+SELECT * FROM mortgage_records
+WHERE county_fips='18097' AND document_type='foreclosure'
+  AND recording_date >= NOW() - INTERVAL '30 days'
+ORDER BY recording_date DESC LIMIT 50;
+
+-- Property count by county for a state:
+SELECT c.county_name, count(p.id) FROM counties c
+LEFT JOIN properties p ON p.county_id=c.id
+WHERE c.state_fips='18' GROUP BY c.county_name ORDER BY 2 DESC;
+`.trim();
 
 // ── Tools ────────────────────────────────────────────────────────────────────
 
@@ -91,6 +169,80 @@ async function toolCreateTask(from, to, title, description) {
   }).select().single();
   if (error) throw error;
   return { task_id: data.id };
+}
+
+// run_ingest — agents (Ryder) can spawn the actual scraping pipeline.
+// Resolves county_fips → county/state via the counties table, then spawns
+// `tsx scripts/ingest-county.ts --county=NAME --state=ST`. Returns a job id
+// the agent can later check status on.
+//
+// Concurrency: max INGEST_CONCURRENCY simultaneous jobs (default 2). Beyond
+// that, returns 'queued' status — the daemon will dequeue.
+const ingestJobs = new Map();  // jobId → { pid, status, fips, county, state, started, log }
+const INGEST_CONCURRENCY = Number(process.env.INGEST_CONCURRENCY ?? 2);
+const INGEST_LOG_DIR = path.join(process.cwd(), "logs", "agent-ingest");
+fs.mkdirSync(INGEST_LOG_DIR, { recursive: true });
+
+async function resolveFips(county_fips) {
+  if (!/^\d{5}$/.test(county_fips)) throw new Error(`county_fips must be 5 digits, got: ${county_fips}`);
+  const stateFips = county_fips.slice(0, 2);
+  const countyFips = county_fips.slice(2);
+  const rows = await toolQueryMxre(
+    `SELECT county_name, state_code FROM counties WHERE state_fips='${stateFips}' AND county_fips='${countyFips}' LIMIT 1`,
+  );
+  if (!rows?.length) throw new Error(`unknown FIPS: ${county_fips}`);
+  return { county: rows[0].county_name, state: rows[0].state_code };
+}
+
+async function toolRunIngest(from, args) {
+  const { county_fips, mode = "full" } = args ?? {};
+  if (!county_fips) throw new Error("run_ingest requires county_fips");
+
+  // Permission gate — head-of-division agents only by default.
+  const { data: perm } = await supa.from("agent_permissions")
+    .select("allowed").eq("from_agent", from).eq("to_agent", "system").eq("capability", "run_ingest").maybeSingle();
+  if (!perm?.allowed) throw new Error(`${from} not permitted to run_ingest (need agent_permissions row from→system capability=run_ingest)`);
+
+  // Concurrency check
+  const active = [...ingestJobs.values()].filter(j => j.status === "running").length;
+  if (active >= INGEST_CONCURRENCY) {
+    return { status: "rejected", reason: `at concurrency cap ${INGEST_CONCURRENCY}; try later`, active };
+  }
+
+  const { county, state } = await resolveFips(county_fips);
+  const jobId = `${county_fips}-${Date.now().toString(36)}`;
+  const logPath = path.join(INGEST_LOG_DIR, `${jobId}.log`);
+  const logFd = fs.openSync(logPath, "a");
+
+  const args2 = ["scripts/ingest-county.ts", `--county=${county}`, `--state=${state}`];
+  if (mode === "dry") args2.push("--dry-run");
+  const child = spawn("npx", ["tsx", ...args2], {
+    cwd: process.cwd(),
+    detached: false,
+    stdio: ["ignore", logFd, logFd],
+    env: process.env,
+  });
+
+  ingestJobs.set(jobId, {
+    pid: child.pid, status: "running", fips: county_fips, county, state,
+    started: Date.now(), log: logPath, started_by: from,
+  });
+  child.on("exit", (code) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = code === 0 ? "succeeded" : "failed"; job.exit_code = code; job.finished = Date.now(); }
+    fs.closeSync(logFd);
+  });
+
+  // Persist to managed Supabase so Command Center can show it
+  await supa.from("agent_tasks").insert({
+    title: `Ingest ${county} County, ${state} (FIPS ${county_fips})`,
+    description: `run_ingest spawned by ${from}. Job ${jobId}, PID ${child.pid}, log: ${logPath}`,
+    assigned_to: from, assigned_by: from,
+    status: "running",
+    metadata: { county_fips, county, state, job_id: jobId, pid: child.pid, kind: "ingest" },
+  });
+
+  return { status: "started", job_id: jobId, pid: child.pid, county, state, log: logPath };
 }
 
 // ── Circuit breaker ──────────────────────────────────────────────────────────
@@ -183,7 +335,25 @@ async function executeRun(run) {
     // 2. ReAct loop (simplified — one iteration to keep this worker tight)
     for (let iter = 0; iter < MAX_ITERS; iter++) {
       const msg = await ollama(agent.model_primary, [
-        { role: "system", content: `${agent.system_prompt}\n\nYou have tools:\n- query_mxre(sql): SELECT against MXRE DB (tables: properties, mortgage_records, hmda_lar, rent_snapshots, listing_signals, entities, entity_relationships)\n- post_message(to, content): message another agent\n- create_task(assigned_to, title, description): assign work\n\nOutput JSON: {"tool":"<name>","args":{...}} or {"done":true,"summary":"..."}\nOne tool call per turn.` },
+        { role: "system", content:
+`${agent.system_prompt}
+
+${MXRE_SCHEMA_DOC}
+
+TOOLS:
+- query_mxre({sql}): SELECT-only against MXRE Postgres. Use the schema above. NEVER invent columns. NEVER use MySQL syntax (DATE_SUB, CURDATE, GETDATE, CONCAT, TOP).
+- post_message({to, content}): message another agent
+- create_task({assigned_to, title, description}): assign work to an agent
+- run_ingest({county_fips, mode?}): spawn the ingest pipeline for a county. county_fips is 5-digit (e.g. "18097" for Marion/Indianapolis). mode "full" (default) or "dry". Use this when a county has missing/stale data. Heads-of-division only.
+
+OUTPUT FORMAT — strict JSON, one tool call per turn:
+{"tool":"<name>","args":{...}}      ← to act
+{"done":true,"summary":"..."}        ← when finished
+
+Rules:
+- If a query returns 0 rows for a county that should have data, BEFORE assuming "no data" check schema (the table column might be wrong) OR call run_ingest to load it.
+- Quote string literals with single quotes in SQL: WHERE state_fips='18'
+- Always LIMIT your queries (≤500 rows) — the DB has 100M+ rows.` },
         { role: "user", content: `Plan: ${plan.content}\n\nIteration ${iter + 1}. What's the next action?` },
       ]);
       totalIn += msg.in; totalOut += msg.out;
@@ -211,6 +381,8 @@ async function executeRun(run) {
         result = await toolPostMessage(run.agent_id, call.args.to, call.args.content, run.id);
       } else if (call.tool === "create_task" && !run.shadow) {
         result = await toolCreateTask(run.agent_id, call.args.assigned_to, call.args.title, call.args.description);
+      } else if (call.tool === "run_ingest" && !run.shadow) {
+        result = await toolRunIngest(run.agent_id, call.args);
       } else if (run.shadow) {
         result = { status: "shadow", would_call: call };
       } else {
