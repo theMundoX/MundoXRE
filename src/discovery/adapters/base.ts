@@ -39,7 +39,20 @@ export interface RawPropertyRecord {
   construction_class?: string;
   improvement_quality?: string;
   land_sqft?: number;
+  lot_acres?: number | string;
   legal_description?: string;
+  subdivision?: string;
+  neighborhood_code?: string;
+  // Owner mailing — for absentee detection
+  mailing_address?: string;
+  mailing_city?: string;
+  mailing_state?: string;
+  mailing_zip?: string;
+  // Asset class signals
+  property_class?: string;
+  property_use?: string;
+  appraised_land?: number;
+  appraised_building?: number;
   assessor_url?: string;
   raw: Record<string, unknown>;
 }

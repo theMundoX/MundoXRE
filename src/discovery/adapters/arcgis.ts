@@ -338,7 +338,20 @@ export class ArcGISAdapter extends AssessorAdapter {
             last_sale_price: toNum(resolveField("last_sale_price", attrs, fieldMap)),
             last_sale_date: toDateStr(resolveField("last_sale_date", attrs, fieldMap)),
             land_sqft: toLandSqft(resolveField("land_sqft", attrs, fieldMap)),
+            lot_acres: resolveField("lot_acres", attrs, fieldMap) as string | number | undefined,
             legal_description: toStr(resolveField("legal_description", attrs, fieldMap)) || undefined,
+            subdivision: toStr(resolveField("subdivision", attrs, fieldMap)) || undefined,
+            neighborhood_code: toStr(resolveField("neighborhood_code", attrs, fieldMap)) || undefined,
+            // Mailing address — absentee owner detection
+            mailing_address: toStr(resolveField("mailing_address", attrs, fieldMap)) || undefined,
+            mailing_city: toStr(resolveField("mailing_city", attrs, fieldMap)) || undefined,
+            mailing_state: toStr(resolveField("mailing_state", attrs, fieldMap)) || undefined,
+            mailing_zip: toStr(resolveField("mailing_zip", attrs, fieldMap)).substring(0, 5) || undefined,
+            // Asset class signals
+            property_class: toStr(resolveField("property_class", attrs, fieldMap)) || undefined,
+            property_use: toStr(resolveField("property_use", attrs, fieldMap)) || undefined,
+            appraised_land: toNum(resolveField("appraised_land", attrs, fieldMap)),
+            appraised_building: toNum(resolveField("appraised_building", attrs, fieldMap)),
             assessor_url: undefined,
             raw: attrs as Record<string, unknown>,
           };

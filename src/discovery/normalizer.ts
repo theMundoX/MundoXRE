@@ -175,9 +175,54 @@ export function normalizeProperty(
     construction_class: raw.construction_class?.trim() || undefined,
     improvement_quality: raw.improvement_quality?.trim() || undefined,
     land_sqft: parseInteger(raw.land_sqft),
+    lot_acres: parseAcreage(raw.lot_acres),
+    legal_description: raw.legal_description?.trim() || undefined,
+    subdivision: raw.subdivision?.trim() || undefined,
+    neighborhood_code: raw.neighborhood_code?.trim() || undefined,
+    // Owner mailing — absentee owner = mailing_address differs from property address.
+    mailing_address: raw.mailing_address?.trim() || undefined,
+    mailing_city: raw.mailing_city?.trim()?.toUpperCase() || undefined,
+    mailing_state: raw.mailing_state?.trim()?.toUpperCase().slice(0, 2) || undefined,
+    mailing_zip: raw.mailing_zip ? extractZip(raw.mailing_zip) : undefined,
+    absentee_owner: detectAbsenteeOwner(raw),
+    corporate_owned: detectCorporateOwner(raw.owner_name),
+    // Asset class
+    property_class: raw.property_class?.trim() || undefined,
+    property_use: raw.property_use?.trim() || undefined,
+    appraised_land: parseDollarAmount(raw.appraised_land),
+    appraised_building: parseDollarAmount(raw.appraised_building),
     assessor_url: raw.assessor_url,
     source: "assessor",
   };
+}
+
+// ─── New helpers for the expanded normalizer ───────────────────────────────
+
+function parseAcreage(v: unknown): number | undefined {
+  if (v == null) return undefined;
+  const n = parseFloat(String(v).replace(/[^\d.\-]/g, ""));
+  return isFinite(n) && n > 0 ? n : undefined;
+}
+
+function detectAbsenteeOwner(raw: RawPropertyRecord): boolean | undefined {
+  // Absentee = owner's mailing address differs from the property address.
+  // We compare on (mailing_zip, mailing_city) vs (zip, city) — if mailing_zip
+  // exists and either differs, the owner doesn't live there.
+  if (!raw.mailing_zip && !raw.mailing_city) return undefined;
+  const propZip = String(raw.zip ?? "").trim().slice(0, 5);
+  const mailZip = String(raw.mailing_zip ?? "").trim().slice(0, 5);
+  if (mailZip && propZip && mailZip !== propZip) return true;
+  const propCity = String(raw.city ?? "").trim().toUpperCase();
+  const mailCity = String(raw.mailing_city ?? "").trim().toUpperCase();
+  if (mailCity && propCity && mailCity !== propCity) return true;
+  return false;
+}
+
+function detectCorporateOwner(name?: string): boolean | undefined {
+  if (!name) return undefined;
+  const n = name.toUpperCase();
+  // Common corp/entity tokens. False positives are fine — used as a weak signal.
+  return /\b(LLC|L\.L\.C\.|INC|CORP|CO\.|COMPANY|TRUST|LP|LLP|LTD|HOLDINGS|PARTNERS|GROUP|LLC\.|FOUNDATION|ESTATE OF|FAMILY TRUST)\b/.test(n);
 }
 
 /**

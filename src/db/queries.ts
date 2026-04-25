@@ -52,8 +52,25 @@ export interface Property {
   improvement_quality?: string;
   total_buildings?: number;
   land_sqft?: number;
+  lot_acres?: number;
   assessor_url?: string;
   source?: string;
+  // Owner mailing address — drives absentee owner detection.
+  mailing_address?: string;
+  mailing_city?: string;
+  mailing_state?: string;
+  mailing_zip?: string;
+  absentee_owner?: boolean;
+  corporate_owned?: boolean;
+  // Asset class signals (Indiana DLGF + similar) — used for filtering and Buy Box scoring.
+  property_class?: string;       // RESIDENTIAL / COMMERCIAL / etc
+  property_use?: string;         // sub-class description, e.g. "RES ONE FAMILY UNPLAT"
+  legal_description?: string;
+  subdivision?: string;
+  neighborhood_code?: string;
+  // Asssesor breakdown
+  appraised_land?: number;
+  appraised_building?: number;
 }
 
 export interface Floorplan {
