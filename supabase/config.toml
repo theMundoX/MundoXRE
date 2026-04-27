@@ -1,0 +1,63 @@
+# Supabase project config for MXRE self-hosted instance (Contabo VPS).
+# Deploy Edge Functions: supabase functions deploy <name> --project-ref <ref>
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[edge_runtime]
+enabled = true
+
+# MXRE Edge Functions — all deployed to the MXRE self-hosted Supabase project.
+# Required env vars (set via: supabase secrets set --project-ref <ref>):
+#   MXRE_PG_URL                  — postgres-meta endpoint on VPS
+#   MXRE_SUPABASE_SERVICE_KEY    — service role key for MXRE self-hosted instance
+#   SUPABASE_URL                 — MXRE project URL (for JWT verification)
+#   SUPABASE_ANON_KEY            — MXRE anon key (for JWT verification)
+#   SUPABASE_SERVICE_ROLE_KEY    — service role key (for deal-scorer, ryder, event-bus)
+
+[functions.property-lookup]
+verify_jwt = false  # JWT verified manually in handler via requireAuth()
+
+[functions.mxre-stats]
+verify_jwt = false  # JWT verified manually in handler via requireAuth()
+
+[functions.mxre-event-bus]
+verify_jwt = false  # Called server-to-server with service key
+
+[functions.deal-scorer]
+verify_jwt = false  # Called by pg_cron / service key
+
+[functions.ryder-command-center]
+verify_jwt = false  # Called by dashboard with service key
+
+[functions.backtest-run]
+verify_jwt = false  # Called by agent runner with service key
