@@ -193,7 +193,7 @@ async function main() {
         market_value: marketValue,
         assessed_value: assessedValue,
         year_built: yearBuilt,
-        living_sqft: livingSqft,
+        total_sqft: livingSqft,
         last_sale_price: parseNum(f.SALE_PRICE),
         last_sale_date: parseDate(f.SALE_DATE),
         property_type: classifyZoning(f.CITY_ZONING as string | null),

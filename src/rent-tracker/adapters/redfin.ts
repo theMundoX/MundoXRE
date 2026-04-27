@@ -1,12 +1,9 @@
 /**
- * Rent Tracker -- Redfin adapter. Uses Redfin's public stingray CSV download API.
+ * Rent Tracker -- Redfin adapter. Uses Redfin's public stingray JSON search API.
  *
- * Strategy: Hit the /stingray/api/gis-csv endpoint which returns active listings
- * as CSV. This is the same endpoint that powers Redfin's "Download All" button.
- * No browser needed -- plain HTTP fetch.
- *
- * To resolve a ZIP code to a Redfin region_id, we hit their location-autocomplete
- * endpoint first.
+ * Strategy: Hit /stingray/api/gis which returns active listings as JSON.
+ * This is the same endpoint the Redfin map view uses — plain HTTP fetch, no browser.
+ * The JSON API is not soft-blocked like gis-csv; it works with normal headers.
  *
  * Legal safeguards:
  *   - Public API endpoint (no login, no CAPTCHA bypass)
@@ -22,6 +19,7 @@ import { getStealthConfig } from "../../utils/stealth.js";
 const REDFIN_BASE = "https://www.redfin.com";
 const LISTING_CACHE_TTL = 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 3;
+const PAGE_SIZE = 350; // Redfin max per page
 
 // ─── HTTP Helpers ─────────────────────────────────────────────────
 
@@ -29,12 +27,10 @@ function getHeaders(): Record<string, string> {
   const stealth = getStealthConfig();
   return {
     "User-Agent": stealth.userAgent,
-    "Accept": "text/csv,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept": "application/json, text/javascript, */*; q=0.01",
     "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.redfin.com/",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "same-origin",
+    "Referer": `${REDFIN_BASE}/`,
+    "X-Requested-With": "XMLHttpRequest",
   };
 }
 
@@ -42,19 +38,80 @@ function getHeaders(): Record<string, string> {
 
 interface RegionResult {
   id: string;
-  type: number; // 2=city, 6=zip, etc.
+  type: number;
   name: string;
 }
 
-/**
- * Resolve a ZIP code or city+state to a Redfin region_id by fetching
- * the search page and extracting region info from the embedded HTML.
- *
- * Redfin's autocomplete endpoint blocks non-browser requests (403),
- * but the actual search pages embed region_id in their internal URLs.
- */
+// Direct region_id lookup for major cities — bypasses HTML scraping.
+// region_type 6 = city in Redfin's gis API.
+const CITY_REGION_DIRECT: Record<string, { id: string; type: number }> = {
+  "indianapolis,IN": { id: "9170",  type: 6 },
+  "chicago,IL":      { id: "29470", type: 6 },
+  "dallas,TX":       { id: "30794", type: 6 },
+  "houston,TX":      { id: "25473", type: 6 },
+  "austin,TX":       { id: "30818", type: 6 },
+  "phoenix,AZ":      { id: "14804", type: 6 },
+  "seattle,WA":      { id: "16163", type: 6 },
+  "miami,FL":        { id: "10182", type: 6 },
+  "tampa,FL":        { id: "10623", type: 6 },
+  "orlando,FL":      { id: "10288", type: 6 },
+  "columbus,OH":     { id: "12181", type: 6 },
+  "cincinnati,OH":   { id: "11948", type: 6 },
+  "cleveland,OH":    { id: "11958", type: 6 },
+  "fort worth,TX":   { id: "30836", type: 6 },
+  "san antonio,TX":  { id: "30856", type: 6 },
+};
+
+// Internal Redfin region_id per ZIP for cities that exceed the 350-per-region cap.
+// Keys are "city,STATE"; values map ZIP → Redfin internal region_id (region_type=2).
+// Resolved once via /zipcode/{zip} HTML scrape; hardcoded here to avoid repeated fetches.
+const CITY_ZIP_REGIONS: Record<string, Record<string, string>> = {
+  "indianapolis,IN": {
+    "46107":"19442","46201":"19500","46202":"19501","46203":"19502","46204":"19503",
+    "46205":"19504","46208":"19507","46214":"19510","46216":"19511","46217":"19512",
+    "46218":"19513","46219":"19514","46220":"19515","46221":"19516","46222":"19517",
+    "46224":"19519","46225":"19520","46226":"19521","46227":"19522","46228":"19523",
+    "46229":"19524","46231":"19526","46234":"19527","46235":"19528","46236":"19529",
+    "46237":"19530","46239":"19531","46240":"19532","46241":"19533","46250":"19538",
+    "46254":"19541","46256":"19543","46259":"19544","46260":"19545","46268":"19547",
+    "46278":"19551","46280":"19552",
+  },
+};
+
+const CITY_ZIP_FALLBACK: Record<string, string> = {
+  "indianapolis,IN": "46222",
+  "chicago,IL":      "60601",
+  "dallas,TX":       "75201",
+  "fort worth,TX":   "76102",
+  "houston,TX":      "77002",
+  "san antonio,TX":  "78201",
+  "austin,TX":       "78701",
+  "oklahoma city,OK":"73102",
+  "tulsa,OK":        "74103",
+  "miami,FL":        "33101",
+  "orlando,FL":      "32801",
+  "tampa,FL":        "33601",
+  "jacksonville,FL": "32202",
+  "phoenix,AZ":      "85001",
+  "columbus,OH":     "43215",
+  "cincinnati,OH":   "45202",
+  "cleveland,OH":    "44113",
+  "seattle,WA":      "98101",
+  "los angeles,CA":  "90001",
+  "new york,NY":     "10001",
+};
+
 async function resolveRegionId(area: ListingSearchArea): Promise<RegionResult | null> {
-  // Build the page URL
+  if (area.city && area.state && !area.zip) {
+    const key = `${area.city.toLowerCase()},${area.state.toUpperCase()}`;
+    const direct = CITY_REGION_DIRECT[key];
+    if (direct) {
+      const label = `${area.city}, ${area.state}`;
+      console.log(`  Redfin: direct region lookup "${label}" -> region_id=${direct.id}`);
+      return { id: direct.id, type: direct.type, name: label };
+    }
+  }
+
   let pageUrl: string;
   let label: string;
   if (area.zip) {
@@ -75,18 +132,19 @@ async function resolveRegionId(area: ListingSearchArea): Promise<RegionResult | 
     });
 
     if (!resp.ok) {
+      if (resp.status === 404 && !area.zip && area.city && area.state) {
+        console.log(`  Redfin city page 404 for "${label}" — retrying via ZIP lookup`);
+        const zipFallback = CITY_ZIP_FALLBACK[`${area.city.toLowerCase()},${area.state.toUpperCase()}`];
+        if (zipFallback) return resolveRegionId({ ...area, zip: zipFallback });
+      }
       console.log(`  Redfin page HTTP ${resp.status} for "${label}"`);
       return null;
     }
 
     const html = await resp.text();
 
-    // Strategy 1: Look for region_id in stingray API URLs embedded in the page.
-    // Pattern: region_id=NNNNN&region_type=N
-    // We want the one with region_type=2 (city) since that returns CSV data.
     const regionPairs = html.match(/region_id[=:](\d+).*?region_type[=:](\d+)/g);
     if (regionPairs) {
-      // Collect all unique region_id + region_type pairs
       const seen = new Map<string, { id: string; type: number }>();
       for (const pair of regionPairs) {
         const idMatch = pair.match(/region_id[=:](\d+)/);
@@ -94,208 +152,137 @@ async function resolveRegionId(area: ListingSearchArea): Promise<RegionResult | 
         if (idMatch && typeMatch) {
           const id = idMatch[1];
           const type = parseInt(typeMatch[1], 10);
-          const key = `${id}:${type}`;
-          if (!seen.has(key)) {
-            seen.set(key, { id, type });
-          }
+          seen.set(`${id}:${type}`, { id, type });
         }
       }
-
-      // Prefer type=2 (city-level) as it returns actual CSV data.
-      // If ZIP search, the ZIP's own id with type=2 sometimes returns empty,
-      // so prefer the non-ZIP numeric id with type=2.
       for (const [, entry] of seen) {
-        if (entry.type === 2 && entry.id !== area.zip) {
-          return { id: entry.id, type: entry.type, name: label };
-        }
+        if (entry.type === 6) return { id: entry.id, type: entry.type, name: label };
       }
-      // Fallback: any type=2
-      for (const [, entry] of seen) {
-        if (entry.type === 2) {
-          return { id: entry.id, type: entry.type, name: label };
-        }
-      }
-      // Fallback: any type=6 (zip)
-      for (const [, entry] of seen) {
-        if (entry.type === 6) {
-          return { id: entry.id, type: entry.type, name: label };
-        }
-      }
-      // Last resort: first entry
       const first = seen.values().next().value;
-      if (first) {
-        return { id: first.id, type: first.type, name: label };
-      }
+      if (first) return { id: first.id, type: first.type, name: label };
     }
 
-    // Strategy 2: Look for regionId in JavaScript data
     const regionIdMatch = html.match(/regionId[\"':\s=]+(\d{3,})/);
-    if (regionIdMatch) {
-      return { id: regionIdMatch[1], type: 2, name: label };
-    }
+    if (regionIdMatch) return { id: regionIdMatch[1], type: 6, name: label };
 
     console.log(`  Redfin: could not find region_id in page for "${label}"`);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown";
-    console.log(`  Redfin page fetch error for "${label}": ${msg}`);
+    console.log(`  Redfin page fetch error for "${label}": ${err instanceof Error ? err.message : "Unknown"}`);
   }
 
   return null;
 }
 
-// ─── CSV Download ─────────────────────────────────────────────────
+// ─── JSON API ─────────────────────────────────────────────────────
 
-function buildCsvUrl(regionId: string, regionType: number): string {
+interface RedfinHome {
+  mlsId?: { value?: string };
+  mlsStatus?: string;
+  price?: { value?: number };
+  sqFt?: { value?: number };
+  lotSize?: { value?: number };
+  beds?: number;
+  baths?: number;
+  yearBuilt?: { value?: number };
+  dom?: { value?: number };
+  streetLine?: { value?: string };
+  city?: string;
+  state?: string;
+  zip?: string;
+  propertyType?: number;
+  url?: string;
+  latLong?: { value?: { latitude?: number; longitude?: number } };
+  propertyId?: number;
+  listingId?: number;
+}
+
+interface RedfinGisResponse {
+  payload?: {
+    homes?: RedfinHome[];
+  };
+}
+
+function buildGisUrl(regionId: string, regionType: number, page: number): string {
   const params = new URLSearchParams({
     al: "1",
-    market: "ohio", // This param is loosely used by Redfin; any value works
-    num_homes: "350",
+    num_homes: String(PAGE_SIZE),
     ord: "redfin-recommended-asc",
-    page_number: "1",
+    page_number: String(page),
     region_id: regionId,
     region_type: String(regionType),
     sf: "1,2,3,5,6,7",
-    status: "9", // active listings
+    status: "9",
     uipt: "1,2,3,4,5,6,7,8",
     v: "8",
   });
-
-  return `${REDFIN_BASE}/stingray/api/gis-csv?${params.toString()}`;
+  return `${REDFIN_BASE}/stingray/api/gis?${params.toString()}`;
 }
 
-interface CsvRow {
-  [key: string]: string;
-}
+async function fetchGisPage(regionId: string, regionType: number, page: number): Promise<RedfinHome[]> {
+  const url = buildGisUrl(regionId, regionType, page);
+  const resp = await fetch(url, {
+    headers: getHeaders(),
+    signal: AbortSignal.timeout(30_000),
+  });
 
-/**
- * Parse a CSV string into an array of objects keyed by header names.
- * Skips Redfin's disclaimer line that starts with a quoted string.
- */
-function parseCsv(csv: string): CsvRow[] {
-  const lines = csv.split("\n").filter((l) => l.trim());
-  if (lines.length < 2) return [];
-
-  const headers = parseCSVLine(lines[0]);
-  const rows: CsvRow[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-
-    // Skip Redfin's MLS disclaimer line (starts with a quoted string that
-    // doesn't match the expected number of columns)
-    if (line.startsWith('"In accordance') || line.startsWith('"Some MLS')) {
-      continue;
+  if (!resp.ok) {
+    if (resp.status === 403 || resp.status === 429) {
+      backoffDomain(REDFIN_BASE);
+      throw new Error(`HTTP ${resp.status} — rate limited`);
     }
-
-    const values = parseCSVLine(line);
-    if (values.length !== headers.length) continue;
-
-    const row: CsvRow = {};
-    for (let j = 0; j < headers.length; j++) {
-      row[headers[j].trim()] = values[j].trim();
-    }
-    rows.push(row);
+    throw new Error(`HTTP ${resp.status}`);
   }
 
-  return rows;
+  const text = await resp.text();
+  // Redfin JSON APIs return "{}&&" XSSI prefix
+  const json = text.replace(/^\{\}&&/, "");
+  const data: RedfinGisResponse = JSON.parse(json);
+  return data.payload?.homes ?? [];
 }
 
-/**
- * Parse a single CSV line, handling quoted fields with commas.
- */
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
+// ─── Home → OnMarketRecord mapping ────────────────────────────────
 
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++; // skip escaped quote
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result;
-}
+const PROPERTY_TYPE_MAP: Record<number, string> = {
+  1: "Single Family",
+  2: "Condo",
+  3: "Townhouse",
+  4: "Multi-Family",
+  5: "Land",
+  6: "Other",
+  8: "Mobile",
+};
 
-/**
- * Map Redfin CSV column names to our internal field names.
- * Redfin CSV headers (uppercase): SALE TYPE, SOLD DATE, PROPERTY TYPE, ADDRESS,
- * CITY, STATE OR PROVINCE, ZIP OR POSTAL CODE, PRICE, BEDS, BATHS, LOCATION,
- * SQUARE FEET, LOT SIZE, YEAR BUILT, DAYS ON MARKET, $/SQUARE FEET, HOA/MONTH,
- * STATUS, NEXT OPEN HOUSE START TIME, NEXT OPEN HOUSE END TIME, URL (SEE https://www.redfin.com/buy-a-home/comparative-market-analysis FOR INFO ON PRICING),
- * SOURCE, MLS#, FAVORITE, INTERESTED, LATITUDE, LONGITUDE
- */
-function csvRowToListing(row: CsvRow, state: string): OnMarketRecord | null {
-  const address = row["ADDRESS"];
-  const city = row["CITY"];
+function homeToRecord(home: RedfinHome, state: string): OnMarketRecord | null {
+  const address = home.streetLine?.value;
+  const city = home.city;
   if (!address || !city) return null;
-
-  const priceStr = row["PRICE"]?.replace(/[$,]/g, "");
-  const price = priceStr ? parseFloat(priceStr) : undefined;
-  const sqftStr = row["SQUARE FEET"]?.replace(/,/g, "");
-  const sqft = sqftStr ? parseFloat(sqftStr) : undefined;
-  const lotStr = row["LOT SIZE"]?.replace(/,/g, "");
-  const lotSqft = lotStr ? parseFloat(lotStr) : undefined;
-  const yearStr = row["YEAR BUILT"];
-  const yearBuilt = yearStr ? parseInt(yearStr, 10) : undefined;
-  const domStr = row["DAYS ON MARKET"];
-  const daysOnMarket = domStr ? parseInt(domStr, 10) : undefined;
-  const bedsStr = row["BEDS"];
-  const beds = bedsStr ? parseFloat(bedsStr) : undefined;
-  const bathsStr = row["BATHS"];
-  const baths = bathsStr ? parseFloat(bathsStr) : undefined;
-
-  // The URL column has a very long header name; find any key containing "URL"
-  let listingUrl: string | undefined;
-  for (const key of Object.keys(row)) {
-    if (key.startsWith("URL")) {
-      listingUrl = row[key] || undefined;
-      break;
-    }
-  }
-
-  // Extract listing agent and brokerage from SOURCE field if present
-  // Redfin CSV SOURCE format is typically "Redfin" or the brokerage/MLS
-  const source = row["SOURCE"] || undefined;
 
   return {
     address,
     city,
-    state: row["STATE OR PROVINCE"] || state,
-    zip: row["ZIP OR POSTAL CODE"] || "",
+    state: home.state || state,
+    zip: home.zip || "",
     is_on_market: true,
-    mls_list_price: price && price > 0 ? price : undefined,
-    listing_agent_name: undefined, // CSV doesn't include agent name
-    listing_brokerage: source,
+    mls_list_price: home.price?.value && home.price.value > 0 ? home.price.value : undefined,
+    listing_agent_name: undefined,
+    listing_brokerage: undefined,
     listing_source: "redfin",
-    listing_url: listingUrl,
-    days_on_market: daysOnMarket && !isNaN(daysOnMarket) ? daysOnMarket : undefined,
-    property_type: row["PROPERTY TYPE"] || undefined,
-    beds: beds && !isNaN(beds) ? beds : undefined,
-    baths: baths && !isNaN(baths) ? baths : undefined,
-    sqft: sqft && !isNaN(sqft) ? sqft : undefined,
-    lot_sqft: lotSqft && !isNaN(lotSqft) ? lotSqft : undefined,
-    year_built: yearBuilt && !isNaN(yearBuilt) ? yearBuilt : undefined,
+    listing_url: home.url ? `${REDFIN_BASE}${home.url}` : undefined,
+    days_on_market: home.dom?.value ?? undefined,
+    property_type: home.propertyType != null ? PROPERTY_TYPE_MAP[home.propertyType] : undefined,
+    beds: home.beds ?? undefined,
+    baths: home.baths ?? undefined,
+    sqft: home.sqFt?.value ?? undefined,
+    lot_sqft: home.lotSize?.value ?? undefined,
+    year_built: home.yearBuilt?.value ?? undefined,
     observed_at: new Date().toISOString(),
     raw: {
-      mlsNumber: row["MLS#"] || undefined,
-      saleType: row["SALE TYPE"] || undefined,
-      status: row["STATUS"] || undefined,
-      latitude: row["LATITUDE"] || undefined,
-      longitude: row["LONGITUDE"] || undefined,
-      hoaPerMonth: row["HOA/MONTH"] || undefined,
-      pricePerSqft: row["$/SQUARE FEET"] || undefined,
+      mlsNumber: home.mlsId?.value,
+      mlsStatus: home.mlsStatus,
+      propertyId: home.propertyId,
+      listingId: home.listingId,
+      latitude: home.latLong?.value?.latitude,
+      longitude: home.latLong?.value?.longitude,
     },
   };
 }
@@ -342,8 +329,8 @@ export class RedfinListingAdapter extends ListingAdapter {
       started_at: new Date(),
     };
 
-    // Check cache first
-    const cacheKey = `redfin:csv:${areaLabel}`;
+    // Check cache
+    const cacheKey = `redfin:gis:${areaLabel}`;
     const cached = getCached(cacheKey, LISTING_CACHE_TTL);
     if (cached) {
       const records = JSON.parse(cached) as OnMarketRecord[];
@@ -356,89 +343,74 @@ export class RedfinListingAdapter extends ListingAdapter {
       return;
     }
 
-    // Step 1: Resolve the search area to a Redfin region_id
-    const query = area.zip ?? `${area.city}, ${area.state}`;
-
-    console.log(`  Redfin: resolving region for "${query}"...`);
+    // Step 1: Resolve region
+    console.log(`  Redfin: resolving region for "${areaLabel}"...`);
     await waitForListingSlot(REDFIN_BASE);
 
     const region = await resolveRegionId(area);
     if (!region) {
-      console.log(`  Redfin: could not resolve region for "${query}" — skipping`);
+      console.log(`  Redfin: could not resolve region for "${areaLabel}" — skipping`);
       progress.errors++;
       onProgress?.(progress);
       return;
     }
 
-    console.log(`  Redfin: resolved "${query}" -> region_id=${region.id} type=${region.type} (${region.name})`);
+    console.log(`  Redfin: resolved "${areaLabel}" -> region_id=${region.id} type=${region.type}`);
 
-    // Step 2: Download CSV
-    const csvUrl = buildCsvUrl(region.id, region.type);
-    console.log(`  Redfin: downloading CSV from gis-csv endpoint...`);
-    await waitForListingSlot(REDFIN_BASE);
+    // Step 2: Fetch listings — use ZIP-by-ZIP sweep for cities with known ZIP lists
+    // to overcome the 350-per-region API cap.
+    const cityKey = area.city && area.state
+      ? `${area.city.toLowerCase()},${area.state.toUpperCase()}`
+      : null;
+    const zipRegionMap = cityKey ? CITY_ZIP_REGIONS[cityKey] : null;
 
-    let csvText: string;
-    try {
-      csvText = await withRetry(async () => {
-        const resp = await fetch(csvUrl, {
-          headers: getHeaders(),
-          signal: AbortSignal.timeout(30_000),
-        });
+    const allRecords: OnMarketRecord[] = [];
+    const seenIds = new Set<number>();
 
-        if (!resp.ok) {
-          if (resp.status === 403 || resp.status === 429) {
-            backoffDomain(REDFIN_BASE);
-            throw new Error(`HTTP ${resp.status} — rate limited or blocked`);
-          }
-          throw new Error(`HTTP ${resp.status}`);
-        }
-
+    const fetchRegion = async (regionId: string, regionType: number, label: string): Promise<RedfinHome[]> => {
+      await waitForListingSlot(REDFIN_BASE);
+      try {
+        const homes = await withRetry(() => fetchGisPage(regionId, regionType, 1), `redfin-gis:${label}`);
         resetDomainRate(REDFIN_BASE);
-        return await resp.text();
-      }, `redfin-csv:${areaLabel}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown";
-      console.log(`  Redfin CSV download failed: ${msg}`);
-      progress.errors++;
-      onProgress?.(progress);
-      return;
-    }
-
-    // Step 3: Parse CSV into records
-    const rows = parseCsv(csvText);
-    console.log(`  Redfin: parsed ${rows.length} rows from CSV`);
-
-    if (rows.length === 0) {
-      console.log(`  Redfin: CSV was empty or unparseable`);
-      // Log first 500 chars of response for debugging
-      if (csvText.length > 0) {
-        console.log(`  Response preview: ${csvText.substring(0, 500)}`);
+        return homes;
+      } catch (err) {
+        console.log(`  Redfin gis fetch failed (${label}): ${err instanceof Error ? err.message : "Unknown"}`);
+        progress.errors++;
+        return [];
       }
-      progress.errors++;
-      onProgress?.(progress);
-      return;
+    };
+
+    const regions: Array<{ id: string; type: number; label: string }> = zipRegionMap
+      ? Object.entries(zipRegionMap).map(([zip, id]) => ({ id, type: 2, label: zip }))
+      : [{ id: region.id, type: region.type, label: areaLabel }];
+
+    if (zipRegionMap) {
+      console.log(`  Redfin: sweeping ${regions.length} ZIPs for ${areaLabel}...`);
     }
 
-    const records: OnMarketRecord[] = [];
-
-    for (const row of rows) {
-      const record = csvRowToListing(row, area.state);
-      if (!record) continue;
-
-      records.push(record);
-      progress.total_found++;
-      progress.total_processed++;
-      yield record;
+    for (const r of regions) {
+      const homes = await fetchRegion(r.id, r.type, r.label);
+      for (const home of homes) {
+        if (home.propertyId && seenIds.has(home.propertyId)) continue;
+        if (home.propertyId) seenIds.add(home.propertyId);
+        const record = homeToRecord(home, area.state);
+        if (!record) continue;
+        allRecords.push(record);
+        progress.total_found++;
+        progress.total_processed++;
+        yield record;
+      }
     }
 
-    // Cache results
-    if (records.length > 0) {
-      setCache(cacheKey, JSON.stringify(records));
+    if (zipRegionMap) {
+      console.log(`  Redfin: ZIP sweep complete — ${allRecords.length} unique listings`);
+    }
+
+    if (allRecords.length > 0) {
+      setCache(cacheKey, JSON.stringify(allRecords));
     }
 
     onProgress?.(progress);
-    console.log(
-      `  Redfin ${areaLabel}: ${progress.total_found} found, ${progress.total_processed} processed, ${progress.errors} errors`,
-    );
+    console.log(`  Redfin ${areaLabel}: ${progress.total_found} found, ${progress.errors} errors`);
   }
 }

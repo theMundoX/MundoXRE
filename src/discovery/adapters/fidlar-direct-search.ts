@@ -131,17 +131,109 @@ export class FidlarDirectSearchAdapter {
     startDate: string,
     endDate: string,
   ): Promise<DirectSearchResponse> {
-    const resp = await fetch(webApiBase + "breeze/Search", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({ docType, startDate, endDate }),
-      signal: AbortSignal.timeout(60000),
-    });
-    if (!resp.ok) throw new Error(`Search failed: HTTP ${resp.status}`);
-    return resp.json() as Promise<DirectSearchResponse>;
+    return this.searchWithRetry(webApiBase, token, { docType, startDate, endDate });
+  }
+
+  private async searchWithRetry(
+    webApiBase: string,
+    token: string,
+    body: Record<string, string>,
+    retries = 3,
+  ): Promise<DirectSearchResponse> {
+    const delays = [0, 15_000, 45_000]; // immediate, 15s, 45s
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      if (attempt > 0) {
+        const delay = delays[Math.min(attempt - 1, delays.length - 1)];
+        await new Promise(r => setTimeout(r, delay));
+        // Refresh token on retry — the server may have invalidated our session
+        try {
+          token = await this.getToken(webApiBase, webApiBase);
+        } catch { /* ignore token refresh errors */ }
+      }
+      try {
+        const resp = await fetch(webApiBase + "breeze/Search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(60000),
+        });
+        if (!resp.ok) throw new Error(`Search failed: HTTP ${resp.status}`);
+        return resp.json() as Promise<DirectSearchResponse>;
+      } catch (err: any) {
+        if (attempt === retries) throw err;
+        // Network-level error (fetch failed, ECONNRESET) — retry after delay
+      }
+    }
+    throw new Error("Search failed after all retries");
+  }
+
+  private async searchByBusinessName(
+    webApiBase: string,
+    token: string,
+    businessName: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<DirectSearchResponse> {
+    const body: Record<string, string> = { LastBusinessName: businessName };
+    if (startDate) body["StartDate"] = startDate;
+    if (endDate)   body["EndDate"]   = endDate;
+    return this.searchWithRetry(webApiBase, token, body);
+  }
+
+  /**
+   * Fetch all recorded documents for a specific business entity name.
+   * The anonymous cap (200) applies per request, so large entities (>200 docs)
+   * are split by year until each window fits within the cap.
+   */
+  async *fetchByBusinessName(
+    config: DirectSearchCountyConfig,
+    businessName: string,
+    fromYear = 2000,
+    toYear = new Date().getFullYear(),
+  ): AsyncGenerator<RecorderDocument> {
+    const webApiBase = await this.resolveApiBase(config);
+    const token = await this.getToken(webApiBase, config.base_url);
+
+    for (let year = fromYear; year <= toYear; year++) {
+      const startDate = `${year}-01-01`;
+      const endDate   = `${year}-12-31`;
+      let data: DirectSearchResponse;
+      try {
+        data = await this.searchByBusinessName(webApiBase, token, businessName, startDate, endDate);
+      } catch (err: any) {
+        console.error(`  [by-name] ${businessName} ${year}: ${err.message?.slice(0, 80)}`);
+        continue;
+      }
+
+      const total    = data.TotalResults ?? 0;
+      const viewable = data.ViewableResults ?? 0;
+      if (total === 0) continue;
+
+      if (total > ANON_CAP && total > viewable) {
+        // Split into quarters for high-volume entities
+        const quarters = [
+          [`${year}-01-01`, `${year}-03-31`],
+          [`${year}-04-01`, `${year}-06-30`],
+          [`${year}-07-01`, `${year}-09-30`],
+          [`${year}-10-01`, `${year}-12-31`],
+        ];
+        for (const [qStart, qEnd] of quarters) {
+          let qData: DirectSearchResponse;
+          try {
+            qData = await this.searchByBusinessName(webApiBase, token, businessName, qStart, qEnd);
+          } catch { continue; }
+          for (const raw of qData.DocResults ?? []) {
+            const doc = this.mapDoc(raw, config.base_url);
+            if (doc) yield doc;
+          }
+        }
+      } else {
+        for (const raw of data.DocResults ?? []) {
+          const doc = this.mapDoc(raw, config.base_url);
+          if (doc) yield doc;
+        }
+      }
+    }
   }
 
   /**
@@ -359,6 +451,7 @@ export const DIRECT_SEARCH_COUNTIES: DirectSearchCountyDef[] = [
     base_url: "https://inallen.fidlar.com/INAllen/DirectSearch/",
     county_id: 0,
     // NOTE: ~175-260 docs/day; many days under 200 cap = near-complete coverage.
+    // Back-fill: npx tsx scripts/ingest-indiana-recorder.ts --county=Allen --from=2008-01-01 --to=2025-12-31
   },
   {
     county_name: "St. Joseph",
@@ -367,6 +460,7 @@ export const DIRECT_SEARCH_COUNTIES: DirectSearchCountyDef[] = [
     county_fips: "141",
     base_url: "https://instjoseph.fidlar.com/INStJoseph/DirectSearch/",
     county_id: 0,
+    // Back-fill: npx tsx scripts/ingest-indiana-recorder.ts --county=St.+Joseph --from=2008-01-01 --to=2025-12-31
   },
   {
     county_name: "Porter",
@@ -375,6 +469,7 @@ export const DIRECT_SEARCH_COUNTIES: DirectSearchCountyDef[] = [
     county_fips: "127",
     base_url: "https://inporter.fidlar.com/INPorter/DirectSearch/",
     county_id: 0,
+    // Back-fill: npx tsx scripts/ingest-indiana-recorder.ts --county=Porter --from=2008-01-01 --to=2025-12-31
   },
   // Floyd County (043): DirectSearch platform confirmed but anonymous search
   // returns ResultAction=2 (pay-per-search). Added to paid access list.

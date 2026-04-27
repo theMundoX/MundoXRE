@@ -261,6 +261,276 @@ async function toolRunIngest(from, args) {
   return { status: "started", job_id: jobId, pid: child.pid, county, state, log: logPath };
 }
 
+// run_enrich — fill missing owner/value/property_use for a county from its
+// public GIS/assessor source. Currently handles Marion County (18097) via
+// xmaps.indy.gov ArcGIS. Additional counties can be added as new scripts land.
+async function toolRunEnrich(from, args) {
+  const { county_fips, source } = args ?? {};
+  if (!county_fips) throw new Error("run_enrich requires county_fips");
+
+  const ENRICH_SCRIPTS = {
+    "18097": { script: "scripts/enrich-marion-arcgis.ts", extra: source ? [`--source=${source}`] : [] },
+  };
+
+  const cfg = ENRICH_SCRIPTS[county_fips];
+  if (!cfg) return { status: "unsupported", reason: `No enrichment script for FIPS ${county_fips}` };
+
+  const active = [...ingestJobs.values()].filter(j => j.status === "running").length;
+  if (active >= INGEST_CONCURRENCY) return { status: "rejected", reason: "at concurrency cap" };
+
+  const jobId = `enrich-${county_fips}-${Date.now().toString(36)}`;
+  const logPath = path.join(INGEST_LOG_DIR, `${jobId}.log`);
+  const logFd = fs.openSync(logPath, "a");
+
+  const child = spawn("npx", ["tsx", cfg.script, ...cfg.extra], {
+    cwd: process.cwd(), detached: false,
+    stdio: ["ignore", logFd, logFd], env: process.env, shell: true,
+  });
+  child.on("error", (err) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = "failed"; job.spawn_error = err.message; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+  });
+  ingestJobs.set(jobId, { pid: child.pid, status: "running", fips: county_fips, started: Date.now(), log: logPath, started_by: from });
+  child.on("exit", (code) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = code === 0 ? "succeeded" : "failed"; job.exit_code = code; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+    console.log(`  • enrich job ${jobId} exited code ${code}`);
+  });
+
+  await supa.from("agent_tasks").insert({
+    title: `Enrich properties for FIPS ${county_fips}`,
+    description: `run_enrich spawned by ${from}. Job ${jobId}, log: ${logPath}`,
+    assigned_to: from, assigned_by: from, status: "running",
+    metadata: { county_fips, job_id: jobId, pid: child.pid, kind: "enrich" },
+  });
+
+  return { status: "started", job_id: jobId, pid: child.pid, log: logPath };
+}
+
+// run_refresh — refresh market-rate rent baselines (ACS, HUD FMR/SAFMR) for
+// a state. Keeps the rent estimate cards in the UI current.
+// type: "acs" | "hud" | "all" (default "all")
+// states: comma-separated 2-letter abbreviations, e.g. "IN,OH"
+async function toolRunRefresh(from, args) {
+  const { type = "all", states } = args ?? {};
+  if (!states) throw new Error("run_refresh requires states (e.g. 'IN' or 'IN,OH')");
+
+  const active = [...ingestJobs.values()].filter(j => j.status === "running").length;
+  if (active >= INGEST_CONCURRENCY) return { status: "rejected", reason: "at concurrency cap" };
+
+  const jobs = [];
+
+  const spawnRefresh = (label, scriptArgs) => {
+    const jobId = `refresh-${label}-${Date.now().toString(36)}`;
+    const logPath = path.join(INGEST_LOG_DIR, `${jobId}.log`);
+    const logFd = fs.openSync(logPath, "a");
+    const child = spawn("npx", ["tsx", ...scriptArgs], {
+      cwd: process.cwd(), detached: false,
+      stdio: ["ignore", logFd, logFd], env: process.env, shell: true,
+    });
+    child.on("error", (err) => {
+      const job = ingestJobs.get(jobId);
+      if (job) { job.status = "failed"; job.spawn_error = err.message; job.finished = Date.now(); }
+      try { fs.closeSync(logFd); } catch {}
+    });
+    ingestJobs.set(jobId, { pid: child.pid, status: "running", started: Date.now(), log: logPath, started_by: from });
+    child.on("exit", (code) => {
+      const job = ingestJobs.get(jobId);
+      if (job) { job.status = code === 0 ? "succeeded" : "failed"; job.exit_code = code; job.finished = Date.now(); }
+      try { fs.closeSync(logFd); } catch {}
+      console.log(`  • refresh job ${jobId} exited code ${code}`);
+    });
+    jobs.push({ job_id: jobId, pid: child.pid, log: logPath });
+    return jobId;
+  };
+
+  if (type === "acs" || type === "all") {
+    spawnRefresh(`acs-${states}`, ["scripts/ingest-rent-baselines-acs.ts", `--states=${states}`]);
+  }
+  if (type === "hud" || type === "all") {
+    spawnRefresh(`hud-${states}`, ["scripts/ingest-hud-fmr.ts", `--states=${states}`]);
+  }
+
+  await supa.from("agent_tasks").insert({
+    title: `Refresh rent baselines — ${type.toUpperCase()} — ${states}`,
+    description: `run_refresh spawned by ${from}. ${jobs.length} job(s).`,
+    assigned_to: from, assigned_by: from, status: "running",
+    metadata: { type, states, jobs, kind: "refresh" },
+  });
+
+  return { status: "started", jobs };
+}
+
+// run_sdf — ingest Indiana DLGF Sales Disclosure Form deed transfer records.
+// Downloads bulk ZIP(s) from stats.indiana.edu and upserts into mortgage_records
+// as document_type='deed'. Covers all 92 Indiana counties.
+// args: { state="IN", from_year?, to_year?, county? }
+//   state: 2-letter code (only "IN" supported today; future-proof)
+//   from_year / to_year: default current year for routine updates; 2008-2025 for back-fill
+//   county: optional county name filter (default: all counties in state)
+async function toolRunSdf(from, args) {
+  const { state = "IN", from_year, to_year, county } = args ?? {};
+
+  const active = [...ingestJobs.values()].filter(j => j.status === "running").length;
+  if (active >= INGEST_CONCURRENCY) return { status: "rejected", reason: "at concurrency cap" };
+
+  const jobId = `sdf-${state}-${Date.now().toString(36)}`;
+  const logPath = path.join(INGEST_LOG_DIR, `${jobId}.log`);
+  const logFd = fs.openSync(logPath, "a");
+
+  const scriptArgs = ["tsx", "scripts/ingest-dlgf-sdf.ts"];
+  if (!county) scriptArgs.push("--all-counties");
+  else scriptArgs.push(`--county=${county}`);
+  if (from_year) scriptArgs.push(`--from-year=${from_year}`);
+  if (to_year)   scriptArgs.push(`--to-year=${to_year}`);
+
+  const child = spawn("npx", scriptArgs, { stdio: ["ignore", logFd, logFd], cwd: process.cwd() });
+  child.on("error", (err) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = "failed"; job.spawn_error = err.message; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+  });
+  ingestJobs.set(jobId, { pid: child.pid, status: "running", state, started: Date.now(), log: logPath, started_by: from });
+  child.on("exit", (code) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = code === 0 ? "succeeded" : "failed"; job.exit_code = code; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+  });
+
+  await supa.from("agent_tasks").insert({
+    title: `DLGF SDF deed ingest — ${state}${county ? ` / ${county}` : " / all counties"}${from_year ? ` (${from_year}–${to_year ?? "present"})` : ""}`,
+    description: `run_sdf spawned by ${from}. Job ${jobId}, log: ${logPath}`,
+    assigned_to: from, assigned_by: from, status: "running",
+    metadata: { state, from_year, to_year, county, job_id: jobId, pid: child.pid, kind: "sdf" },
+  });
+
+  return { status: "started", job_id: jobId, pid: child.pid, log: logPath };
+}
+
+// run_investor_liens — search Fidlar DirectSearch by business name for every
+// corporate-owned Marion County property. Fills mortgage/lien history gaps that
+// the 200-result date-range cap leaves behind. No cost. Runs incrementally.
+// args: { limit?, from_year?, to_year?, name? }
+async function toolRunInvestorLiens(from, args) {
+  const { limit, from_year, to_year, name } = args ?? {};
+
+  const active = [...ingestJobs.values()].filter(j => j.status === "running").length;
+  if (active >= INGEST_CONCURRENCY) return { status: "rejected", reason: "at concurrency cap" };
+
+  const jobId = `investor-liens-${Date.now().toString(36)}`;
+  const logPath = path.join(INGEST_LOG_DIR, `${jobId}.log`);
+  const logFd = fs.openSync(logPath, "a");
+
+  const scriptArgs = ["tsx", "scripts/fidlar-investor-lien-search.ts"];
+  if (limit)     scriptArgs.push(`--limit=${limit}`);
+  if (from_year) scriptArgs.push(`--from-year=${from_year}`);
+  if (to_year)   scriptArgs.push(`--to-year=${to_year}`);
+  if (name)      scriptArgs.push(`--name=${name}`);
+
+  const child = spawn("npx", scriptArgs, { stdio: ["ignore", logFd, logFd], cwd: process.cwd() });
+  child.on("error", (err) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = "failed"; job.spawn_error = err.message; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+  });
+  ingestJobs.set(jobId, { pid: child.pid, status: "running", started: Date.now(), log: logPath, started_by: from });
+  child.on("exit", (code) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = code === 0 ? "succeeded" : "failed"; job.exit_code = code; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+  });
+
+  await supa.from("agent_tasks").insert({
+    title: `Fidlar investor lien back-fill — Marion County${name ? ` / ${name}` : ""}`,
+    description: `run_investor_liens spawned by ${from}. Job ${jobId}, log: ${logPath}`,
+    assigned_to: from, assigned_by: from, status: "running",
+    metadata: { limit, from_year, to_year, name, job_id: jobId, pid: child.pid, kind: "investor_liens" },
+  });
+
+  return { status: "started", job_id: jobId, pid: child.pid, log: logPath };
+}
+
+// run_hmda — ingest CFPB HMDA mortgage origination data for one or more states.
+// Free, no auth. Populates hmda_originations table with census-tract-level stats
+// (lender market share, loan volumes, FHA/VA/conventional mix, investment %).
+// args: { states?, from_year?, to_year? }
+//   states: comma-separated 2-letter codes (default "IN")
+async function toolRunHmda(from, args) {
+  const { states = "IN", from_year, to_year } = args ?? {};
+
+  const active = [...ingestJobs.values()].filter(j => j.status === "running").length;
+  if (active >= INGEST_CONCURRENCY) return { status: "rejected", reason: "at concurrency cap" };
+
+  const jobId = `hmda-${states.replace(/,/g, "-")}-${Date.now().toString(36)}`;
+  const logPath = path.join(INGEST_LOG_DIR, `${jobId}.log`);
+  const logFd = fs.openSync(logPath, "a");
+
+  const scriptArgs = ["tsx", "scripts/ingest-hmda.ts", `--states=${states}`];
+  if (from_year) scriptArgs.push(`--from-year=${from_year}`);
+  if (to_year)   scriptArgs.push(`--to-year=${to_year}`);
+
+  const child = spawn("npx", scriptArgs, { stdio: ["ignore", logFd, logFd], cwd: process.cwd() });
+  child.on("error", (err) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = "failed"; job.spawn_error = err.message; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+  });
+  ingestJobs.set(jobId, { pid: child.pid, status: "running", started: Date.now(), log: logPath, started_by: from });
+  child.on("exit", (code) => {
+    const job = ingestJobs.get(jobId);
+    if (job) { job.status = code === 0 ? "succeeded" : "failed"; job.exit_code = code; job.finished = Date.now(); }
+    try { fs.closeSync(logFd); } catch {}
+  });
+
+  await supa.from("agent_tasks").insert({
+    title: `HMDA originations ingest — ${states}${from_year ? ` (${from_year}–${to_year ?? "present"})` : ""}`,
+    description: `run_hmda spawned by ${from}. Job ${jobId}, log: ${logPath}`,
+    assigned_to: from, assigned_by: from, status: "running",
+    metadata: { states, from_year, to_year, job_id: jobId, pid: child.pid, kind: "hmda" },
+  });
+
+  return { status: "started", job_id: jobId, pid: child.pid, log: logPath };
+}
+
+// ── Nightly data freshness schedule ─────────────────────────────────────────
+// Runs without any agent needing to ask. Keeps rent baselines and Marion
+// enrichment current. Fires once per day around 2am local time.
+
+let lastNightlyRun = null;
+
+function scheduleNightly() {
+  setInterval(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    const dateStr = now.toDateString();
+    if (hour === 2 && lastNightlyRun !== dateStr) {
+      lastNightlyRun = dateStr;
+      console.log(`[nightly] starting scheduled refresh at ${now.toISOString()}`);
+      // Refresh Indiana rent baselines (ACS + HUD)
+      toolRunRefresh("system:scheduler", { type: "all", states: "IN" })
+        .then(r => console.log("[nightly] refresh jobs started:", JSON.stringify(r)))
+        .catch(e => console.error("[nightly] refresh error:", e.message));
+      // Re-enrich Marion County (picks up any new parcels with null owner_name)
+      toolRunEnrich("system:scheduler", { county_fips: "18097" })
+        .then(r => console.log("[nightly] enrich job started:", JSON.stringify(r)))
+        .catch(e => console.error("[nightly] enrich error:", e.message));
+      // Nightly investor lien back-fill: searches new corporate owners added since last run
+      toolRunInvestorLiens("system:scheduler", {})
+        .then(r => console.log("[nightly] investor liens started:", JSON.stringify(r)))
+        .catch(e => console.error("[nightly] investor liens error:", e.message));
+      // Weekly SDF update: re-ingest current year every Friday (DLGF refreshes Fridays 10am)
+      if (now.getDay() === 5) {
+        const curYear = now.getFullYear();
+        toolRunSdf("system:scheduler", { state: "IN", from_year: curYear, to_year: curYear })
+          .then(r => console.log("[nightly] SDF update started:", JSON.stringify(r)))
+          .catch(e => console.error("[nightly] SDF error:", e.message));
+      }
+    }
+  }, 60_000); // check every minute
+}
+
 // ── Circuit breaker ──────────────────────────────────────────────────────────
 
 async function checkBreaker(agent_id) {
@@ -407,6 +677,11 @@ TOOLS:
 - post_message({to, content}): message another agent
 - create_task({assigned_to, title, description}): assign work to an agent
 - run_ingest({county_fips, mode?}): spawn the ingest pipeline for a county. county_fips is 5-digit (e.g. "18097" for Marion/Indianapolis). mode "full" (default) or "dry". Use this when a county has missing/stale data. Heads-of-division only.
+- run_enrich({county_fips, source?}): fill missing owner_name/market_value/property_use for a county from its public GIS source. Currently supports "18097" (Marion). source optionally filters to "in-data-harvest-parcels" or "assessor".
+- run_refresh({states, type?}): refresh rent baselines (ACS + HUD FMR/SAFMR) for one or more states. states is comma-separated (e.g. "IN" or "IN,OH"). type "acs" | "hud" | "all" (default "all"). Use when rent estimate cards look stale.
+- run_sdf({state, from_year?, to_year?, county?}): ingest Indiana DLGF Sales Disclosure Form deed transfer records for all counties. state="IN". Omit from_year/to_year for current year only (routine weekly update). Pass from_year=2008, to_year=2025 for full historical back-fill. Runs in background; takes 2-4 hours for full back-fill.
+- run_investor_liens({limit?, from_year?, to_year?, name?}): search Fidlar DirectSearch by business name for all corporate-owned Marion County properties — fills mortgage/lien history gaps that the 200/day cap leaves. Free. Incremental (skips already-ingested docs). name= targets a single entity for spot lookups.
+- run_hmda({states?, from_year?, to_year?}): ingest CFPB HMDA mortgage origination data into hmda_originations. Free, nationwide. Powers census-tract analytics (lender market share, loan volumes, FHA/VA/conventional mix). states defaults to "IN". HMDA has no property address so records are tract-level, not parcel-level.
 
 OUTPUT FORMAT — strict JSON, one tool call per turn:
 {"tool":"<name>","args":{...}}      ← to act
@@ -444,6 +719,16 @@ Rules:
         result = await toolCreateTask(run.agent_id, call.args.assigned_to, call.args.title, call.args.description);
       } else if (call.tool === "run_ingest" && !run.shadow) {
         result = await toolRunIngest(run.agent_id, call.args);
+      } else if (call.tool === "run_enrich" && !run.shadow) {
+        result = await toolRunEnrich(run.agent_id, call.args);
+      } else if (call.tool === "run_refresh" && !run.shadow) {
+        result = await toolRunRefresh(run.agent_id, call.args);
+      } else if (call.tool === "run_sdf" && !run.shadow) {
+        result = await toolRunSdf(run.agent_id, call.args);
+      } else if (call.tool === "run_investor_liens" && !run.shadow) {
+        result = await toolRunInvestorLiens(run.agent_id, call.args);
+      } else if (call.tool === "run_hmda" && !run.shadow) {
+        result = await toolRunHmda(run.agent_id, call.args);
       } else if (run.shadow) {
         result = { status: "shadow", would_call: call };
       } else {
@@ -506,6 +791,10 @@ async function main() {
   // Poll every 30s as a safety net
   setInterval(pollPending, 30_000);
   pollPending();
+
+  // Nightly data freshness schedule
+  scheduleNightly();
+  console.log("Nightly schedule active — rent baselines + Marion enrich will run at 2am.");
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

@@ -10,7 +10,7 @@ const db = getDb();
 
 // ── Auth middleware (skip for /health) ────────────────────────
 app.use('*', async (c, next) => {
-  if (c.req.path === '/health' || c.req.path === '/') return next();
+  if (c.req.path === '/health' || c.req.path === '/' || c.req.path === '/dashboard') return next();
 
   const apiKey = c.req.header('x-api-key');
   const expected = process.env.MXRE_API_KEY;
@@ -278,6 +278,336 @@ app.get('/v1/property/:id', async (c) => {
     return c.json({ error: 'Invalid property ID' }, 400);
   }
   return fetchAndRespond(c, id);
+});
+
+// ── Coverage / Analytics (no auth — internal dashboard use) ──
+
+// Coverage cache — recomputed in background every 10 minutes
+let coverageCache: Record<string, unknown> | null = null;
+let coverageCacheTime = 0;
+let coverageRefreshing = false;
+const COVERAGE_TTL_MS = 10 * 60 * 1000;
+
+async function buildCoverage(): Promise<Record<string, unknown>> {
+  const ALL_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+
+  // Use estimated row counts from pg_stat_user_tables — returns instantly, accurate within ~1%
+  const { data: statRows } = await db.rpc('get_table_counts' as any);
+
+  // Fallback: if RPC not available, use fast approximate counts via explain
+  let totalProps = 0, totalMortgages = 0, totalRents = 0, totalListings = 0;
+  if (statRows) {
+    for (const r of statRows as any[]) {
+      if (r.tablename === 'properties') totalProps = r.row_count;
+      if (r.tablename === 'mortgage_records') totalMortgages = r.row_count;
+      if (r.tablename === 'rent_snapshots') totalRents = r.row_count;
+      if (r.tablename === 'listing_signals') totalListings = r.row_count;
+    }
+  } else {
+    // Direct count — slow but correct
+    const [a, b, c, d] = await Promise.all([
+      db.from('properties').select('*', { count: 'exact', head: true }),
+      db.from('mortgage_records').select('*', { count: 'exact', head: true }),
+      db.from('rent_snapshots').select('*', { count: 'exact', head: true }),
+      db.from('listing_signals').select('*', { count: 'exact', head: true }),
+    ]);
+    totalProps = a.count ?? 0;
+    totalMortgages = b.count ?? 0;
+    totalRents = c.count ?? 0;
+    totalListings = d.count ?? 0;
+  }
+
+  // State coverage via counties table (fast — counties table is small)
+  const { data: countyRows } = await db.from('counties').select('id, state_code').eq('active', true);
+  const stateToCountyIds: Record<string, number[]> = {};
+  for (const row of countyRows ?? []) {
+    const { state_code, id } = row as any;
+    if (!stateToCountyIds[state_code]) stateToCountyIds[state_code] = [];
+    stateToCountyIds[state_code].push(id);
+  }
+
+  // Count per state — run sequentially to avoid overwhelming DB
+  const stateCounts: Record<string, number> = {};
+  for (const [state, countyIds] of Object.entries(stateToCountyIds)) {
+    const { count } = await db.from('properties')
+      .select('*', { count: 'exact', head: true })
+      .in('county_id', countyIds);
+    stateCounts[state] = count ?? 0;
+  }
+
+  const [{ data: lastWrite }, { data: lastMortgage }] = await Promise.all([
+    db.from('properties').select('created_at').order('created_at', { ascending: false }).limit(1),
+    db.from('mortgage_records').select('recording_date').order('recording_date', { ascending: false }).limit(1),
+  ]);
+
+  const covered = ALL_STATES.filter(s => (stateCounts[s] ?? 0) > 0).sort();
+  const missing = ALL_STATES.filter(s => (stateCounts[s] ?? 0) === 0).sort();
+  const topStates = Object.entries(stateCounts)
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([state, count]) => ({ state, count }));
+
+  return {
+    generated_at: new Date().toISOString(),
+    cache_note: 'Refreshes every 10 minutes',
+    totals: { properties: totalProps, mortgage_records: totalMortgages, rent_snapshots: totalRents, listing_signals: totalListings },
+    coverage: {
+      states_with_data: covered.length,
+      states_missing: missing.length,
+      covered_states: covered,
+      missing_states: missing,
+      coverage_pct: `${((covered.length / ALL_STATES.length) * 100).toFixed(1)}%`,
+    },
+    top_states: topStates,
+    freshness: {
+      last_property_write: (lastWrite?.[0] as any)?.created_at ?? null,
+      last_mortgage_recording: (lastMortgage?.[0] as any)?.recording_date ?? null,
+    },
+  };
+}
+
+// Kick off initial cache build on startup
+setTimeout(() => {
+  coverageRefreshing = true;
+  buildCoverage()
+    .then(r => { coverageCache = r; coverageCacheTime = Date.now(); })
+    .catch(e => console.error('Coverage cache build failed:', e.message))
+    .finally(() => { coverageRefreshing = false; });
+}, 2000);
+
+app.get('/v1/coverage', async (c) => {
+  // Return cached version instantly if fresh
+  if (coverageCache && Date.now() - coverageCacheTime < COVERAGE_TTL_MS) {
+    return c.json(coverageCache);
+  }
+
+  // If cache is stale and not already refreshing, kick off background refresh
+  if (!coverageRefreshing) {
+    coverageRefreshing = true;
+    buildCoverage()
+      .then(r => { coverageCache = r; coverageCacheTime = Date.now(); })
+      .catch(e => console.error('Coverage refresh failed:', e.message))
+      .finally(() => { coverageRefreshing = false; });
+  }
+
+  // Return stale cache if available while refresh runs, or a pending response
+  if (coverageCache) {
+    return c.json({ ...coverageCache, cache_note: 'Stale — refresh in progress' });
+  }
+
+  return c.json({ status: 'building', message: 'Coverage data is being compiled (~2 min). Refresh in a moment.' }, 202);
+});
+
+// ── Ingest status (reads supervisor logs) ─────────────────────
+
+app.get('/v1/ingest-status', async (c) => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+
+  const logsDir = path.join(process.cwd(), 'logs');
+  const logFiles = [
+    { name: 'statewide-parcels', file: 'statewide-parcels.log' },
+    { name: 'fidlar-liens', file: 'fidlar-fast.log' },
+    { name: 'supervisor-parcels', file: 'supervisor.log' },
+    { name: 'supervisor-liens', file: 'supervisor-liens.log' },
+    { name: 'failures', file: 'state-failures.log' },
+  ];
+
+  const status: Record<string, any> = {};
+
+  for (const { name, file } of logFiles) {
+    const filePath = path.join(logsDir, file);
+    try {
+      const stat = fs.statSync(filePath);
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.trim().split('\n');
+      const lastLines = lines.slice(-10).join('\n');
+
+      // Extract latest progress line
+      const progressMatch = content.match(/Offset: ([\d,]+) \/ ([\d,]+) \(([0-9.]+)%\)/g);
+      const latestProgress = progressMatch ? progressMatch[progressMatch.length - 1] : null;
+
+      // Count failures
+      const failureCount = (content.match(/FAIL/g) ?? []).length;
+
+      status[name] = {
+        last_modified: stat.mtime.toISOString(),
+        size_kb: Math.round(stat.size / 1024),
+        failure_count: failureCount,
+        latest_progress: latestProgress,
+        tail: lastLines,
+      };
+    } catch {
+      status[name] = { error: 'Log not found' };
+    }
+  }
+
+  return c.json({ generated_at: new Date().toISOString(), logs: status });
+});
+
+// ── Live Dashboard ────────────────────────────────────────────
+
+app.get('/dashboard', async (c) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MXRE Data Intelligence Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0a0f1e; color: #e2e8f0; min-height: 100vh; }
+  .header { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #38bdf8; letter-spacing: -0.5px; }
+  .header .subtitle { font-size: 13px; color: #64748b; margin-top: 2px; }
+  .badge { background: #064e3b; color: #34d399; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding: 24px 32px; }
+  .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; }
+  .card h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; margin-bottom: 10px; }
+  .big-num { font-size: 32px; font-weight: 800; color: #f1f5f9; line-height: 1; }
+  .sub { font-size: 12px; color: #64748b; margin-top: 6px; }
+  .green { color: #4ade80; }
+  .yellow { color: #fbbf24; }
+  .red { color: #f87171; }
+  .section { padding: 0 32px 24px; }
+  .section h2 { font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid #1e293b; }
+  td { padding: 9px 12px; font-size: 13px; border-bottom: 1px solid #0f172a; }
+  tr:hover td { background: #0f172a; }
+  .bar-wrap { background: #1e293b; border-radius: 4px; height: 6px; width: 120px; display: inline-block; vertical-align: middle; }
+  .bar { background: #38bdf8; height: 6px; border-radius: 4px; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+  .tag.ok { background: #064e3b; color: #34d399; }
+  .tag.missing { background: #450a0a; color: #f87171; }
+  .tag.partial { background: #451a03; color: #fbbf24; }
+  .states-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .state-chip { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 5px; }
+  .state-chip.has { background: #0c2a1a; color: #4ade80; border: 1px solid #166534; }
+  .state-chip.no { background: #1c0a0a; color: #ef4444; border: 1px solid #7f1d1d; }
+  .refresh-btn { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .refresh-btn:hover { background: #334155; color: #e2e8f0; }
+  #last-updated { font-size: 11px; color: #475569; margin-top: 4px; }
+  pre { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 14px; font-size: 11px; color: #94a3b8; overflow-x: auto; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>MXRE · Data Intelligence Dashboard</h1>
+    <div class="subtitle">Mundo X Venture Studio · Property Data Layer</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="last-updated"></span>
+    <button class="refresh-btn" onclick="load()">↻ Refresh</button>
+    <span class="badge">LIVE</span>
+  </div>
+</div>
+
+<div class="grid" id="totals-grid">
+  <div class="card"><h3>Properties</h3><div class="big-num" id="total-props">—</div><div class="sub" id="prop-sub"></div></div>
+  <div class="card"><h3>Mortgages & Liens</h3><div class="big-num" id="total-mort">—</div><div class="sub" id="mort-sub"></div></div>
+  <div class="card"><h3>Rent Records</h3><div class="big-num" id="total-rent">—</div><div class="sub" id="rent-sub"></div></div>
+  <div class="card"><h3>Listing Signals</h3><div class="big-num" id="total-list">—</div><div class="sub" id="list-sub"></div></div>
+  <div class="card"><h3>State Coverage</h3><div class="big-num" id="cov-pct">—</div><div class="sub" id="cov-sub"></div></div>
+</div>
+
+<div class="section">
+  <h2>Top States by Property Count</h2>
+  <table>
+    <tr><th>State</th><th>Properties</th><th>Share</th><th></th></tr>
+    <tbody id="top-states-body"></tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>State Coverage Map</h2>
+  <div class="states-grid" id="states-grid"></div>
+</div>
+
+<div class="section">
+  <h2>Ingest Pipeline Status</h2>
+  <div id="ingest-status"></div>
+</div>
+
+<script>
+function fmt(n) { return n?.toLocaleString('en-US') ?? '—'; }
+
+async function load() {
+  document.getElementById('last-updated').textContent = 'Loading...';
+  try {
+    const [cov, ing] = await Promise.all([
+      fetch('/v1/coverage', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
+      fetch('/v1/ingest-status', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
+    ]);
+
+    // Totals
+    document.getElementById('total-props').textContent = fmt(cov.totals.properties);
+    document.getElementById('prop-sub').textContent = 'Last write: ' + (cov.freshness.last_property_write ? new Date(cov.freshness.last_property_write).toLocaleString() : 'unknown');
+    document.getElementById('total-mort').textContent = fmt(cov.totals.mortgage_records);
+    document.getElementById('mort-sub').textContent = 'Last recorded: ' + (cov.freshness.last_mortgage_recording ?? 'unknown');
+    document.getElementById('total-rent').textContent = fmt(cov.totals.rent_snapshots);
+    document.getElementById('rent-sub').textContent = 'Actual + statistical';
+    document.getElementById('total-list').textContent = fmt(cov.totals.listing_signals);
+    document.getElementById('list-sub').textContent = 'On-market signals';
+
+    // Coverage
+    document.getElementById('cov-pct').textContent = cov.coverage.coverage_pct;
+    document.getElementById('cov-sub').innerHTML = '<span class="green">' + cov.coverage.states_with_data + ' states</span> covered · <span class="red">' + cov.coverage.states_missing + ' missing</span>';
+
+    // Top states
+    const total = cov.totals.properties;
+    const tbody = document.getElementById('top-states-body');
+    tbody.innerHTML = '';
+    for (const { state, count } of (cov.top_states ?? [])) {
+      const pct = total > 0 ? (count / total * 100).toFixed(1) : 0;
+      const barW = Math.round(pct * 1.2);
+      tbody.innerHTML += \`<tr>
+        <td><strong>\${state}</strong></td>
+        <td>\${fmt(count)}</td>
+        <td>\${pct}%</td>
+        <td><span class="bar-wrap"><span class="bar" style="width:\${Math.min(barW,100)}%"></span></span></td>
+      </tr>\`;
+    }
+
+    // State chips
+    const grid = document.getElementById('states-grid');
+    const allStates = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+    grid.innerHTML = allStates.map(s => {
+      const has = (cov.coverage.covered_states ?? []).includes(s);
+      return \`<span class="state-chip \${has ? 'has' : 'no'}">\${s}</span>\`;
+    }).join('');
+
+    // Ingest status
+    const ingDiv = document.getElementById('ingest-status');
+    ingDiv.innerHTML = '';
+    for (const [name, info] of Object.entries(ing.logs ?? {})) {
+      if (info.error) {
+        ingDiv.innerHTML += \`<div class="card" style="margin-bottom:12px"><h3>\${name}</h3><span class="tag missing">No log</span></div>\`;
+        continue;
+      }
+      const d = info;
+      const stale = d.last_modified ? (Date.now() - new Date(d.last_modified).getTime()) > 3600000 : true;
+      ingDiv.innerHTML += \`<div class="card" style="margin-bottom:12px">
+        <h3>\${name} <span class="tag \${stale ? 'missing' : 'ok'}" style="margin-left:8px">\${stale ? 'STALE' : 'ACTIVE'}</span></h3>
+        <div style="font-size:12px;color:#64748b;margin:6px 0">Modified: \${d.last_modified ? new Date(d.last_modified).toLocaleString() : '—'} · \${d.size_kb}KB · \${d.failure_count} failures</div>
+        \${d.latest_progress ? \`<div style="font-size:12px;color:#38bdf8;margin-bottom:8px">\${d.latest_progress}</div>\` : ''}
+        <pre>\${d.tail ?? ''}</pre>
+      </div>\`;
+    }
+
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('last-updated').textContent = 'Error: ' + e.message;
+  }
+}
+
+load();
+setInterval(load, 60000); // auto-refresh every 60s
+</script>
+</body>
+</html>`);
 });
 
 // ── Helpers ──────────────────────────────────────────────────

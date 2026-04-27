@@ -1,0 +1,14 @@
+{
+  "all": [
+    {
+      "county_id": 814638,
+      "county_name": "Otter Tail",
+      "state_code": "MN",
+      "slug": "mnottertail",
+      "base_url": "https://mnottertail.fidlar.com/Mnottertail/DirectSearch/",
+      "web_api_base": "https://mnottertail.fidlar.com/MNOtterTail/Scrap.WebService.DirectSearch/",
+      "anonymous_access": false
+    }
+  ],
+  "free": []
+}
