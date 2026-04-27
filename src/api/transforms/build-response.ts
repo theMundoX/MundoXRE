@@ -114,6 +114,24 @@ export function buildPropertyResponse(
     source: (s.source as string) ?? 'unknown',
   }));
 
+  if (salesMapped.length === 0 && (p.last_sale_price != null || p.last_sale_date != null)) {
+    salesMapped.push({
+      saleDate: (p.last_sale_date as string) ?? null,
+      recordingDate: (p.last_sale_date as string) ?? '',
+      saleAmount: (p.last_sale_price as number) ?? null,
+      documentType: 'Assessor last sale',
+      documentNumber: null,
+      bookPage: null,
+      buyerNames: '',
+      sellerNames: '',
+      armsLength: null,
+      purchaseMethod: null,
+      downPayment: null,
+      ltv: null,
+      source: (p.source as string) ?? 'assessor',
+    });
+  }
+
   // Demographics / FMR
   const fmr: FMRData | null = demographics ? {
     efficiency: (demographics.fmr_0 as number) ?? null,

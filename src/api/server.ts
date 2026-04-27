@@ -800,9 +800,7 @@ async function assembleResponse(c: Context, property: Record<string, unknown>) {
     db.from('sale_history').select('*').eq('property_id', id).order('recording_date', { ascending: false }).limit(20),
     db.from('mls_history').select('*').eq('property_id', id).order('status_date', { ascending: false }).limit(20),
     db.from('foreclosures').select('*').eq('property_id', id).limit(10),
-    property.zip
-      ? db.from('zip_demographics').select('fmr_0,fmr_1,fmr_2,fmr_3,fmr_4,fmr_year,hud_area_name,median_income').eq('zip', property.zip as string).single()
-      : Promise.resolve({ data: null, error: null }),
+    fetchRentBaselineDemographics(property, countyData),
   ]);
 
   // Listing signals: fall back to address+state match if property_id lookup is empty
@@ -831,6 +829,58 @@ async function assembleResponse(c: Context, property: Record<string, unknown>) {
   );
 
   return c.json(response);
+}
+
+async function fetchRentBaselineDemographics(
+  property: Record<string, unknown>,
+  countyData: Record<string, unknown>,
+): Promise<{ data: Record<string, unknown> | null; error: unknown | null }> {
+  const zip = String(property.zip ?? '').slice(0, 5);
+  const stateFips = String(countyData.state_fips ?? '');
+  const countyFips = String(countyData.county_fips ?? '');
+  const fullCountyFips = countyFips.length === 5 ? countyFips : `${stateFips}${countyFips}`;
+
+  const buildFmr = (rows: Array<Record<string, unknown>>): Record<string, unknown> | null => {
+    if (rows.length === 0) return null;
+
+    const byBedroom = new Map<number, Record<string, unknown>>();
+    for (const row of rows) {
+      if (typeof row.bedrooms === 'number') byBedroom.set(row.bedrooms, row);
+    }
+    const year = Math.max(...rows.map((row) => Number(row.vintage_year ?? 0)));
+
+    return {
+      fmr_0: byBedroom.get(0)?.median_rent ?? null,
+      fmr_1: byBedroom.get(1)?.median_rent ?? null,
+      fmr_2: byBedroom.get(2)?.median_rent ?? null,
+      fmr_3: byBedroom.get(3)?.median_rent ?? null,
+      fmr_4: byBedroom.get(4)?.median_rent ?? null,
+      fmr_year: year || null,
+      hud_area_name: rows[0]?.geography_type === 'zip' ? `ZIP ${rows[0].geography_id}` : `County ${rows[0]?.geography_id}`,
+      median_income: null,
+      source: rows[0]?.source ?? 'rent_baselines',
+    };
+  };
+
+  if (zip) {
+    const { data, error } = await db.from('rent_baselines')
+      .select('source,geography_type,geography_id,bedrooms,median_rent,vintage_year')
+      .eq('geography_type', 'zip')
+      .eq('geography_id', zip)
+      .order('vintage_year', { ascending: false });
+    if (!error && data && data.length > 0) return { data: buildFmr(data as Array<Record<string, unknown>>), error: null };
+  }
+
+  if (fullCountyFips.length === 5) {
+    const { data, error } = await db.from('rent_baselines')
+      .select('source,geography_type,geography_id,bedrooms,median_rent,vintage_year')
+      .eq('geography_type', 'county')
+      .eq('geography_id', fullCountyFips)
+      .order('vintage_year', { ascending: false });
+    if (!error && data && data.length > 0) return { data: buildFmr(data as Array<Record<string, unknown>>), error: null };
+  }
+
+  return { data: null, error: null };
 }
 
 // ── Start server ─────────────────────────────────────────────
