@@ -71,6 +71,12 @@ export interface Property {
   // Asssesor breakdown
   appraised_land?: number;
   appraised_building?: number;
+  // Unit details (residential)
+  bedrooms?: number;
+  bathrooms?: number;
+  // Tax / lien
+  annual_tax?: number;
+  lien_status?: string;
 }
 
 export interface Floorplan {

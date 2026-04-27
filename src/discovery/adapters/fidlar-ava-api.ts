@@ -38,7 +38,7 @@ export class FidlarAvaApiAdapter {
       body: "grant_type=password&username=anonymous&password=anonymous",
     });
     if (!resp.ok) throw new Error(`Token failed: ${resp.status}`);
-    const data = await resp.json();
+    const data = await resp.json() as any;
     return data.access_token;
   }
 
@@ -145,7 +145,7 @@ export class FidlarAvaApiAdapter {
           continue;
         }
 
-        const data = await resp.json();
+        const data = await resp.json() as any;
         progress.total_found += data.TotalResults || 0;
         yield* this.processResults(data, config, progress);
       } catch (err) {
