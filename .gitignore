@@ -11,3 +11,16 @@ Thumbs.db
 .idea/
 *.dmp
 worker.err
+
+# Large data files — all source data lives in Supabase, not git
+data/
+*.csv
+*.tsv
+*.dbf
+*.shp
+*.shx
+*.prj
+*.cpg
+*.zip
+*.gz
+*.tar

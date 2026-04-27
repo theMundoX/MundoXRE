@@ -88,7 +88,7 @@ while true; do
 
   # After each full round, run the address match
   echo "  Running address match..." | tee -a "$LOG"
-  ssh -i /tmp/mxre_db_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 root@207.244.225.239 \
+  ssh -i /tmp/mxre_db_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 root@${DB_HOST:?DB_HOST must be set} \
     'docker exec supabase-db psql -U postgres -d postgres -c "UPDATE listing_signals ls SET property_id = p.id FROM properties p JOIN counties c ON c.id = p.county_id WHERE ls.property_id IS NULL AND ls.state_code = c.state_code AND UPPER(TRIM(ls.city)) = UPPER(TRIM(p.city)) AND UPPER(TRIM(ls.address)) = UPPER(TRIM(p.address));"' \
     >> "$LOG" 2>&1 || echo "  Address match failed (non-fatal)" | tee -a "$LOG"
 

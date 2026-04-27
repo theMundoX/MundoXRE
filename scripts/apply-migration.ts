@@ -15,9 +15,11 @@ const { Client } = pg;
 
 // Self-hosted Supabase uses Supavisor on port 5432 which requires "user.tenant" format.
 // Try direct Postgres on 5432 first, then fallback to Supavisor format.
+const DB_HOST = process.env.DB_HOST || (() => { throw new Error("DB_HOST not set"); })();
+
 const client = new Client({
-  host: "207.244.225.239",
-  port: 5432,
+  host: DB_HOST,
+  port: parseInt(process.env.DB_PORT ?? "5432", 10),
   database: "postgres",
   user: "postgres.postgres",
   password: process.env.POSTGRES_PASSWORD || (() => { throw new Error("POSTGRES_PASSWORD not set"); })(),
@@ -61,7 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_mort_amount_type
 
 async function main() {
   console.log("Applying mortgage_records migration...");
-  console.log(`Host: 207.244.225.239:5432`);
+  console.log(`Host: ${DB_HOST}:${process.env.DB_PORT ?? "5432"}`);
 
   await client.connect();
   console.log("Connected to Postgres.");
