@@ -114,8 +114,38 @@ export function buildPropertyResponse(
     source: (s.source as string) ?? 'unknown',
   }));
 
-  if (salesMapped.length === 0 && (p.last_sale_price != null || p.last_sale_date != null)) {
-    salesMapped.push({
+  const saleKey = (sale: SaleRecord) => [
+    sale.documentNumber ?? '',
+    sale.recordingDate ?? '',
+    sale.saleAmount ?? '',
+  ].join('|');
+  const seenSales = new Set(salesMapped.map(saleKey));
+
+  for (const deed of mortgages.filter(isSaleDocument)) {
+    const sale: SaleRecord = {
+      saleDate: (deed.recording_date as string) ?? null,
+      recordingDate: (deed.recording_date as string) ?? '',
+      saleAmount: (deed.original_amount as number) ?? (deed.loan_amount as number) ?? null,
+      documentType: (deed.document_type as string) ?? 'deed',
+      documentNumber: (deed.document_number as string) ?? null,
+      bookPage: (deed.book_page as string) ?? null,
+      buyerNames: (deed.lender_name as string) ?? (deed.grantee_name as string) ?? '',
+      sellerNames: (deed.borrower_name as string) ?? '',
+      armsLength: null,
+      purchaseMethod: null,
+      downPayment: null,
+      ltv: null,
+      source: (deed.source_url as string) ?? 'recorder',
+    };
+    const key = saleKey(sale);
+    if (!seenSales.has(key)) {
+      salesMapped.push(sale);
+      seenSales.add(key);
+    }
+  }
+
+  if (p.last_sale_price != null || p.last_sale_date != null) {
+    const sale: SaleRecord = {
       saleDate: (p.last_sale_date as string) ?? null,
       recordingDate: (p.last_sale_date as string) ?? '',
       saleAmount: (p.last_sale_price as number) ?? null,
@@ -129,8 +159,12 @@ export function buildPropertyResponse(
       downPayment: null,
       ltv: null,
       source: (p.source as string) ?? 'assessor',
-    });
+    };
+    const key = saleKey(sale);
+    if (!seenSales.has(key)) salesMapped.push(sale);
   }
+
+  salesMapped.sort((a, b) => (b.recordingDate || '').localeCompare(a.recordingDate || ''));
 
   // Demographics / FMR
   const fmr: FMRData | null = demographics ? {
@@ -319,6 +353,11 @@ function mapMarketStatus(status: string | null): MXREPropertyResponse['market'][
   if (lower.includes('sold') || lower.includes('closed')) return 'sold';
   if (lower.includes('cancel') || lower.includes('withdrawn') || lower.includes('expired')) return 'cancelled';
   return 'off_market';
+}
+
+function isSaleDocument(row: Row): boolean {
+  const type = String(row.document_type ?? '').toLowerCase();
+  return type.includes('deed') && !type.includes('trust') && !type.includes('release') && !type.includes('satisfaction');
 }
 
 function buildMeta(
