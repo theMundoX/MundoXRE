@@ -1,114 +1,108 @@
 #!/usr/bin/env tsx
 /**
- * Apply mortgage_records migration directly via pg client.
- * Adds:
- *   - legal_description TEXT
- *   - raw JSONB
- *   - rate_source TEXT CHECK (estimated|recorded)
- *   - Unique index on (document_number, county_fips) for upsert dedup
- *   - Index on county_fips for linking queries
+ * Apply mortgage_records migration via pg-meta HTTP API.
+ * Uses the same MXRE_PG_URL + MXRE_SUPABASE_SERVICE_KEY that all
+ * production code uses — no direct Postgres password needed.
  */
 import "dotenv/config";
-import pg from "pg";
 
-const { Client } = pg;
+const PG_URL = process.env.MXRE_PG_URL || process.env.SUPABASE_URL && `${process.env.SUPABASE_URL}/pg/query` || "";
+const SVC_KEY = process.env.MXRE_SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY || "";
 
-// Self-hosted Supabase uses Supavisor on port 5432 which requires "user.tenant" format.
-// Try direct Postgres on 5432 first, then fallback to Supavisor format.
-const DB_HOST = process.env.DB_HOST || (() => { throw new Error("DB_HOST not set"); })();
+if (!PG_URL) throw new Error("MXRE_PG_URL (or SUPABASE_URL) not set in .env");
+if (!SVC_KEY) throw new Error("MXRE_SUPABASE_SERVICE_KEY (or SUPABASE_SERVICE_KEY) not set in .env");
 
-const client = new Client({
-  host: DB_HOST,
-  port: parseInt(process.env.DB_PORT ?? "5432", 10),
-  database: "postgres",
-  user: "postgres.postgres",
-  password: process.env.POSTGRES_PASSWORD || (() => { throw new Error("POSTGRES_PASSWORD not set"); })(),
-  connectionTimeoutMillis: 10000,
-});
+async function pg(query: string): Promise<any[]> {
+  const res = await fetch(PG_URL, {
+    method: "POST",
+    headers: {
+      "apikey": SVC_KEY,
+      "Authorization": `Bearer ${SVC_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`pg-meta ${res.status}: ${text}`);
+  }
+  return res.json();
+}
 
-const MIGRATION = `
--- Add legal description from recorder instrument (actual text from deed/mortgage)
-ALTER TABLE mortgage_records ADD COLUMN IF NOT EXISTS legal_description TEXT;
-
--- Raw JSON response from the recorder platform (Fidlar, LandmarkWeb, etc.)
--- Used for future OCR parsing, rate extraction, lien chain analysis
-ALTER TABLE mortgage_records ADD COLUMN IF NOT EXISTS raw JSONB;
-
--- Rate source tag: 'estimated' = PMMS historical average, 'recorded' = actual from document
--- CRITICAL: never mix these without the tag. Estimated rates look like real data.
-ALTER TABLE mortgage_records ADD COLUMN IF NOT EXISTS rate_source TEXT
-  CHECK (rate_source IN ('estimated', 'recorded'));
-
--- Unique constraint for idempotent upserts from Fidlar/PublicSearch
--- document_number is the instrument/CFN number; county_fips scopes it to one county
-CREATE UNIQUE INDEX IF NOT EXISTS idx_mort_docnum_county
-  ON mortgage_records (document_number, county_fips)
-  WHERE document_number IS NOT NULL AND county_fips IS NOT NULL;
-
--- Index for linking queries (match unlinked records to properties by county)
-CREATE INDEX IF NOT EXISTS idx_mort_county_fips
-  ON mortgage_records (county_fips)
-  WHERE property_id IS NULL;
-
--- Index for rate matching queries
-CREATE INDEX IF NOT EXISTS idx_mort_rate_source
-  ON mortgage_records (rate_source, recording_date)
-  WHERE original_amount IS NOT NULL;
-
--- Index for amount analytics
-CREATE INDEX IF NOT EXISTS idx_mort_amount_type
-  ON mortgage_records (document_type, original_amount)
-  WHERE original_amount IS NOT NULL;
-`;
+const STATEMENTS = [
+  {
+    label: "ADD COLUMN legal_description",
+    sql: `ALTER TABLE mortgage_records ADD COLUMN IF NOT EXISTS legal_description TEXT`,
+  },
+  {
+    label: "ADD COLUMN raw",
+    sql: `ALTER TABLE mortgage_records ADD COLUMN IF NOT EXISTS raw JSONB`,
+  },
+  {
+    label: "ADD COLUMN rate_source",
+    sql: `ALTER TABLE mortgage_records ADD COLUMN IF NOT EXISTS rate_source TEXT CHECK (rate_source IN ('estimated', 'recorded'))`,
+  },
+  {
+    label: "CREATE INDEX idx_mort_docnum_county",
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS idx_mort_docnum_county ON mortgage_records (document_number, county_fips) WHERE document_number IS NOT NULL AND county_fips IS NOT NULL`,
+  },
+  {
+    label: "CREATE INDEX idx_mort_county_fips",
+    sql: `CREATE INDEX IF NOT EXISTS idx_mort_county_fips ON mortgage_records (county_fips) WHERE property_id IS NULL`,
+  },
+  {
+    label: "CREATE INDEX idx_mort_rate_source",
+    sql: `CREATE INDEX IF NOT EXISTS idx_mort_rate_source ON mortgage_records (rate_source, recording_date) WHERE original_amount IS NOT NULL`,
+  },
+  {
+    label: "CREATE INDEX idx_mort_amount_type",
+    sql: `CREATE INDEX IF NOT EXISTS idx_mort_amount_type ON mortgage_records (document_type, original_amount) WHERE original_amount IS NOT NULL`,
+  },
+];
 
 async function main() {
   console.log("Applying mortgage_records migration...");
-  console.log(`Host: ${DB_HOST}:${process.env.DB_PORT ?? "5432"}`);
+  console.log(`Endpoint: ${PG_URL}`);
 
-  await client.connect();
-  console.log("Connected to Postgres.");
+  // Verify connectivity first
+  const ver = await pg("SELECT version()");
+  console.log(`Connected: ${ver[0]?.version?.split(" ").slice(0, 2).join(" ")}\n`);
 
-  const statements = MIGRATION
-    .split(";")
-    .map(s => s.trim())
-    .filter(s => s.length > 10);
-
-  for (const stmt of statements) {
-    const preview = stmt.replace(/\s+/g, " ").slice(0, 80);
-    process.stdout.write(`  ${preview}... `);
+  for (const { label, sql } of STATEMENTS) {
+    process.stdout.write(`  ${label}... `);
     try {
-      await client.query(stmt);
+      await pg(sql);
       console.log("✅");
     } catch (err: any) {
       if (err.message.includes("already exists")) {
         console.log("(already exists)");
       } else {
-        console.log(`❌ ${err.message.slice(0, 100)}`);
+        console.log(`❌ ${err.message.slice(0, 120)}`);
       }
     }
   }
 
-  // Verify columns exist
-  const { rows } = await client.query(`
+  // Verify columns
+  const cols = await pg(`
     SELECT column_name, data_type
     FROM information_schema.columns
     WHERE table_name = 'mortgage_records'
       AND column_name IN ('legal_description','raw','rate_source','county_fips')
-    ORDER BY column_name;
+    ORDER BY column_name
   `);
   console.log("\nVerified columns:");
-  rows.forEach(r => console.log(`  ✅ ${r.column_name} (${r.data_type})`));
+  cols.forEach((r: any) => console.log(`  ✅ ${r.column_name} (${r.data_type})`));
 
-  // Check index
-  const { rows: idxRows } = await client.query(`
+  // Verify indexes
+  const idxs = await pg(`
     SELECT indexname FROM pg_indexes
     WHERE tablename = 'mortgage_records'
-    ORDER BY indexname;
+    ORDER BY indexname
   `);
   console.log("\nIndexes:");
-  idxRows.forEach(r => console.log(`  ${r.indexname}`));
+  idxs.forEach((r: any) => console.log(`  ${r.indexname}`));
 
-  await client.end();
   console.log("\nMigration complete.");
 }
 
