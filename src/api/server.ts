@@ -399,6 +399,51 @@ app.get('/v1/coverage', async (c) => {
   return c.json({ status: 'building', message: 'Coverage data is being compiled (~2 min). Refresh in a moment.' }, 202);
 });
 
+app.get('/v1/coverage/state/:state', async (c) => {
+  const state = c.req.param('state').toUpperCase();
+  if (!/^[A-Z]{2}$/.test(state)) return c.json({ error: 'Invalid state code' }, 400);
+
+  const { data: counties, error } = await db.from('counties')
+    .select('id, county_name, state_code, county_fips, state_fips')
+    .eq('active', true)
+    .eq('state_code', state)
+    .order('county_name', { ascending: true });
+
+  if (error) return c.json({ error: 'Database error', detail: error.message }, 500);
+
+  const countyIds = (counties ?? []).map((county) => county.id);
+  const stateFips = (counties?.[0]?.state_fips as string | undefined) ?? '';
+
+  const [{ count: propertyTotal }, { count: mortgageTotal }, { count: listingSignals }] = await Promise.all([
+    countyIds.length > 0
+      ? db.from('properties').select('id', { count: 'exact', head: true }).in('county_id', countyIds)
+      : Promise.resolve({ count: 0 }),
+    stateFips
+      ? db.from('mortgage_records').select('id', { count: 'exact', head: true }).like('county_fips', `${stateFips}%`)
+      : Promise.resolve({ count: 0 }),
+    db.from('listing_signals').select('id', { count: 'exact', head: true }).eq('state_code', state),
+  ]);
+
+  const rows = (counties ?? []).map((county) => ({
+    id: county.id,
+    county_name: county.county_name,
+    state_code: county.state_code,
+    county_fips: `${county.state_fips}${county.county_fips}`,
+  }));
+
+  return c.json({
+    state,
+    counties: rows,
+    totals: {
+      counties: rows.length,
+      properties: propertyTotal ?? 0,
+      mortgage_records: mortgageTotal ?? 0,
+      listing_signals: listingSignals ?? 0,
+    },
+    generated_at: new Date().toISOString(),
+  });
+});
+
 // ── Ingest status (reads supervisor logs) ─────────────────────
 
 app.get('/v1/ingest-status', async (c) => {
@@ -486,10 +531,20 @@ app.get('/dashboard', async (c) => {
   .state-chip { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 5px; }
   .state-chip.has { background: #0c2a1a; color: #4ade80; border: 1px solid #166534; }
   .state-chip.no { background: #1c0a0a; color: #ef4444; border: 1px solid #7f1d1d; }
+  .state-chip { cursor: pointer; }
+  .state-chip.active { outline: 2px solid #38bdf8; color: #e0f2fe; }
   .refresh-btn { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
   .refresh-btn:hover { background: #334155; color: #e2e8f0; }
   #last-updated { font-size: 11px; color: #475569; margin-top: 4px; }
   pre { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 14px; font-size: 11px; color: #94a3b8; overflow-x: auto; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+  .form-row { display: grid; grid-template-columns: 2fr 1fr 80px 90px auto; gap: 8px; }
+  input { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 9px 10px; font-size: 13px; min-width: 0; }
+  input::placeholder { color: #475569; }
+  .primary-btn { background: #0369a1; border: 1px solid #0284c7; color: #e0f2fe; padding: 9px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .primary-btn:hover { background: #0284c7; }
+  .detail-panel { margin-top: 12px; }
+  .muted { color: #64748b; font-size: 12px; }
+  @media (max-width: 760px) { .form-row { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -524,6 +579,22 @@ app.get('/dashboard', async (c) => {
 <div class="section">
   <h2>State Coverage Map</h2>
   <div class="states-grid" id="states-grid"></div>
+  <div class="detail-panel" id="state-detail"></div>
+</div>
+
+<div class="section">
+  <h2>Property Address Lookup</h2>
+  <div class="card">
+    <div class="form-row">
+      <input id="lookup-address" placeholder="Address, e.g. 611 N Park Ave #208">
+      <input id="lookup-city" placeholder="City" value="Indianapolis">
+      <input id="lookup-state" placeholder="State" value="IN" maxlength="2">
+      <input id="lookup-zip" placeholder="ZIP">
+      <button class="primary-btn" onclick="lookupAddress()">Lookup</button>
+    </div>
+    <div class="muted" style="margin-top:8px;">Tip: address and state are required; city or ZIP makes matching tighter.</div>
+    <pre id="lookup-result" style="margin-top:12px;max-height:420px;">Enter an address to see the API response.</pre>
+  </div>
 </div>
 
 <div class="section">
@@ -541,6 +612,21 @@ async function load() {
       fetch('/v1/coverage', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
       fetch('/v1/ingest-status', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
     ]);
+
+    const allStates = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+
+    if (cov.status === 'building' || !cov.totals || !cov.coverage) {
+      document.getElementById('total-props').textContent = '—';
+      document.getElementById('total-mort').textContent = '—';
+      document.getElementById('total-rent').textContent = '—';
+      document.getElementById('total-list').textContent = '—';
+      document.getElementById('cov-pct').textContent = 'Building';
+      document.getElementById('cov-sub').textContent = cov.message ?? 'Coverage data is being compiled.';
+      document.getElementById('states-grid').innerHTML = allStates.map(s => \`<button class="state-chip" onclick="loadState('\${s}')">\${s}</button>\`).join('');
+      document.getElementById('last-updated').textContent = 'Coverage building · use state buttons or lookup below';
+      renderIngestStatus(ing);
+      return;
+    }
 
     // Totals
     document.getElementById('total-props').textContent = fmt(cov.totals.properties);
@@ -573,33 +659,98 @@ async function load() {
 
     // State chips
     const grid = document.getElementById('states-grid');
-    const allStates = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
     grid.innerHTML = allStates.map(s => {
       const has = (cov.coverage.covered_states ?? []).includes(s);
-      return \`<span class="state-chip \${has ? 'has' : 'no'}">\${s}</span>\`;
+      return \`<button class="state-chip \${has ? 'has' : 'no'}" onclick="loadState('\${s}')">\${s}</button>\`;
     }).join('');
 
-    // Ingest status
-    const ingDiv = document.getElementById('ingest-status');
-    ingDiv.innerHTML = '';
-    for (const [name, info] of Object.entries(ing.logs ?? {})) {
-      if (info.error) {
-        ingDiv.innerHTML += \`<div class="card" style="margin-bottom:12px"><h3>\${name}</h3><span class="tag missing">No log</span></div>\`;
-        continue;
-      }
-      const d = info;
-      const stale = d.last_modified ? (Date.now() - new Date(d.last_modified).getTime()) > 3600000 : true;
-      ingDiv.innerHTML += \`<div class="card" style="margin-bottom:12px">
-        <h3>\${name} <span class="tag \${stale ? 'missing' : 'ok'}" style="margin-left:8px">\${stale ? 'STALE' : 'ACTIVE'}</span></h3>
-        <div style="font-size:12px;color:#64748b;margin:6px 0">Modified: \${d.last_modified ? new Date(d.last_modified).toLocaleString() : '—'} · \${d.size_kb}KB · \${d.failure_count} failures</div>
-        \${d.latest_progress ? \`<div style="font-size:12px;color:#38bdf8;margin-bottom:8px">\${d.latest_progress}</div>\` : ''}
-        <pre>\${d.tail ?? ''}</pre>
-      </div>\`;
-    }
+    renderIngestStatus(ing);
 
     document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
   } catch (e) {
     document.getElementById('last-updated').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderIngestStatus(ing) {
+  const ingDiv = document.getElementById('ingest-status');
+  ingDiv.innerHTML = '';
+  for (const [name, info] of Object.entries(ing.logs ?? {})) {
+    if (info.error) {
+      ingDiv.innerHTML += \`<div class="card" style="margin-bottom:12px"><h3>\${name}</h3><span class="tag missing">No log</span></div>\`;
+      continue;
+    }
+    const d = info;
+    const stale = d.last_modified ? (Date.now() - new Date(d.last_modified).getTime()) > 3600000 : true;
+    ingDiv.innerHTML += \`<div class="card" style="margin-bottom:12px">
+      <h3>\${name} <span class="tag \${stale ? 'missing' : 'ok'}" style="margin-left:8px">\${stale ? 'STALE' : 'ACTIVE'}</span></h3>
+      <div style="font-size:12px;color:#64748b;margin:6px 0">Modified: \${d.last_modified ? new Date(d.last_modified).toLocaleString() : '—'} · \${d.size_kb}KB · \${d.failure_count} failures</div>
+      \${d.latest_progress ? \`<div style="font-size:12px;color:#38bdf8;margin-bottom:8px">\${d.latest_progress}</div>\` : ''}
+      <pre>\${d.tail ?? ''}</pre>
+    </div>\`;
+  }
+}
+
+async function loadState(state) {
+  const panel = document.getElementById('state-detail');
+  panel.innerHTML = '<div class="card muted">Loading ' + state + ' county coverage...</div>';
+  document.querySelectorAll('.state-chip').forEach(el => el.classList.toggle('active', el.textContent === state));
+
+  try {
+    const data = await fetch('/v1/coverage/state/' + encodeURIComponent(state), {
+      headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' },
+    }).then(r => r.json());
+    if (data.error) throw new Error(data.detail || data.error);
+
+    const rows = (data.counties ?? []).map(c => \`<tr>
+      <td><strong>\${c.county_name}</strong></td>
+      <td>\${c.county_fips}</td>
+      <td>\${c.id}</td>
+    </tr>\`).join('');
+
+    panel.innerHTML = \`<div class="card">
+      <h3>\${state} Coverage</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:10px 0 16px;">
+        <div><div class="muted">Counties</div><div style="font-size:22px;font-weight:800">\${fmt(data.totals.counties)}</div></div>
+        <div><div class="muted">Properties</div><div style="font-size:22px;font-weight:800">\${fmt(data.totals.properties)}</div></div>
+        <div><div class="muted">Mortgages</div><div style="font-size:22px;font-weight:800">\${fmt(data.totals.mortgage_records)}</div></div>
+        <div><div class="muted">Listings</div><div style="font-size:22px;font-weight:800">\${fmt(data.totals.listing_signals)}</div></div>
+      </div>
+      <table>
+        <tr><th>County</th><th>FIPS</th><th>County ID</th></tr>
+        <tbody>\${rows}</tbody>
+      </table>
+    </div>\`;
+  } catch (e) {
+    panel.innerHTML = '<div class="card red">Could not load state coverage: ' + e.message + '</div>';
+  }
+}
+
+async function lookupAddress() {
+  const result = document.getElementById('lookup-result');
+  const address = document.getElementById('lookup-address').value.trim();
+  const city = document.getElementById('lookup-city').value.trim();
+  const state = document.getElementById('lookup-state').value.trim().toUpperCase();
+  const zip = document.getElementById('lookup-zip').value.trim();
+
+  if (!address || !state) {
+    result.textContent = 'Address and state are required.';
+    return;
+  }
+
+  const params = new URLSearchParams({ address, state });
+  if (city) params.set('city', city);
+  if (zip) params.set('zip', zip);
+
+  result.textContent = 'Looking up property...';
+  try {
+    const resp = await fetch('/v1/property?' + params.toString(), {
+      headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' },
+    });
+    const data = await resp.json();
+    result.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    result.textContent = 'Lookup failed: ' + e.message;
   }
 }
 
