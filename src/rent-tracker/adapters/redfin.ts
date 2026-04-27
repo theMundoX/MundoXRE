@@ -15,9 +15,18 @@ import { ListingAdapter, type ListingSearchArea, type OnMarketRecord, type Listi
 import { waitForListingSlot, backoffDomain, resetDomainRate } from "../../utils/rate-limiter.js";
 import { getCached, setCache } from "../../utils/cache.js";
 import { getStealthConfig } from "../../utils/stealth.js";
+import {
+  getResidentialProxy,
+  redactProxyUrl,
+  reportProxyFailure,
+  reportProxySuccess,
+} from "../../utils/proxy.js";
+import { ProxyAgent } from "undici";
 
 const REDFIN_BASE = "https://www.redfin.com";
 const LISTING_CACHE_TTL = 24 * 60 * 60 * 1000;
+const REGION_CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
+const CACHE_VERSION = "v2";
 const MAX_RETRIES = 3;
 const PAGE_SIZE = 350; // Redfin max per page
 
@@ -34,12 +43,87 @@ function getHeaders(): Record<string, string> {
   };
 }
 
+async function redfinFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const proxyUrl = getResidentialProxy();
+  const requestInit: RequestInit & { dispatcher?: ProxyAgent } = {
+    ...init,
+    headers: {
+      ...getHeaders(),
+      ...(init.headers ?? {}),
+    },
+  };
+
+  if (proxyUrl) {
+    requestInit.dispatcher = new ProxyAgent(proxyUrl);
+  }
+
+  try {
+    const resp = await fetch(url, requestInit);
+    if (proxyUrl) {
+      if (resp.status === 403 || resp.status === 429 || resp.status >= 500) {
+        reportProxyFailure(proxyUrl);
+      } else {
+        reportProxySuccess(proxyUrl);
+      }
+    }
+    return resp;
+  } catch (err) {
+    if (proxyUrl) {
+      reportProxyFailure(proxyUrl);
+      console.log(`  Redfin proxy fetch failed via ${redactProxyUrl(proxyUrl)}: ${err instanceof Error ? err.message : "Unknown"}`);
+    }
+    throw err;
+  }
+}
+
 // ─── Region ID Resolution ─────────────────────────────────────────
 
 interface RegionResult {
   id: string;
   type: number;
   name: string;
+}
+
+function extractRegionFromHtml(html: string, label: string, expectedZip?: string): RegionResult | null {
+  if (expectedZip) {
+    const escapedZip = expectedZip.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regionObject = html.match(
+      new RegExp(`"region"\\s*:\\s*\\{[^}]*"id"\\s*:\\s*(\\d+)[^}]*"type"\\s*:\\s*2[^}]*"name"\\s*:\\s*"${escapedZip}"`),
+    );
+    if (regionObject) return { id: regionObject[1], type: 2, name: label };
+
+    const dataLayer = html.match(/'region_id'\s*:\s*'(\d+)'\s*,\s*'region_type_id'\s*:\s*'2'/);
+    if (dataLayer) return { id: dataLayer[1], type: 2, name: label };
+
+    const encodedRegion = html.match(
+      new RegExp(`%22id%22%3A(\\d+)%2C%22type%22%3A2%2C%22name%22%3A%22${escapedZip}%22`),
+    );
+    if (encodedRegion) return { id: encodedRegion[1], type: 2, name: label };
+  }
+
+  const regionPairs = html.match(/region_id[=:](\d+).*?region_type[=:](\d+)/g);
+  if (regionPairs) {
+    const seen = new Map<string, { id: string; type: number }>();
+    for (const pair of regionPairs) {
+      const idMatch = pair.match(/region_id[=:](\d+)/);
+      const typeMatch = pair.match(/region_type[=:](\d+)/);
+      if (idMatch && typeMatch) {
+        const id = idMatch[1];
+        const type = parseInt(typeMatch[1], 10);
+        seen.set(`${id}:${type}`, { id, type });
+      }
+    }
+    for (const [, entry] of seen) {
+      if (entry.type === 6) return { id: entry.id, type: entry.type, name: label };
+    }
+    const first = seen.values().next().value;
+    if (first) return { id: first.id, type: first.type, name: label };
+  }
+
+  const regionIdMatch = html.match(/regionId[\"':\s=]+(\d{3,})/);
+  if (regionIdMatch && !expectedZip) return { id: regionIdMatch[1], type: 6, name: label };
+
+  return null;
 }
 
 // Direct region_id lookup for major cities — bypasses HTML scraping.
@@ -102,13 +186,32 @@ const CITY_ZIP_FALLBACK: Record<string, string> = {
 };
 
 async function resolveRegionId(area: ListingSearchArea): Promise<RegionResult | null> {
+  const cacheLabel = area.zip
+    ? `zip:${area.zip}`
+    : area.city && area.state
+      ? `city:${area.city.toLowerCase()},${area.state.toUpperCase()}`
+      : null;
+
+  if (cacheLabel) {
+    const cached = getCached(`redfin:${CACHE_VERSION}:region:${cacheLabel}`, REGION_CACHE_TTL);
+    if (cached) {
+      try {
+        return JSON.parse(cached) as RegionResult;
+      } catch {
+        // Ignore corrupt cache entries and resolve live.
+      }
+    }
+  }
+
   if (area.city && area.state && !area.zip) {
     const key = `${area.city.toLowerCase()},${area.state.toUpperCase()}`;
     const direct = CITY_REGION_DIRECT[key];
     if (direct) {
       const label = `${area.city}, ${area.state}`;
       console.log(`  Redfin: direct region lookup "${label}" -> region_id=${direct.id}`);
-      return { id: direct.id, type: direct.type, name: label };
+      const result = { id: direct.id, type: direct.type, name: label };
+      if (cacheLabel) setCache(`redfin:${CACHE_VERSION}:region:${cacheLabel}`, JSON.stringify(result));
+      return result;
     }
   }
 
@@ -126,8 +229,7 @@ async function resolveRegionId(area: ListingSearchArea): Promise<RegionResult | 
   }
 
   try {
-    const resp = await fetch(pageUrl, {
-      headers: getHeaders(),
+    const resp = await redfinFetch(pageUrl, {
       signal: AbortSignal.timeout(20_000),
     });
 
@@ -143,27 +245,11 @@ async function resolveRegionId(area: ListingSearchArea): Promise<RegionResult | 
 
     const html = await resp.text();
 
-    const regionPairs = html.match(/region_id[=:](\d+).*?region_type[=:](\d+)/g);
-    if (regionPairs) {
-      const seen = new Map<string, { id: string; type: number }>();
-      for (const pair of regionPairs) {
-        const idMatch = pair.match(/region_id[=:](\d+)/);
-        const typeMatch = pair.match(/region_type[=:](\d+)/);
-        if (idMatch && typeMatch) {
-          const id = idMatch[1];
-          const type = parseInt(typeMatch[1], 10);
-          seen.set(`${id}:${type}`, { id, type });
-        }
-      }
-      for (const [, entry] of seen) {
-        if (entry.type === 6) return { id: entry.id, type: entry.type, name: label };
-      }
-      const first = seen.values().next().value;
-      if (first) return { id: first.id, type: first.type, name: label };
+    const result = extractRegionFromHtml(html, label, area.zip);
+    if (result) {
+      if (cacheLabel) setCache(`redfin:${CACHE_VERSION}:region:${cacheLabel}`, JSON.stringify(result));
+      return result;
     }
-
-    const regionIdMatch = html.match(/regionId[\"':\s=]+(\d{3,})/);
-    if (regionIdMatch) return { id: regionIdMatch[1], type: 6, name: label };
 
     console.log(`  Redfin: could not find region_id in page for "${label}"`);
   } catch (err) {
@@ -220,8 +306,7 @@ function buildGisUrl(regionId: string, regionType: number, page: number): string
 
 async function fetchGisPage(regionId: string, regionType: number, page: number): Promise<RedfinHome[]> {
   const url = buildGisUrl(regionId, regionType, page);
-  const resp = await fetch(url, {
-    headers: getHeaders(),
+  const resp = await redfinFetch(url, {
     signal: AbortSignal.timeout(30_000),
   });
 
@@ -330,7 +415,7 @@ export class RedfinListingAdapter extends ListingAdapter {
     };
 
     // Check cache
-    const cacheKey = `redfin:gis:${areaLabel}`;
+    const cacheKey = `redfin:${CACHE_VERSION}:gis:${areaLabel}`;
     const cached = getCached(cacheKey, LISTING_CACHE_TTL);
     if (cached) {
       const records = JSON.parse(cached) as OnMarketRecord[];
@@ -395,6 +480,7 @@ export class RedfinListingAdapter extends ListingAdapter {
         if (home.propertyId) seenIds.add(home.propertyId);
         const record = homeToRecord(home, area.state);
         if (!record) continue;
+        if (area.zip && record.zip && record.zip !== area.zip) continue;
         allRecords.push(record);
         progress.total_found++;
         progress.total_processed++;
