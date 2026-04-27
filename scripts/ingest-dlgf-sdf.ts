@@ -140,10 +140,15 @@ function parsePipeDelimited(filePath: string): Record<string, string>[] {
 
 /** Cache: parcel_id string → property id */
 const parcelCache = new Map<string, number>();
+const countyParcelMaps = new Map<number, Map<string, number>>();
+
+function normalizeParcel(parcelNum: string): string {
+  return parcelNum.replace(/[-.\s]/g, "");
+}
 
 async function lookupPropertyId(parcelNum: string, countyId: number): Promise<number | null> {
   if (!parcelNum) return null;
-  const clean = parcelNum.replace(/[-.\s]/g, "");
+  const clean = normalizeParcel(parcelNum);
   if (parcelCache.has(clean)) return parcelCache.get(clean)!;
 
   // Try exact parcel_id match (strips formatting)
@@ -157,6 +162,38 @@ async function lookupPropertyId(parcelNum: string, countyId: number): Promise<nu
   const pid = (data as any)?.id ?? null;
   if (pid) parcelCache.set(clean, pid);
   return pid;
+}
+
+async function loadCountyParcelMap(countyId: number): Promise<Map<string, number>> {
+  const cached = countyParcelMaps.get(countyId);
+  if (cached) return cached;
+
+  const map = new Map<string, number>();
+  const page = 1000;
+  let offset = 0;
+  while (true) {
+    const { data, error } = await db.from("properties")
+      .select("id, parcel_id, apn_formatted")
+      .eq("county_id", countyId)
+      .range(offset, offset + page - 1);
+
+    if (error) throw new Error(`Failed to load parcel map: ${error.message}`);
+    if (!data || data.length === 0) break;
+
+    for (const row of data as Array<{ id: number; parcel_id?: string | null; apn_formatted?: string | null }>) {
+      for (const value of [row.parcel_id, row.apn_formatted]) {
+        if (!value) continue;
+        map.set(normalizeParcel(value), row.id);
+      }
+    }
+
+    if (data.length < page) break;
+    offset += page;
+  }
+
+  countyParcelMaps.set(countyId, map);
+  console.log(`  Loaded ${map.size.toLocaleString()} parcel identifiers for county_id=${countyId}`);
+  return map;
 }
 
 // ─── County DB resolver ────────────────────────────────────────────────────
@@ -241,6 +278,7 @@ async function ingestModernYear(
       if (addr && !addrMap.has(id)) addrMap.set(id, addr);
     }
   }
+  const propertyByParcel = await loadCountyParcelMap(countyDbId);
 
   // Step 4: Dedup against existing records
   const existingNums = new Set<string>();
@@ -292,7 +330,7 @@ async function ingestModernYear(
     // Try direct property linkage via parcel number
     let propId: number | null = null;
     if (parcel) {
-      propId = await lookupPropertyId(parcel, countyDbId);
+      propId = propertyByParcel.get(normalizeParcel(parcel)) ?? null;
       if (propId) stats.linked++;
     }
 
