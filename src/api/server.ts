@@ -617,6 +617,154 @@ app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
 
 // ── Ingest status (reads supervisor logs) ─────────────────────
 
+app.get('/v1/markets/:market/dashboard', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const assetClass = (c.req.query('asset_class') ?? 'multifamily').toLowerCase();
+  if (assetClass !== 'multifamily') {
+    return c.json({ error: 'Unsupported asset_class', supported_asset_classes: ['multifamily'] }, 400);
+  }
+
+  const [dashboard] = await queryPg<Record<string, unknown>>(`
+    with inventory as (
+      select asset_type, coalesce(asset_subtype, asset_type, 'unknown') as subtype, coalesce(total_units, 0) as total_units
+      from properties
+      where county_id = 797583
+        and asset_type in ('small_multifamily', 'apartment')
+    ),
+    active as (
+      select
+        l.id as listing_id,
+        l.property_id,
+        p.address,
+        p.city,
+        p.state_code,
+        p.zip,
+        coalesce(p.asset_subtype, 'unknown') as subtype,
+        p.total_units,
+        p.living_sqft,
+        l.mls_list_price,
+        case when p.total_units > 0 and l.mls_list_price > 0 then round(l.mls_list_price::numeric / p.total_units) end as price_per_unit,
+        case when p.living_sqft > 0 and l.mls_list_price > 0 then round((l.mls_list_price::numeric / p.living_sqft) * 100) / 100 end as price_per_sqft,
+        l.days_on_market,
+        coalesce(l.listing_source, 'unknown') as listing_source,
+        l.listing_url,
+        l.last_seen_at
+      from listing_signals l
+      join properties p on p.id = l.property_id
+      where l.is_on_market = true
+        and p.county_id = 797583
+        and p.asset_type in ('small_multifamily', 'apartment')
+    )
+    select
+      (select count(*) from inventory)::int as total_multifamily_properties,
+      (select coalesce(sum(total_units), 0) from inventory)::int as known_multifamily_units,
+      (select coalesce(jsonb_object_agg(subtype, jsonb_build_object('properties', properties, 'known_units', known_units)), '{}'::jsonb)
+       from (
+         select subtype, count(*)::int as properties, coalesce(sum(total_units), 0)::int as known_units
+         from inventory
+         group by subtype
+       ) s) as inventory_by_subtype,
+      (select count(*) from active)::int as active_listing_rows,
+      (select count(distinct property_id) from active)::int as unique_properties,
+      (select coalesce(jsonb_object_agg(listing_source, listings), '{}'::jsonb)
+       from (
+         select listing_source, count(*)::int as listings
+         from active
+         group by listing_source
+       ) s) as by_source,
+      (select coalesce(jsonb_object_agg(subtype, listings), '{}'::jsonb)
+       from (
+         select subtype, count(*)::int as listings
+         from active
+         group by subtype
+       ) s) as by_subtype,
+      (select coalesce(jsonb_agg(row_to_json(z)), '[]'::jsonb)
+       from (
+         select
+           zip,
+           count(*)::int as listings,
+           round(percentile_cont(0.5) within group (order by mls_list_price))::int as median_list_price,
+           round(percentile_cont(0.5) within group (order by price_per_unit))::int as median_price_per_unit
+         from active
+         where mls_list_price is not null
+         group by zip
+         order by count(*) desc, zip
+         limit 15
+       ) z) as by_zip,
+      round((select percentile_cont(0.25) within group (order by mls_list_price) from active where mls_list_price > 0))::int as list_price_p25,
+      round((select percentile_cont(0.5) within group (order by mls_list_price) from active where mls_list_price > 0))::int as list_price_median,
+      round((select percentile_cont(0.75) within group (order by mls_list_price) from active where mls_list_price > 0))::int as list_price_p75,
+      round((select percentile_cont(0.25) within group (order by price_per_unit) from active where price_per_unit > 0))::int as price_per_unit_p25,
+      round((select percentile_cont(0.5) within group (order by price_per_unit) from active where price_per_unit > 0))::int as price_per_unit_median,
+      round((select percentile_cont(0.75) within group (order by price_per_unit) from active where price_per_unit > 0))::int as price_per_unit_p75,
+      round((select percentile_cont(0.5) within group (order by price_per_sqft) from active where price_per_sqft > 0))::numeric as price_per_sqft_median,
+      round((select percentile_cont(0.5) within group (order by days_on_market) from active where days_on_market is not null))::int as days_on_market_median,
+      (select coalesce(jsonb_agg(row_to_json(t)), '[]'::jsonb)
+       from (
+         select
+           listing_id as "listingId",
+           property_id as "propertyId",
+           address,
+           city,
+           state_code as state,
+           zip,
+           subtype as "assetSubtype",
+           total_units as "unitCount",
+           mls_list_price as "listPrice",
+           price_per_unit as "pricePerUnit",
+           price_per_sqft as "pricePerSqft",
+           days_on_market as "daysOnMarket",
+           listing_source as "listingSource",
+           listing_url as "listingUrl",
+           last_seen_at as "lastSeenAt"
+         from active
+         where mls_list_price is not null
+         order by mls_list_price desc
+         limit 10
+       ) t) as top_listings
+  `);
+
+  return c.json({
+    market: 'indianapolis',
+    geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
+    asset_class: assetClass,
+    inventory: {
+      total_multifamily_properties: numberOrNull(dashboard?.total_multifamily_properties) ?? 0,
+      known_multifamily_units: numberOrNull(dashboard?.known_multifamily_units) ?? 0,
+      by_subtype: dashboard?.inventory_by_subtype ?? {},
+    },
+    on_market: {
+      active_listing_rows: numberOrNull(dashboard?.active_listing_rows) ?? 0,
+      unique_properties: numberOrNull(dashboard?.unique_properties) ?? 0,
+      by_source: dashboard?.by_source ?? {},
+      by_subtype: dashboard?.by_subtype ?? {},
+      by_zip: dashboard?.by_zip ?? [],
+      list_price: {
+        p25: numberOrNull(dashboard?.list_price_p25),
+        median: numberOrNull(dashboard?.list_price_median),
+        p75: numberOrNull(dashboard?.list_price_p75),
+      },
+      price_per_unit: {
+        p25: numberOrNull(dashboard?.price_per_unit_p25),
+        median: numberOrNull(dashboard?.price_per_unit_median),
+        p75: numberOrNull(dashboard?.price_per_unit_p75),
+      },
+      price_per_sqft: {
+        median: numberOrNull(dashboard?.price_per_sqft_median),
+      },
+      days_on_market: {
+        median: numberOrNull(dashboard?.days_on_market_median),
+      },
+      top_listings: dashboard?.top_listings ?? [],
+    },
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/v1/ingest-status', async (c) => {
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -994,6 +1142,35 @@ function numberOrNull(value: unknown): number | null {
 function normalizeJoinedProperty(value: unknown): Record<string, unknown> {
   if (Array.isArray(value)) return (value[0] as Record<string, unknown> | undefined) ?? {};
   return (value as Record<string, unknown> | null) ?? {};
+}
+
+async function queryPg<T extends Record<string, unknown>>(query: string): Promise<T[]> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) throw new Error('Database connection not configured.');
+
+  const response = await fetch(`${url.replace(/\/$/, '')}/pg/query`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${key}`,
+      apikey: key,
+    },
+    body: JSON.stringify({ query }),
+  });
+
+  const body = await response.text();
+  if (!response.ok) {
+    throw new Error(`pg query failed: ${response.status} ${body}`);
+  }
+  return JSON.parse(body) as T[];
+}
+
+function percentile(values: number[], p: number): number | null {
+  const sorted = values.filter((value) => Number.isFinite(value) && value > 0).sort((a, b) => a - b);
+  if (sorted.length === 0) return null;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)));
+  return Math.round(sorted[index]);
 }
 
 async function fetchAndRespond(c: Context, id: number) {
