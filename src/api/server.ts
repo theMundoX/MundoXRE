@@ -791,7 +791,7 @@ async function assembleResponse(c: Context, property: Record<string, unknown>) {
   };
 
   // Fetch all related data in parallel
-  const [mortgages, rents, listingsById, saleHistory, mlsHistory, foreclosureData, demo] = await Promise.all([
+  const [mortgages, rents, listingsById, saleHistory, mlsHistory, foreclosureData, publicSignals, demo] = await Promise.all([
     db.from('mortgage_records')
       .select('id,property_id,document_type,loan_amount,original_amount,estimated_current_balance,estimated_monthly_payment,interest_rate,interest_rate_type,rate_source,rate_match_confidence,term_months,maturity_date,recording_date,document_number,book_page,lender_name,lender_type,borrower_name,loan_type,source_url,grantee_name,open,position')
       .eq('property_id', id).order('recording_date', { ascending: false }).limit(50),
@@ -800,6 +800,7 @@ async function assembleResponse(c: Context, property: Record<string, unknown>) {
     db.from('sale_history').select('*').eq('property_id', id).order('recording_date', { ascending: false }).limit(20),
     db.from('mls_history').select('*').eq('property_id', id).order('status_date', { ascending: false }).limit(20),
     db.from('foreclosures').select('*').eq('property_id', id).limit(10),
+    db.from('property_public_signals').select('*').eq('property_id', id).order('observed_date', { ascending: false, nullsFirst: false }).limit(50),
     fetchRentBaselineDemographics(property, countyData),
   ]);
 
@@ -826,6 +827,7 @@ async function assembleResponse(c: Context, property: Record<string, unknown>) {
     (mlsHistory.data ?? []) as Record<string, unknown>[],
     (demo.data as Record<string, unknown> | null) ?? null,
     (foreclosureData.data ?? []) as Record<string, unknown>[],
+    (publicSignals.data ?? []) as Record<string, unknown>[],
   );
 
   return c.json(response);

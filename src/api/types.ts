@@ -113,6 +113,15 @@ export interface MLSHistoryEntry {
   source: string;
 }
 
+export interface PublicPropertySignal {
+  type: string;
+  status: string | null;
+  observedDate: string | null;
+  amount: number | null;
+  address: string | null;
+  source: string;
+}
+
 export interface InvestorSignals {
   // Equity
   highEquity: boolean;
@@ -271,6 +280,8 @@ export interface MXREPropertyResponse {
     agent: AgentInfo | null;
     history: MLSHistoryEntry[];
   };
+
+  publicSignals: PublicPropertySignal[];
 
   signals: InvestorSignals;
 

@@ -3,6 +3,7 @@ import type {
   SaleRecord,
   RentHistory,
   MLSHistoryEntry,
+  PublicPropertySignal,
   DataQualityEntry,
   FMRData,
 } from '../types.js';
@@ -25,6 +26,7 @@ export function buildPropertyResponse(
   mlsHistory: Row[],
   demographics: Row | null,
   foreclosures: Row[],
+  publicSignals: Row[] = [],
 ): MXREPropertyResponse {
   const p = propertyRow;
   const c = county;
@@ -187,13 +189,21 @@ export function buildPropertyResponse(
     : null;
 
   // Meta
-  const { dataSources, dataQuality } = buildMeta(p, c, mortgages, rentSnapshots, listingSignals, saleHistory, mlsHistory, demographics, foreclosures);
+  const { dataSources, dataQuality } = buildMeta(p, c, mortgages, rentSnapshots, listingSignals, saleHistory, mlsHistory, demographics, foreclosures, publicSignals);
   const completeness = computeCompleteness(p, owner1, marketValue, lienSummary.openMortgageBalance, latestRent, latestListing, fmr);
 
   const bedrooms = typeof p.bedrooms === 'number' ? Math.max(0, Math.min(4, p.bedrooms)) : null;
   const fmrEstimate = !latestRent && fmr ? fmrRentForBedrooms(fmr, bedrooms) : null;
   const currentRent = (latestRent?.asking_rent as number) ?? (latestRent?.rent as number) ?? fmrEstimate;
   const rentSqft = (latestRent?.sqft as number) ?? (fmrEstimate ? livingSqft : null);
+  const publicSignalsMapped: PublicPropertySignal[] = publicSignals.map((signal) => ({
+    type: (signal.signal_type as string) ?? 'unknown',
+    status: (signal.status as string) ?? null,
+    observedDate: (signal.observed_date as string) ?? null,
+    amount: (signal.amount as number) ?? null,
+    address: (signal.address as string) ?? null,
+    source: (signal.source_system as string) ?? 'public_record',
+  }));
 
   return {
     id: p.id as number,
@@ -336,6 +346,8 @@ export function buildPropertyResponse(
       history: mlsHistoryMapped,
     },
 
+    publicSignals: publicSignalsMapped,
+
     signals,
 
     meta: {
@@ -380,6 +392,7 @@ function buildMeta(
   mls: Row[],
   demographics: Row | null,
   foreclosures: Row[],
+  publicSignals: Row[] = [],
 ): { dataSources: string[]; dataQuality: DataQualityEntry[] } {
   const sources = new Set<string>();
   const quality: DataQualityEntry[] = [];
@@ -450,6 +463,11 @@ function buildMeta(
   if (foreclosures.length > 0) {
     sources.add('foreclosure_filings');
     quality.push({ field: 'foreclosure', source: 'foreclosure_filings', type: 'actual' });
+  }
+
+  if (publicSignals.length > 0) {
+    sources.add('indy_public_gis');
+    quality.push({ field: 'public_signals', source: 'indy_public_gis', type: 'actual' });
   }
 
   // Computed signals
