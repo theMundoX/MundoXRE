@@ -105,4 +105,10 @@ MXRE should reproduce this from public sources by storing both the stable facts 
 
 The daily job now includes `scripts/scrape-rents-bulk.ts` for Indianapolis so floorplan rent availability can be updated repeatedly rather than manually.
 
-Website discovery runs before rent availability. For Indianapolis, this requires `GOOGLE_PLACES_API_KEY` in `.env`; without it the discovery step safely exits without writing placeholder properties.
+Website discovery runs before rent availability. The daily default is free-first and uses:
+
+- public apartment platform pages when reachable,
+- OpenStreetMap/Overpass website tags,
+- page-level address matching back to MXRE parcels.
+
+Paid places/search APIs are optional fallback tools, not the default path.

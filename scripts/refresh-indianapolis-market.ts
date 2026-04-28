@@ -81,10 +81,8 @@ const steps: Step[] = [
     command: [
       "npx",
       "tsx",
-      "scripts/discover-websites.ts",
-      "--city=Indianapolis",
-      "--state=IN",
-      "--county_id=797583",
+      "scripts/discover-indy-websites-free.ts",
+      "--limit=500",
       ...(DRY_RUN ? ["--dry-run"] : []),
     ],
     required: false,
