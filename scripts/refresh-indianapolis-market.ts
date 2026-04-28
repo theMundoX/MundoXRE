@@ -28,6 +28,7 @@ const SKIP_LISTINGS = hasFlag("skip-listings");
 const SKIP_PUBLIC_SIGNALS = hasFlag("skip-public-signals");
 const SKIP_COMPLEX_PROFILES = hasFlag("skip-complex-profiles");
 const SKIP_EXTERNAL_CRE = hasFlag("skip-external-cre");
+const SKIP_HAMILTON = hasFlag("skip-hamilton");
 
 interface Step {
   name: string;
@@ -61,6 +62,13 @@ const steps: Step[] = [
     required: true,
     supportsDryRun: true,
     skip: SKIP_PUBLIC_SIGNALS,
+  },
+  {
+    name: "Enrich Hamilton County assessor coverage",
+    command: ["npx", "tsx", "scripts/enrich-hamilton-in-assessor.ts", ...(DRY_RUN ? ["--dry-run", "--limit=10000"] : [])],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_HAMILTON,
   },
   {
     name: "Seed external CRE market observations",
