@@ -250,7 +250,7 @@ export interface MXREPropertyResponse {
 
   rent: {
     currentRent: number | null;
-    rentSource: 'scraped' | 'fmr' | null;
+    rentSource: 'scraped' | 'estimated_fmr' | null;
     observedAt: string | null;
     beds: number | null;
     baths: number | null;

@@ -190,8 +190,10 @@ export function buildPropertyResponse(
   const { dataSources, dataQuality } = buildMeta(p, c, mortgages, rentSnapshots, listingSignals, saleHistory, mlsHistory, demographics, foreclosures);
   const completeness = computeCompleteness(p, owner1, marketValue, lienSummary.openMortgageBalance, latestRent, latestListing, fmr);
 
-  const currentRent = (latestRent?.asking_rent as number) ?? (latestRent?.rent as number) ?? null;
-  const rentSqft = (latestRent?.sqft as number) ?? null;
+  const bedrooms = typeof p.bedrooms === 'number' ? Math.max(0, Math.min(4, p.bedrooms)) : null;
+  const fmrEstimate = !latestRent && fmr ? fmrRentForBedrooms(fmr, bedrooms) : null;
+  const currentRent = (latestRent?.asking_rent as number) ?? (latestRent?.rent as number) ?? fmrEstimate;
+  const rentSqft = (latestRent?.sqft as number) ?? (fmrEstimate ? livingSqft : null);
 
   return {
     id: p.id as number,
@@ -299,9 +301,9 @@ export function buildPropertyResponse(
 
     rent: {
       currentRent,
-      rentSource: latestRent ? 'scraped' : (fmr ? 'fmr' : null),
-      observedAt: (latestRent?.observed_at as string) ?? null,
-      beds: (latestRent?.beds as number) ?? null,
+      rentSource: latestRent ? 'scraped' : (fmrEstimate ? 'estimated_fmr' : null),
+      observedAt: (latestRent?.observed_at as string) ?? (fmrEstimate ? new Date().toISOString().slice(0, 10) : null),
+      beds: (latestRent?.beds as number) ?? bedrooms,
       baths: (latestRent?.baths as number) ?? null,
       sqft: rentSqft,
       rentPerSqft: currentRent && rentSqft ? Math.round((currentRent / rentSqft) * 100) / 100 : null,
@@ -353,6 +355,14 @@ function mapMarketStatus(status: string | null): MXREPropertyResponse['market'][
   if (lower.includes('sold') || lower.includes('closed')) return 'sold';
   if (lower.includes('cancel') || lower.includes('withdrawn') || lower.includes('expired')) return 'cancelled';
   return 'off_market';
+}
+
+function fmrRentForBedrooms(fmr: FMRData, bedrooms: number | null): number | null {
+  const rents = [fmr.efficiency, fmr.oneBed, fmr.twoBed, fmr.threeBed, fmr.fourBed];
+  const preferred = rents[bedrooms ?? 2];
+  if (typeof preferred === 'number' && preferred > 0) return preferred;
+  const fallback = fmr.twoBed ?? fmr.threeBed ?? fmr.oneBed ?? fmr.fourBed ?? fmr.efficiency;
+  return typeof fallback === 'number' && fallback > 0 ? fallback : null;
 }
 
 function isSaleDocument(row: Row): boolean {
@@ -408,6 +418,8 @@ function buildMeta(
   }
   if (rents.length > 0) {
     quality.push({ field: 'rent', source: (rents[0].source as string) ?? 'scraped', type: 'actual' });
+  } else if (demographics) {
+    quality.push({ field: 'rent', source: (demographics.source as string) ?? 'rent_baselines', type: 'estimated' });
   }
 
   // Listing sources
