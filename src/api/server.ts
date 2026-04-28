@@ -24,18 +24,30 @@ const INDIANAPOLIS_METRO_COUNTY_IDS = [
 ];
 
 function getIndianapolisScope(scope: string | undefined): {
-  key: 'core' | 'metro';
+  key: 'city' | 'core' | 'metro';
   label: string;
   countyIds: number[];
   countySql: string;
+  whereSql: string;
 } {
-  const key = scope?.toLowerCase() === 'metro' ? 'metro' : 'core';
-  const countyIds = key === 'metro' ? INDIANAPOLIS_METRO_COUNTY_IDS : INDIANAPOLIS_CORE_COUNTY_IDS;
+  const requested = scope?.toLowerCase();
+  const key = requested === 'metro' ? 'metro' : requested === 'core' ? 'core' : 'city';
+  const countyIds = key === 'metro' || key === 'city' ? INDIANAPOLIS_METRO_COUNTY_IDS : INDIANAPOLIS_CORE_COUNTY_IDS;
+  const countySql = countyIds.join(',');
   return {
     key,
-    label: key === 'metro' ? 'Indianapolis-Carmel-Greenwood MSA' : 'Indianapolis Core / Marion County',
+    label:
+      key === 'metro'
+        ? 'Indianapolis-Carmel-Greenwood MSA'
+        : key === 'core'
+          ? 'Indianapolis Core / Marion County'
+          : 'Indianapolis City',
     countyIds,
-    countySql: countyIds.join(','),
+    countySql,
+    whereSql:
+      key === 'city'
+        ? `p.county_id in (${countySql}) and upper(trim(replace(coalesce(p.city, ''), ',', ''))) = 'INDIANAPOLIS'`
+        : `p.county_id in (${countySql})`,
   };
 }
 
@@ -973,7 +985,7 @@ app.get('/v1/markets/:market/assets', async (c) => {
           else 'unknown'
         end as asset_group
       from properties p
-      where p.county_id in (${scope.countySql})
+      where ${scope.whereSql}
     ),
     scoped as (
       select * from normalized
@@ -1125,7 +1137,7 @@ app.get('/v1/markets/:market/completion', async (c) => {
         exists (select 1 from rent_snapshots rs where rs.property_id = p.id) as has_rent_snapshot
       from properties p
       left join counties c on c.id = p.county_id
-      where p.county_id in (${scope.countySql})
+      where ${scope.whereSql}
     ),
     scored as (
       select
@@ -1882,7 +1894,8 @@ app.get('/preview/market-dashboard', async (c) => {
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <select id="scope-select" onchange="setScope(this.value)">
-      <option value="core">Indianapolis Core</option>
+      <option value="city" selected>Indianapolis City</option>
+      <option value="core">Core / Marion County</option>
       <option value="metro">Indianapolis Metro</option>
     </select>
     <span class="pill" id="generated">Loading</span>
@@ -2036,7 +2049,7 @@ function bars(target, data, valueKey = null) {
 }
 let currentMinUnits = null;
 let currentAssetGroup = '';
-let currentScope = 'core';
+let currentScope = 'city';
 function setUnitFilter(minUnits) {
   currentMinUnits = minUnits;
   for (const id of ['filter-all', 'filter-2', 'filter-3', 'filter-4']) document.getElementById(id).classList.remove('active');
@@ -2047,7 +2060,7 @@ function setUnitFilter(minUnits) {
   load();
 }
 function setScope(scope) {
-  currentScope = scope === 'metro' ? 'metro' : 'core';
+  currentScope = scope === 'metro' ? 'metro' : scope === 'core' ? 'core' : 'city';
   document.getElementById('content').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
   document.getElementById('loading').textContent = 'Loading market dashboard...';
@@ -2085,7 +2098,7 @@ async function load() {
   if (!coverageResp.ok) throw new Error(coverage.detail || coverage.error || 'Coverage request failed');
   if (!assetsResp.ok) throw new Error(assets.detail || assets.error || 'Assets request failed');
   if (!completionResp.ok) throw new Error(completion.detail || completion.error || 'Completion request failed');
-  const scopeLabel = currentScope === 'metro' ? 'Indianapolis metro' : 'Indianapolis core / Marion County';
+  const scopeLabel = currentScope === 'metro' ? 'Indianapolis metro' : currentScope === 'core' ? 'Indianapolis core / Marion County' : 'Indianapolis city';
   document.getElementById('filter-note').textContent = currentMinUnits ? 'Showing ' + scopeLabel + ' assets plus Marion multifamily with at least ' + currentMinUnits + ' units.' : 'Showing ' + scopeLabel + ' assets with a Marion multifamily drilldown.';
   document.getElementById('kpi-all-parcels').textContent = fmt(assets.totals.parcel_count);
   document.getElementById('kpi-market-value').textContent = compactMoney(assets.totals.market_value_sum);
