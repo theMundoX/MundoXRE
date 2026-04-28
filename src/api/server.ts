@@ -654,6 +654,12 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
         p.city,
         p.state_code,
         p.zip,
+        cp.complex_name,
+        cp.management_company,
+        cp.website as complex_website,
+        cp.phone as complex_phone,
+        cp.source as complex_source,
+        cp.confidence as complex_confidence,
         coalesce(p.asset_subtype, 'unknown') as subtype,
         p.total_units,
         p.living_sqft,
@@ -666,6 +672,7 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
         l.last_seen_at
       from listing_signals l
       join properties p on p.id = l.property_id
+      left join property_complex_profiles cp on cp.property_id = p.id
       where l.is_on_market = true
         and p.county_id = 797583
         and p.asset_type in ('small_multifamily', 'apartment')
@@ -720,6 +727,12 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
          select
            listing_id as "listingId",
            property_id as "propertyId",
+           complex_name as "complexName",
+           management_company as "managementCompany",
+           complex_website as "complexWebsite",
+           complex_phone as "complexPhone",
+           complex_source as "complexSource",
+           complex_confidence as "complexConfidence",
            address,
            city,
            state_code as state,
@@ -777,6 +790,66 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       },
       top_listings: dashboard?.top_listings ?? [],
     },
+    generated_at: new Date().toISOString(),
+  });
+});
+
+app.get('/v1/markets/:market/complexes', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const minUnits = parsePositiveInt(c.req.query('min_units'));
+  const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 100, 500);
+  const offset = Math.max(parseInt(c.req.query('offset') ?? '0', 10) || 0, 0);
+  const unitFilterSql = minUnits !== null ? `and coalesce(p.total_units, 0) >= ${minUnits}` : '';
+
+  const rows = await queryPg<Record<string, unknown>>(`
+    select
+      p.id as "propertyId",
+      cp.complex_name as "complexName",
+      cp.management_company as "managementCompany",
+      cp.website,
+      cp.phone,
+      cp.email,
+      cp.source as "profileSource",
+      cp.source_url as "profileSourceUrl",
+      cp.confidence as "profileConfidence",
+      p.address,
+      p.city,
+      p.state_code as state,
+      p.zip,
+      p.asset_type as "assetType",
+      p.asset_subtype as "assetSubtype",
+      p.total_units as "unitCount",
+      p.unit_count_source as "unitCountSource",
+      p.asset_confidence as "assetConfidence",
+      p.year_built as "yearBuilt",
+      p.living_sqft as "livingSqft",
+      p.market_value as "marketValue",
+      p.assessed_value as "assessedValue",
+      cp.amenities,
+      cp.description,
+      cp.last_seen_at as "profileLastSeenAt"
+    from properties p
+    left join property_complex_profiles cp on cp.property_id = p.id
+    where p.county_id = 797583
+      and p.asset_type in ('small_multifamily', 'apartment')
+      ${unitFilterSql}
+    order by coalesce(p.total_units, 0) desc, p.address
+    limit ${limit}
+    offset ${offset}
+  `);
+
+  return c.json({
+    market: 'indianapolis',
+    geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
+    filters: { min_units: minUnits },
+    count: rows.length,
+    limit,
+    offset,
+    results: rows,
     generated_at: new Date().toISOString(),
   });
 });
@@ -1226,7 +1299,7 @@ app.get('/preview/market-dashboard', async (c) => {
     <div class="layout">
       <div class="card">
         <div class="section-title"><h2>Top Active Listings</h2><span class="pill">source links</span></div>
-        <table><thead><tr><th>Address</th><th>Type</th><th>Units</th><th>List Price</th><th>$/Door</th><th>Source</th></tr></thead><tbody id="listing-body"></tbody></table>
+        <table><thead><tr><th>Property / Complex</th><th>Type</th><th>Units</th><th>List Price</th><th>$/Door</th><th>Source</th></tr></thead><tbody id="listing-body"></tbody></table>
       </div>
       <div class="stack">
         <div class="card"><div class="section-title"><h2>Source Coverage</h2></div><div id="source-bars"></div></div>
@@ -1299,7 +1372,13 @@ async function load() {
   bars('subtype-bars', data.on_market.by_subtype);
   bars('zip-bars', data.on_market.by_zip, 'median_price_per_unit');
   document.getElementById('listing-body').innerHTML = (data.on_market.top_listings ?? []).map(row => \`
-    <tr><td><a href="\${row.listingUrl}" target="_blank">\${row.address}, \${row.zip}</a></td><td>\${row.assetSubtype ?? '-'}</td><td>\${row.unitCount ?? '-'}</td><td>\${money(row.listPrice)}</td><td>\${money(row.pricePerUnit)}</td><td>\${row.listingSource ?? '-'}</td></tr>
+    <tr>
+      <td>
+        <a href="\${row.listingUrl}" target="_blank">\${row.complexName || row.address}, \${row.zip}</a>
+        <div class="muted" style="font-size:11px;margin-top:3px">\${row.complexName ? row.address : 'Complex name not enriched yet'}\${row.managementCompany ? ' · ' + row.managementCompany : ''}</div>
+      </td>
+      <td>\${row.assetSubtype ?? '-'}</td><td>\${row.unitCount ?? '-'}</td><td>\${money(row.listPrice)}</td><td>\${money(row.pricePerUnit)}</td><td>\${row.listingSource ?? '-'}</td>
+    </tr>
   \`).join('');
   document.getElementById('loading').style.display = 'none';
   document.getElementById('content').style.display = 'block';
