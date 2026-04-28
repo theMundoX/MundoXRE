@@ -205,21 +205,30 @@ async function saveScrapedData(
   if (data.total_units > 0) propUpdate.total_units = data.total_units;
   if (data.year_built > 1800) propUpdate.year_built = data.year_built;
   if (Object.keys(propUpdate).length > 1) {
-    await db.from("properties").update(propUpdate).eq("id", propertyId);
+    const { error } = await db.from("properties").update(propUpdate).eq("id", propertyId);
+    if (error) throw new Error(`Failed to update property ${propertyId}: ${error.message}`);
   }
 
   // Save floorplans + rent snapshots
   for (const fp of data.floorplans) {
+    const sqft = fp.sqft_min || fp.sqft_max || null;
+    const wholeBaths = Math.floor(fp.baths || 0);
+    const halfBaths = fp.baths - wholeBaths >= 0.5 ? 1 : 0;
+    const floorplanName = /^(studio|floorplan|\d+ bed \/)/i.test(fp.name)
+      ? `${fp.name} ${sqft ? `${sqft}sf ` : ""}${fp.rent_min ? `$${fp.rent_min}` : ""}`.trim()
+      : fp.name;
+
     // Upsert floorplan
-    const { data: fpRow } = await db
+    const { data: fpRow, error: floorplanError } = await db
       .from("floorplans")
       .upsert(
         {
           property_id: propertyId,
-          name: fp.name,
+          name: floorplanName,
           beds: fp.beds,
-          baths: fp.baths,
-          sqft: fp.sqft_min || fp.sqft_max || null,
+          baths: wholeBaths,
+          half_baths: halfBaths,
+          sqft,
           estimated_count: fp.available_count || null,
           updated_at: new Date().toISOString(),
         },
@@ -227,25 +236,46 @@ async function saveScrapedData(
       )
       .select("id")
       .single();
+    if (floorplanError) {
+      throw new Error(`Failed to upsert floorplan ${floorplanName}: ${floorplanError.message}`);
+    }
 
     const floorplanId = fpRow?.id;
 
     // Insert rent snapshot
     if (fp.rent_min > 0) {
-      const sqft = fp.sqft_min || fp.sqft_max || null;
-      const askingPsf = sqft && sqft > 0 ? Math.round((fp.rent_min / sqft) * 100) / 100 : null;
+      let deleteQuery = db
+        .from("rent_snapshots")
+        .delete()
+        .eq("property_id", propertyId)
+        .eq("observed_at", today)
+        .eq("asking_rent", fp.rent_min);
+      if (floorplanId) {
+        deleteQuery = deleteQuery.eq("floorplan_id", floorplanId);
+      } else {
+        deleteQuery = deleteQuery.is("floorplan_id", null);
+      }
+      if (websiteId > 0) {
+        deleteQuery = deleteQuery.eq("website_id", websiteId);
+      } else {
+        deleteQuery = deleteQuery.is("website_id", null);
+      }
+      const { error: deleteSnapshotError } = await deleteQuery;
+      if (deleteSnapshotError) {
+        throw new Error(`Failed to replace existing rent snapshot for ${floorplanName}: ${deleteSnapshotError.message}`);
+      }
 
-      await db.from("rent_snapshots").insert({
+      const { error: snapshotError } = await db.from("rent_snapshots").insert({
         property_id: propertyId,
         floorplan_id: floorplanId || null,
         website_id: websiteId || null,
         observed_at: today,
         beds: fp.beds,
-        baths: fp.baths,
+        baths: wholeBaths,
         sqft,
         asking_rent: fp.rent_min,
         effective_rent: fp.rent_min,
-        asking_psf: askingPsf,
+        asking_psf: null,
         deposit: fp.deposit || null,
         available_count: fp.available_count || null,
         concession_text: data.concession_text || null,
@@ -254,9 +284,13 @@ async function saveScrapedData(
           rent_max: fp.rent_max,
           sqft_max: fp.sqft_max,
           floor_plan_name: fp.name,
+          baths_decimal: fp.baths,
           property_name: data.property_name,
         },
       });
+      if (snapshotError) {
+        throw new Error(`Failed to insert rent snapshot for ${floorplanName}: ${snapshotError.message}`);
+      }
     }
   }
 
@@ -270,15 +304,16 @@ async function saveScrapedData(
       observed_at: today,
     }));
 
-    await db
+    const { error } = await db
       .from("amenities")
       .upsert(amenityRecords, { onConflict: "property_id,scope,amenity" });
+    if (error) throw new Error(`Failed to upsert amenities: ${error.message}`);
   }
 
   // Save fees
   const fees = data.fees;
   if (fees.application_fee > 0 || fees.pet_deposit > 0 || fees.admin_fee > 0) {
-    await db.from("fee_schedules").insert({
+    const { error } = await db.from("fee_schedules").insert({
       property_id: propertyId,
       observed_at: today,
       app_fee: fees.application_fee || null,
@@ -287,6 +322,7 @@ async function saveScrapedData(
       pet_monthly: fees.pet_monthly || null,
       parking_surface: fees.parking || null,
     });
+    if (error) throw new Error(`Failed to insert fee schedule: ${error.message}`);
   }
 
   // Mark website as scraped (if using property_websites table)
@@ -426,7 +462,7 @@ async function main() {
     console.log(`${progress} [${scraperEntry.platform}] Scraping: ${web.url}`);
 
     try {
-      const data = await scraperEntry.scrape(web.url, browser);
+      const data = await scraperEntry.scrape(web.url, scraperEntry.platform === "direct" ? undefined : browser);
 
       if (data && data.floorplans.length > 0) {
         await saveScrapedData(db, web.property_id, web.id, scraperEntry, data);

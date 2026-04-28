@@ -1108,7 +1108,21 @@ app.get('/v1/markets/:market/completion', async (c) => {
         (p.owner_name is not null and p.owner_name <> '') or (p.company_name is not null and p.company_name <> '') or (p.owner1_last is not null and p.owner1_last <> '') as has_owner,
         (coalesce(p.market_value, 0) > 0 or coalesce(p.assessed_value, 0) > 0 or coalesce(p.taxable_value, 0) > 0) as has_valuation,
         (coalesce(p.total_sqft, 0) > 0 or coalesce(p.living_sqft, 0) > 0 or coalesce(p.land_sqft, 0) > 0 or coalesce(p.lot_sqft, 0) > 0 or p.year_built is not null) as has_physical,
-        (p.last_sale_date is not null or coalesce(p.last_sale_price, 0) > 0 or p.sale_year is not null) as has_transaction
+        (p.last_sale_date is not null or coalesce(p.last_sale_price, 0) > 0 or p.sale_year is not null) as has_transaction,
+        (
+          coalesce(p.total_units, 0) >= 2
+          or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%apartment%'
+          or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%multi%'
+          or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%duplex%'
+          or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%triplex%'
+          or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%fourplex%'
+        ) as is_rental_candidate,
+        (
+          (p.website is not null and p.website <> '')
+          or exists (select 1 from property_websites pw where pw.property_id = p.id and pw.active = true)
+        ) as has_property_website,
+        exists (select 1 from floorplans fp where fp.property_id = p.id) as has_floorplans,
+        exists (select 1 from rent_snapshots rs where rs.property_id = p.id) as has_rent_snapshot
       from properties p
       left join counties c on c.id = p.county_id
       where p.county_id in (${scope.countySql})
@@ -1131,6 +1145,13 @@ app.get('/v1/markets/:market/completion', async (c) => {
       count(*) filter (where has_transaction)::int as transaction_complete,
       count(*) filter (where is_core_complete)::int as core_complete,
       count(*) filter (where is_underwriting_complete)::int as underwriting_complete,
+      count(*) filter (where is_rental_candidate)::int as rental_candidate_count,
+      count(*) filter (where is_rental_candidate and has_property_website)::int as rental_candidates_with_website,
+      count(*) filter (where is_rental_candidate and has_floorplans)::int as rental_candidates_with_floorplans,
+      count(*) filter (where is_rental_candidate and has_rent_snapshot)::int as rental_candidates_with_rent_snapshot,
+      count(*) filter (where has_property_website)::int as properties_with_website,
+      count(*) filter (where has_floorplans)::int as properties_with_floorplans,
+      count(*) filter (where has_rent_snapshot)::int as properties_with_rent_snapshot,
       count(*) filter (where not has_classification)::int as unknown_asset_group,
       count(*) filter (where property_use is null or property_use = '')::int as missing_property_use,
       count(*) filter (where market_value is null or market_value = 0)::int as missing_market_value,
@@ -1141,6 +1162,9 @@ app.get('/v1/markets/:market/completion', async (c) => {
            count(*)::int as parcels,
            count(*) filter (where is_core_complete)::int as "coreComplete",
            count(*) filter (where is_underwriting_complete)::int as "underwritingComplete",
+           count(*) filter (where is_rental_candidate)::int as "rentalCandidates",
+           count(*) filter (where is_rental_candidate and has_property_website)::int as "rentalCandidatesWithWebsite",
+           count(*) filter (where is_rental_candidate and has_rent_snapshot)::int as "rentalCandidatesWithRentSnapshot",
            count(*) filter (where not has_classification)::int as "unknownAssetGroup",
            count(*) filter (where property_use is null or property_use = '')::int as "missingPropertyUse"
          from scored
@@ -1167,6 +1191,11 @@ app.get('/v1/markets/:market/completion', async (c) => {
     if (total === 0) return 0;
     return Math.round(((numberOrNull(value) ?? 0) / total) * 1000) / 10;
   };
+  const rentalCandidateCount = numberOrNull(summary?.rental_candidate_count) ?? 0;
+  const rentalPct = (value: unknown): number => {
+    if (rentalCandidateCount === 0) return 0;
+    return Math.round(((numberOrNull(value) ?? 0) / rentalCandidateCount) * 10000) / 100;
+  };
   const scoreParts = [
     pct(summary?.identity_complete),
     pct(summary?.classification_complete),
@@ -1185,6 +1214,7 @@ app.get('/v1/markets/:market/completion', async (c) => {
       core_complete: 'identity + asset classification + owner + valuation',
       underwriting_complete: 'core_complete + physical facts + transaction history fields',
       readiness_score: 'average of identity, classification, ownership, valuation, physical, and transaction completion percentages',
+      market_data_complete: 'rental/multifamily candidate properties with website, floorplan, and rent snapshot coverage',
     },
     totals: {
       parcel_count: total,
@@ -1200,6 +1230,13 @@ app.get('/v1/markets/:market/completion', async (c) => {
       transaction_complete: { count: numberOrNull(summary?.transaction_complete) ?? 0, pct: pct(summary?.transaction_complete) },
       core_complete: { count: numberOrNull(summary?.core_complete) ?? 0, pct: pct(summary?.core_complete) },
       underwriting_complete: { count: numberOrNull(summary?.underwriting_complete) ?? 0, pct: pct(summary?.underwriting_complete) },
+      rental_candidate_count: { count: rentalCandidateCount, pct: pct(summary?.rental_candidate_count) },
+      rental_website_coverage: { count: numberOrNull(summary?.rental_candidates_with_website) ?? 0, pct: rentalPct(summary?.rental_candidates_with_website) },
+      rental_floorplan_coverage: { count: numberOrNull(summary?.rental_candidates_with_floorplans) ?? 0, pct: rentalPct(summary?.rental_candidates_with_floorplans) },
+      rental_rent_snapshot_coverage: { count: numberOrNull(summary?.rental_candidates_with_rent_snapshot) ?? 0, pct: rentalPct(summary?.rental_candidates_with_rent_snapshot) },
+      all_property_website_coverage: { count: numberOrNull(summary?.properties_with_website) ?? 0, pct: pct(summary?.properties_with_website) },
+      all_property_floorplan_coverage: { count: numberOrNull(summary?.properties_with_floorplans) ?? 0, pct: pct(summary?.properties_with_floorplans) },
+      all_property_rent_snapshot_coverage: { count: numberOrNull(summary?.properties_with_rent_snapshot) ?? 0, pct: pct(summary?.properties_with_rent_snapshot) },
     },
     gaps: {
       unknown_asset_group: numberOrNull(summary?.unknown_asset_group) ?? 0,
@@ -1785,7 +1822,7 @@ app.get('/preview/market-dashboard', async (c) => {
   main { padding:22px 24px 32px; max-width:1440px; margin:0 auto; }
   .kpi-grid { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:12px; margin-bottom:18px; }
   .asset-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr); gap:16px; margin-bottom:16px; align-items:start; }
-  .completion-grid { display:grid; grid-template-columns:repeat(4,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
+  .completion-grid { display:grid; grid-template-columns:repeat(6,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
   .kpi-label { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:700; }
   .kpi-value { font-size:26px; font-weight:820; margin-top:7px; line-height:1; }
@@ -1853,6 +1890,9 @@ app.get('/preview/market-dashboard', async (c) => {
       <div class="card"><div class="kpi-label">Readiness Score</div><div class="kpi-value" id="complete-score">-</div><div class="kpi-sub">average completion across required layers</div></div>
       <div class="card"><div class="kpi-label">Core Complete</div><div class="kpi-value" id="complete-core">-</div><div class="kpi-sub">identity + class + owner + value</div></div>
       <div class="card"><div class="kpi-label">Underwriting Complete</div><div class="kpi-value" id="complete-underwriting">-</div><div class="kpi-sub">core + physical + transaction facts</div></div>
+      <div class="card"><div class="kpi-label">Rental Universe</div><div class="kpi-value" id="complete-rental-universe">-</div><div class="kpi-sub">2+ unit / apartment candidates</div></div>
+      <div class="card"><div class="kpi-label">Rental Websites</div><div class="kpi-value amber" id="complete-rental-websites">-</div><div class="kpi-sub" id="complete-rental-websites-sub">official sites found</div></div>
+      <div class="card"><div class="kpi-label">Rent Snapshots</div><div class="kpi-value green" id="complete-rent-snapshots">-</div><div class="kpi-sub" id="complete-rent-snapshots-sub">floorplan rents captured</div></div>
       <div class="card"><div class="kpi-label">Unknown Asset Class</div><div class="kpi-value" id="complete-unknown">-</div><div class="kpi-sub">classification gap to clean</div></div>
     </div>
     <div class="asset-grid">
@@ -2034,6 +2074,11 @@ async function load() {
   document.getElementById('complete-score').textContent = completion.totals.readiness_score + '%';
   document.getElementById('complete-core').textContent = completion.metrics.core_complete.pct + '%';
   document.getElementById('complete-underwriting').textContent = completion.metrics.underwriting_complete.pct + '%';
+  document.getElementById('complete-rental-universe').textContent = fmt(completion.metrics.rental_candidate_count.count);
+  document.getElementById('complete-rental-websites').textContent = completion.metrics.rental_website_coverage.pct + '%';
+  document.getElementById('complete-rental-websites-sub').textContent = fmt(completion.metrics.rental_website_coverage.count) + ' candidates with sites';
+  document.getElementById('complete-rent-snapshots').textContent = completion.metrics.rental_rent_snapshot_coverage.pct + '%';
+  document.getElementById('complete-rent-snapshots-sub').textContent = fmt(completion.metrics.rental_rent_snapshot_coverage.count) + ' candidates with observed rents';
   const unknownAssetRow = (assets.by_asset_group ?? []).find(row => row.assetGroup === 'unknown');
   document.getElementById('complete-unknown').textContent = fmt(unknownAssetRow?.parcels ?? 0);
   const countyRows = completion.by_county ?? [];

@@ -12,10 +12,12 @@ import type { RentSnapshot } from "../db/queries.js";
 import { scrapeRentCafe, toRentSnapshots as rentcafeToSnapshots } from "./rentcafe.js";
 import { scrapeEntrata, toRentSnapshots as entrataToSnapshots } from "./entrata.js";
 import { scrapeAppFolio, toRentSnapshots as appfolioToSnapshots } from "./appfolio.js";
+import { scrapeDirectPropertySite, toRentSnapshots as directToSnapshots } from "./direct.js";
+import { isDomainBlocked } from "../utils/allowlist.js";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
-export type PlatformId = "rentcafe" | "entrata" | "appfolio" | "unknown";
+export type PlatformId = "rentcafe" | "entrata" | "appfolio" | "direct" | "unknown";
 
 export interface ScraperEntry {
   platform: PlatformId;
@@ -53,6 +55,13 @@ const SCRAPERS: ScraperEntry[] = [
     scrape: scrapeAppFolio,
     toSnapshots: appfolioToSnapshots,
   },
+  {
+    platform: "direct",
+    label: "Direct property website",
+    patterns: [],
+    scrape: scrapeDirectPropertySite,
+    toSnapshots: directToSnapshots,
+  },
 ];
 
 // ─── Lookup Functions ───────────────────────────────────────────────
@@ -75,7 +84,7 @@ export function detectPlatform(url: string): PlatformId {
       if (pattern.test(hostname)) return entry.platform;
     }
   }
-  return "unknown";
+  return isDomainBlocked(url) ? "unknown" : "direct";
 }
 
 /**
@@ -87,6 +96,9 @@ export function getScraperForUrl(url: string): ScraperEntry | null {
     for (const pattern of entry.patterns) {
       if (pattern.test(hostname)) return entry;
     }
+  }
+  if (hostname && !isDomainBlocked(url)) {
+    return SCRAPERS.find((entry) => entry.platform === "direct") ?? null;
   }
   return null;
 }
@@ -123,7 +135,7 @@ export function detectPlatformFromDomain(domain: string): PlatformId {
       if (pattern.test(hostname)) return entry.platform;
     }
   }
-  return "unknown";
+  return isDomainBlocked(`https://${hostname}`) ? "unknown" : "direct";
 }
 
 /**
