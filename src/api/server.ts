@@ -8,6 +8,37 @@ import type { PropertySummary } from './types.js';
 const app = new Hono();
 const db = getDb();
 
+const INDIANAPOLIS_CORE_COUNTY_IDS = [797583];
+const INDIANAPOLIS_METRO_COUNTY_IDS = [
+  797471, // Boone
+  797499, // Brown
+  797457, // Hamilton
+  797461, // Hancock
+  797531, // Hendricks
+  797475, // Johnson
+  797473, // Madison
+  797583, // Marion
+  797557, // Morgan
+  797469, // Shelby
+  797572, // Tipton
+];
+
+function getIndianapolisScope(scope: string | undefined): {
+  key: 'core' | 'metro';
+  label: string;
+  countyIds: number[];
+  countySql: string;
+} {
+  const key = scope?.toLowerCase() === 'metro' ? 'metro' : 'core';
+  const countyIds = key === 'metro' ? INDIANAPOLIS_METRO_COUNTY_IDS : INDIANAPOLIS_CORE_COUNTY_IDS;
+  return {
+    key,
+    label: key === 'metro' ? 'Indianapolis-Carmel-Greenwood MSA' : 'Indianapolis Core / Marion County',
+    countyIds,
+    countySql: countyIds.join(','),
+  };
+}
+
 // ── Auth middleware (skip for /health) ────────────────────────
 app.use('*', async (c, next) => {
   if (c.req.path === '/health' || c.req.path === '/' || c.req.path === '/dashboard' || c.req.path === '/preview/market-dashboard') return next();
@@ -834,6 +865,7 @@ app.get('/v1/markets/:market/assets', async (c) => {
   if (!['indianapolis', 'indy'].includes(market)) {
     return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
   }
+  const scope = getIndianapolisScope(c.req.query('scope'));
 
   const supportedAssetGroups = [
     'single_family',
@@ -941,7 +973,7 @@ app.get('/v1/markets/:market/assets', async (c) => {
           else 'unknown'
         end as asset_group
       from properties p
-      where p.county_id = 797583
+      where p.county_id in (${scope.countySql})
     ),
     scoped as (
       select * from normalized
@@ -1028,8 +1060,8 @@ app.get('/v1/markets/:market/assets', async (c) => {
 
   return c.json({
     market: 'indianapolis',
-    geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
-    filters: { asset_group: requestedAssetGroup ?? null, coverage: includeCoverage },
+    geography: { state: 'IN', scope: scope.key, scope_label: scope.label, county_ids: scope.countyIds },
+    filters: { asset_group: requestedAssetGroup ?? null, coverage: includeCoverage, scope: scope.key },
     totals: {
       parcel_count: parcelCount,
       known_units: numberOrNull(summary?.known_units) ?? 0,
@@ -1051,6 +1083,131 @@ app.get('/v1/markets/:market/assets', async (c) => {
     by_asset_group: summary?.by_asset_group ?? [],
     top_property_uses: summary?.top_property_uses ?? [],
     examples: summary?.examples ?? [],
+    generated_at: new Date().toISOString(),
+  });
+});
+
+app.get('/v1/markets/:market/completion', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const scope = getIndianapolisScope(c.req.query('scope'));
+  const [summary] = await queryPg<Record<string, unknown>>(`
+    with flags as (
+      select
+        p.*,
+        coalesce(c.county_name, 'Unknown') as county_name,
+        coalesce(nullif(p.asset_type, ''), nullif(p.property_type, ''), nullif(p.asset_subtype, ''), 'unknown') as classification_group,
+        (p.parcel_id is not null and p.parcel_id <> '' and p.address is not null and p.address <> '' and p.county_id is not null) as has_identity,
+        (p.property_type is not null and p.property_type <> '')
+          or (p.property_use is not null and p.property_use <> '')
+          or (p.asset_type is not null and p.asset_type <> '')
+          or (p.asset_subtype is not null and p.asset_subtype <> '') as has_classification,
+        (p.owner_name is not null and p.owner_name <> '') or (p.company_name is not null and p.company_name <> '') or (p.owner1_last is not null and p.owner1_last <> '') as has_owner,
+        (coalesce(p.market_value, 0) > 0 or coalesce(p.assessed_value, 0) > 0 or coalesce(p.taxable_value, 0) > 0) as has_valuation,
+        (coalesce(p.total_sqft, 0) > 0 or coalesce(p.living_sqft, 0) > 0 or coalesce(p.land_sqft, 0) > 0 or coalesce(p.lot_sqft, 0) > 0 or p.year_built is not null) as has_physical,
+        (p.last_sale_date is not null or coalesce(p.last_sale_price, 0) > 0 or p.sale_year is not null) as has_transaction
+      from properties p
+      left join counties c on c.id = p.county_id
+      where p.county_id in (${scope.countySql})
+    ),
+    scored as (
+      select
+        *,
+        (has_identity and has_classification and has_owner and has_valuation) as is_core_complete,
+        (has_identity and has_classification and has_owner and has_valuation and has_physical and has_transaction) as is_underwriting_complete
+      from flags
+    )
+    select
+      count(*)::int as parcel_count,
+      count(distinct parcel_id)::int as distinct_parcel_ids,
+      count(*) filter (where has_identity)::int as identity_complete,
+      count(*) filter (where has_classification)::int as classification_complete,
+      count(*) filter (where has_owner)::int as ownership_complete,
+      count(*) filter (where has_valuation)::int as valuation_complete,
+      count(*) filter (where has_physical)::int as physical_complete,
+      count(*) filter (where has_transaction)::int as transaction_complete,
+      count(*) filter (where is_core_complete)::int as core_complete,
+      count(*) filter (where is_underwriting_complete)::int as underwriting_complete,
+      count(*) filter (where not has_classification)::int as unknown_asset_group,
+      count(*) filter (where property_use is null or property_use = '')::int as missing_property_use,
+      count(*) filter (where market_value is null or market_value = 0)::int as missing_market_value,
+      (select coalesce(jsonb_agg(row_to_json(c)), '[]'::jsonb)
+       from (
+         select
+           county_name as county,
+           count(*)::int as parcels,
+           count(*) filter (where is_core_complete)::int as "coreComplete",
+           count(*) filter (where is_underwriting_complete)::int as "underwritingComplete",
+           count(*) filter (where not has_classification)::int as "unknownAssetGroup",
+           count(*) filter (where property_use is null or property_use = '')::int as "missingPropertyUse"
+         from scored
+         group by county_name
+         order by count(*) desc
+       ) c) as by_county,
+      (select coalesce(jsonb_agg(row_to_json(g)), '[]'::jsonb)
+       from (
+         select
+           classification_group as "assetGroup",
+           count(*)::int as parcels,
+           count(*) filter (where is_core_complete)::int as "coreComplete",
+           count(*) filter (where is_underwriting_complete)::int as "underwritingComplete"
+         from scored
+         group by classification_group
+         order by count(*) desc
+         limit 20
+       ) g) as by_asset_group
+    from scored;
+  `);
+
+  const total = numberOrNull(summary?.parcel_count) ?? 0;
+  const pct = (value: unknown): number => {
+    if (total === 0) return 0;
+    return Math.round(((numberOrNull(value) ?? 0) / total) * 1000) / 10;
+  };
+  const scoreParts = [
+    pct(summary?.identity_complete),
+    pct(summary?.classification_complete),
+    pct(summary?.ownership_complete),
+    pct(summary?.valuation_complete),
+    pct(summary?.physical_complete),
+    pct(summary?.transaction_complete),
+  ];
+  const readinessScore = Math.round((scoreParts.reduce((sum, value) => sum + value, 0) / scoreParts.length) * 10) / 10;
+
+  return c.json({
+    market: 'indianapolis',
+    geography: { state: 'IN', scope: scope.key, scope_label: scope.label, county_ids: scope.countyIds },
+    definition: {
+      parcel_identity: 'parcel_id + address + county_id present',
+      core_complete: 'identity + asset classification + owner + valuation',
+      underwriting_complete: 'core_complete + physical facts + transaction history fields',
+      readiness_score: 'average of identity, classification, ownership, valuation, physical, and transaction completion percentages',
+    },
+    totals: {
+      parcel_count: total,
+      distinct_parcel_ids: numberOrNull(summary?.distinct_parcel_ids) ?? 0,
+      readiness_score: readinessScore,
+    },
+    metrics: {
+      identity_complete: { count: numberOrNull(summary?.identity_complete) ?? 0, pct: pct(summary?.identity_complete) },
+      classification_complete: { count: numberOrNull(summary?.classification_complete) ?? 0, pct: pct(summary?.classification_complete) },
+      ownership_complete: { count: numberOrNull(summary?.ownership_complete) ?? 0, pct: pct(summary?.ownership_complete) },
+      valuation_complete: { count: numberOrNull(summary?.valuation_complete) ?? 0, pct: pct(summary?.valuation_complete) },
+      physical_complete: { count: numberOrNull(summary?.physical_complete) ?? 0, pct: pct(summary?.physical_complete) },
+      transaction_complete: { count: numberOrNull(summary?.transaction_complete) ?? 0, pct: pct(summary?.transaction_complete) },
+      core_complete: { count: numberOrNull(summary?.core_complete) ?? 0, pct: pct(summary?.core_complete) },
+      underwriting_complete: { count: numberOrNull(summary?.underwriting_complete) ?? 0, pct: pct(summary?.underwriting_complete) },
+    },
+    gaps: {
+      unknown_asset_group: numberOrNull(summary?.unknown_asset_group) ?? 0,
+      missing_property_use: numberOrNull(summary?.missing_property_use) ?? 0,
+      missing_market_value: numberOrNull(summary?.missing_market_value) ?? 0,
+    },
+    by_county: summary?.by_county ?? [],
+    by_asset_group: summary?.by_asset_group ?? [],
     generated_at: new Date().toISOString(),
   });
 });
@@ -1628,6 +1785,7 @@ app.get('/preview/market-dashboard', async (c) => {
   main { padding:22px 24px 32px; max-width:1440px; margin:0 auto; }
   .kpi-grid { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:12px; margin-bottom:18px; }
   .asset-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr); gap:16px; margin-bottom:16px; align-items:start; }
+  .completion-grid { display:grid; grid-template-columns:repeat(4,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
   .kpi-label { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:700; }
   .kpi-value { font-size:26px; font-weight:820; margin-top:7px; line-height:1; }
@@ -1653,8 +1811,8 @@ app.get('/preview/market-dashboard', async (c) => {
   .green { color:var(--green); }
   .amber { color:var(--amber); }
   .loading { padding:40px; color:var(--muted); text-align:center; }
-  @media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(3,minmax(150px,1fr)); } .layout,.asset-grid { grid-template-columns:1fr; } }
-  @media (max-width:620px) { .topbar { align-items:flex-start; flex-direction:column; } main { padding:14px; } .kpi-grid { grid-template-columns:1fr 1fr; } .kpi-value { font-size:22px; } th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none;} }
+  @media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(3,minmax(150px,1fr)); } .completion-grid { grid-template-columns:repeat(2,minmax(160px,1fr)); } .layout,.asset-grid { grid-template-columns:1fr; } }
+  @media (max-width:620px) { .topbar { align-items:flex-start; flex-direction:column; } main { padding:14px; } .kpi-grid,.completion-grid { grid-template-columns:1fr 1fr; } .kpi-value { font-size:22px; } th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none;} }
 </style>
 </head>
 <body>
@@ -1664,7 +1822,10 @@ app.get('/preview/market-dashboard', async (c) => {
     <div class="subtitle">Buy Box Club asset dashboard preview powered by MXRE parcel, listing, and recorder data</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <span class="pill">Marion County, IN</span>
+    <select id="scope-select" onchange="setScope(this.value)">
+      <option value="core">Indianapolis Core</option>
+      <option value="metro">Indianapolis Metro</option>
+    </select>
     <span class="pill" id="generated">Loading</span>
   </div>
 </div>
@@ -1687,6 +1848,12 @@ app.get('/preview/market-dashboard', async (c) => {
       <div class="card"><div class="kpi-label">Internal Listings</div><div class="kpi-value green" id="kpi-active">-</div><div class="kpi-sub" id="kpi-unique">- unique properties</div></div>
       <div class="card"><div class="kpi-label">External CRE</div><div class="kpi-value amber" id="kpi-external">-</div><div class="kpi-sub" id="kpi-external-sub">unverified observations</div></div>
       <div class="card"><div class="kpi-label">Median List</div><div class="kpi-value" id="kpi-list">-</div><div class="kpi-sub">active multifamily</div></div>
+    </div>
+    <div class="completion-grid">
+      <div class="card"><div class="kpi-label">Readiness Score</div><div class="kpi-value" id="complete-score">-</div><div class="kpi-sub">average completion across required layers</div></div>
+      <div class="card"><div class="kpi-label">Core Complete</div><div class="kpi-value" id="complete-core">-</div><div class="kpi-sub">identity + class + owner + value</div></div>
+      <div class="card"><div class="kpi-label">Underwriting Complete</div><div class="kpi-value" id="complete-underwriting">-</div><div class="kpi-sub">core + physical + transaction facts</div></div>
+      <div class="card"><div class="kpi-label">Unknown Asset Class</div><div class="kpi-value" id="complete-unknown">-</div><div class="kpi-sub">classification gap to clean</div></div>
     </div>
     <div class="asset-grid">
       <div class="card">
@@ -1714,6 +1881,7 @@ app.get('/preview/market-dashboard', async (c) => {
         <table><thead><tr><th>Asset Class</th><th>Parcels</th><th>Units</th><th>Value</th><th>Listings</th><th>Recorder</th></tr></thead><tbody id="asset-body"></tbody></table>
       </div>
       <div class="stack">
+        <div class="card"><div class="section-title"><h2>Completion By County</h2><span class="pill">core complete</span></div><div id="county-completion"></div></div>
         <div class="card"><div class="section-title"><h2>Top Uses</h2><span class="pill">assessor codes</span></div><div id="asset-uses"></div></div>
         <div class="card"><div class="section-title"><h2>Examples</h2><span class="pill">highest value</span></div><div id="asset-examples"></div></div>
       </div>
@@ -1802,10 +1970,18 @@ function bars(target, data, valueKey = null) {
 }
 let currentMinUnits = null;
 let currentAssetGroup = '';
+let currentScope = 'core';
 function setUnitFilter(minUnits) {
   currentMinUnits = minUnits;
   for (const id of ['filter-all', 'filter-2', 'filter-3', 'filter-4']) document.getElementById(id).classList.remove('active');
   document.getElementById(minUnits ? 'filter-' + minUnits : 'filter-all').classList.add('active');
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('loading').textContent = 'Loading market dashboard...';
+  load();
+}
+function setScope(scope) {
+  currentScope = scope === 'metro' ? 'metro' : 'core';
   document.getElementById('content').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
   document.getElementById('loading').textContent = 'Loading market dashboard...';
@@ -1822,22 +1998,29 @@ async function load() {
   const params = new URLSearchParams();
   if (currentMinUnits) params.set('min_units', String(currentMinUnits));
   const assetParams = new URLSearchParams();
+  assetParams.set('scope', currentScope);
   if (currentAssetGroup) assetParams.set('asset_group', currentAssetGroup);
+  const completionParams = new URLSearchParams({ scope: currentScope });
   const path = '/v1/markets/indianapolis/dashboard' + (params.toString() ? '?' + params.toString() : '');
   const coveragePath = '/v1/markets/indianapolis/multifamily/coverage' + (params.toString() ? '?' + params.toString() : '');
   const assetsPath = '/v1/markets/indianapolis/assets' + (assetParams.toString() ? '?' + assetParams.toString() : '');
-  const [resp, coverageResp, assetsResp] = await Promise.all([
+  const completionPath = '/v1/markets/indianapolis/completion?' + completionParams.toString();
+  const [resp, coverageResp, assetsResp, completionResp] = await Promise.all([
     fetch(path, { headers: { 'x-api-key': apiKey } }),
     fetch(coveragePath, { headers: { 'x-api-key': apiKey } }),
     fetch(assetsPath, { headers: { 'x-api-key': apiKey } }),
+    fetch(completionPath, { headers: { 'x-api-key': apiKey } }),
   ]);
   const data = await resp.json();
   const coverage = await coverageResp.json();
   const assets = await assetsResp.json();
+  const completion = await completionResp.json();
   if (!resp.ok) throw new Error(data.detail || data.error || 'Request failed');
   if (!coverageResp.ok) throw new Error(coverage.detail || coverage.error || 'Coverage request failed');
   if (!assetsResp.ok) throw new Error(assets.detail || assets.error || 'Assets request failed');
-  document.getElementById('filter-note').textContent = currentMinUnits ? 'Showing all assets plus Indianapolis multifamily with at least ' + currentMinUnits + ' units.' : 'Showing all Indianapolis real estate assets with a multifamily drilldown.';
+  if (!completionResp.ok) throw new Error(completion.detail || completion.error || 'Completion request failed');
+  const scopeLabel = currentScope === 'metro' ? 'Indianapolis metro' : 'Indianapolis core / Marion County';
+  document.getElementById('filter-note').textContent = currentMinUnits ? 'Showing ' + scopeLabel + ' assets plus Marion multifamily with at least ' + currentMinUnits + ' units.' : 'Showing ' + scopeLabel + ' assets with a Marion multifamily drilldown.';
   document.getElementById('kpi-all-parcels').textContent = fmt(assets.totals.parcel_count);
   document.getElementById('kpi-market-value').textContent = compactMoney(assets.totals.market_value_sum);
   document.getElementById('kpi-all-recorder').textContent = assets.filters.coverage ? assets.coverage.any_recorder_data_pct + '%' : '-';
@@ -1848,6 +2031,24 @@ async function load() {
   document.getElementById('kpi-external-sub').textContent = fmt(data.on_market.external_4_plus_rows) + ' are 4+ unit CRE signals';
   document.getElementById('kpi-list').textContent = money(data.on_market.list_price.median);
   document.getElementById('generated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
+  document.getElementById('complete-score').textContent = completion.totals.readiness_score + '%';
+  document.getElementById('complete-core').textContent = completion.metrics.core_complete.pct + '%';
+  document.getElementById('complete-underwriting').textContent = completion.metrics.underwriting_complete.pct + '%';
+  const unknownAssetRow = (assets.by_asset_group ?? []).find(row => row.assetGroup === 'unknown');
+  document.getElementById('complete-unknown').textContent = fmt(unknownAssetRow?.parcels ?? 0);
+  const countyRows = completion.by_county ?? [];
+  const maxCounty = Math.max(1, ...countyRows.map(row => Number(row.parcels) || 0));
+  document.getElementById('county-completion').innerHTML = countyRows.map(row => {
+    const pctCore = row.parcels ? Math.round((Number(row.coreComplete || 0) / Number(row.parcels)) * 1000) / 10 : 0;
+    return \`
+      <div class="bar-row">
+        <div class="bar-label">\${row.county}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:\${Math.max(3, (Number(row.parcels) / maxCounty) * 100)}%"></div></div>
+        <div class="bar-value">\${fmt(row.parcels)}</div>
+        <div class="muted" style="grid-column:2 / 4;font-size:11px;margin-top:-6px">\${pctCore}% core complete</div>
+      </div>
+    \`;
+  }).join('') || '<div class="muted">No county completion data.</div>';
   document.getElementById('asset-note').textContent = currentAssetGroup
     ? 'Showing only ' + (assetLabels[currentAssetGroup] || currentAssetGroup) + ' parcels.'
     : 'Parcel-led inventory by asset type.';
