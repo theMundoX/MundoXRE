@@ -829,6 +829,232 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
   });
 });
 
+app.get('/v1/markets/:market/assets', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const supportedAssetGroups = [
+    'single_family',
+    'small_multifamily',
+    'commercial_multifamily',
+    'mobile_home_rv',
+    'land',
+    'industrial',
+    'office',
+    'retail',
+    'self_storage',
+    'hospitality',
+    'parking',
+    'exempt_institutional',
+    'utilities_other',
+    'other_commercial',
+    'other_residential',
+    'unknown',
+  ];
+  const requestedAssetGroup = c.req.query('asset_group')?.toLowerCase();
+  if (requestedAssetGroup && !supportedAssetGroups.includes(requestedAssetGroup)) {
+    return c.json({ error: 'Unsupported asset_group', supported_asset_groups: supportedAssetGroups }, 400);
+  }
+
+  const includeCoverage = c.req.query('coverage') === 'true';
+  const groupFilterSql = requestedAssetGroup ? `where asset_group = '${requestedAssetGroup}'` : '';
+  const signalCtesSql = `,
+    active_ids as (
+      select distinct property_id from listing_signals where is_on_market = true
+    )${includeCoverage ? `,
+    sale_ids as (
+      select distinct property_id from sale_history
+    ),
+    mortgage_ids as (
+      select distinct property_id from mortgage_records
+    ),
+    public_signal_ids as (
+      select distinct property_id from property_public_signals
+    )` : ''}`;
+  const signalFlagSql = includeCoverage ? `
+        a.property_id is not null as has_active_listing,
+        sh.property_id is not null as has_sale_history,
+        m.property_id is not null as has_recorded_mortgage,
+        ps.property_id is not null as has_public_signal` : `
+        a.property_id is not null as has_active_listing,
+        false as has_sale_history,
+        false as has_recorded_mortgage,
+        false as has_public_signal`;
+  const signalJoinSql = `
+      left join active_ids a on a.property_id = s.id${includeCoverage ? `
+      left join sale_ids sh on sh.property_id = s.id
+      left join mortgage_ids m on m.property_id = s.id
+      left join public_signal_ids ps on ps.property_id = s.id` : ''}`;
+  const [summary] = await queryPg<Record<string, unknown>>(`
+    with normalized as (
+      select
+        p.*,
+        case
+          when coalesce(p.property_use, '') ilike '%MOBILE HOME PARK%'
+            or coalesce(p.property_use, '') ilike '% RV PARK%'
+            or coalesce(p.property_use, '') ilike '%RECREATIONAL VEHICLE%' then 'mobile_home_rv'
+          when p.asset_type = 'commercial_multifamily' or coalesce(p.property_use, '') ilike '%APT%UNITS%' then 'commercial_multifamily'
+          when p.asset_type = 'small_multifamily'
+            or coalesce(p.property_use, '') ilike '%TWO FAMILY%'
+            or coalesce(p.property_use, '') ilike '%THREE FAMILY%' then 'small_multifamily'
+          when coalesce(p.property_use, '') ilike '%MINI-WAREHOUSE%' then 'self_storage'
+          when coalesce(p.property_use, '') ilike 'IND %'
+            or coalesce(p.property_use, '') ilike '%WAREHOUSE%'
+            or coalesce(p.property_use, '') ilike '%WHSE%'
+            or coalesce(p.property_use, '') ilike '%LIGHT MFG%'
+            or p.property_type = 'industrial'
+            or p.asset_subtype = 'industrial' then 'industrial'
+          when coalesce(p.property_use, '') ilike '%VACANT LAND%'
+            or coalesce(p.property_use, '') ilike '%VACANT PLATTED%'
+            or coalesce(p.property_use, '') ilike '%VACANT AGRICULTURAL%'
+            or coalesce(p.property_use, '') ilike '%VAC SUPPORT%'
+            or p.asset_subtype = 'land'
+            or p.property_type = 'land' then 'land'
+          when coalesce(p.property_use, '') ilike '%COM OFF%'
+            or coalesce(p.property_use, '') ilike '%OFF BLDG%'
+            or coalesce(p.property_use, '') ilike '%OFFICE%'
+            or coalesce(p.property_use, '') ilike '%MEDICAL CLINIC%' then 'office'
+          when coalesce(p.property_use, '') ilike '%RETAIL%'
+            or coalesce(p.property_use, '') ilike '%SHOPPING%'
+            or coalesce(p.property_use, '') ilike '%SUPERMARKET%'
+            or coalesce(p.property_use, '') ilike '%RESTAURANT%'
+            or coalesce(p.property_use, '') ilike '%CONVENIENCE%'
+            or coalesce(p.property_use, '') ilike '%AUTO SALES%'
+            or coalesce(p.property_use, '') ilike '%AUTO SERVICE%'
+            or coalesce(p.property_use, '') ilike '%CAR WASH%' then 'retail'
+          when coalesce(p.property_use, '') ilike '%HOTEL%' or coalesce(p.property_use, '') ilike '%MOTEL%' then 'hospitality'
+          when coalesce(p.property_use, '') ilike '%PARKING%' then 'parking'
+          when p.property_type = 'exempt' or coalesce(p.property_use, '') ilike 'EXEMPT%' then 'exempt_institutional'
+          when coalesce(p.property_use, '') ilike 'U %' then 'utilities_other'
+          when p.asset_subtype in ('sfr', 'condo')
+            or coalesce(p.property_use, '') ilike '%ONE FAMILY%'
+            or coalesce(p.property_use, '') ilike '%CONDO%'
+            or coalesce(p.property_use, '') ilike 'RES VAC%' then 'single_family'
+          when p.asset_type = 'residential' then 'other_residential'
+          when coalesce(p.property_use, '') ilike 'COM %'
+            or coalesce(p.property_use, '') ilike 'COMM %'
+            or coalesce(p.property_use, '') ilike '%COMMERCIAL%'
+            or p.property_type = 'commercial'
+            or p.asset_subtype = 'commercial' then 'other_commercial'
+          else 'unknown'
+        end as asset_group
+      from properties p
+      where p.county_id = 797583
+    ),
+    scoped as (
+      select * from normalized
+      ${groupFilterSql}
+    )
+    ${signalCtesSql},
+    flags as (
+      select
+        s.*,
+        ${signalFlagSql}
+      from scoped s
+      ${signalJoinSql}
+    )
+    select
+      count(*)::int as parcel_count,
+      coalesce(sum(coalesce(total_units,0)),0)::int as known_units,
+      coalesce(sum(coalesce(market_value,0)),0)::bigint as market_value_sum,
+      coalesce(sum(coalesce(assessed_value,0)),0)::bigint as assessed_value_sum,
+      count(*) filter (where has_active_listing)::int as parcels_with_active_listing,
+      count(*) filter (where has_sale_history)::int as parcels_with_sale_history,
+      count(*) filter (where has_recorded_mortgage)::int as parcels_with_recorded_mortgage,
+      count(*) filter (where has_sale_history or has_recorded_mortgage)::int as parcels_with_any_recorder_data,
+      count(*) filter (where has_public_signal)::int as parcels_with_public_signal,
+      (select coalesce(jsonb_agg(row_to_json(a)), '[]'::jsonb)
+       from (
+         select
+           asset_group as "assetGroup",
+           count(*)::int as parcels,
+           coalesce(sum(coalesce(total_units,0)),0)::int as "knownUnits",
+           coalesce(sum(coalesce(market_value,0)),0)::bigint as "marketValue",
+           count(*) filter (where has_active_listing)::int as "activeListings",
+           count(*) filter (where has_sale_history)::int as "saleHistory",
+           count(*) filter (where has_recorded_mortgage)::int as "recordedMortgages",
+           count(*) filter (where has_sale_history or has_recorded_mortgage)::int as "anyRecorderData",
+           count(*) filter (where has_public_signal)::int as "publicSignals"
+         from flags
+         group by asset_group
+         order by count(*) desc
+       ) a) as by_asset_group,
+      (select coalesce(jsonb_agg(row_to_json(u)), '[]'::jsonb)
+       from (
+         select
+           asset_group as "assetGroup",
+           coalesce(property_use, property_type, asset_subtype, 'unknown') as "propertyUse",
+           count(*)::int as parcels,
+           coalesce(sum(coalesce(total_units,0)),0)::int as "knownUnits"
+         from flags
+         group by asset_group, coalesce(property_use, property_type, asset_subtype, 'unknown')
+         order by count(*) desc
+         limit 60
+       ) u) as top_property_uses,
+      (select coalesce(jsonb_agg(row_to_json(e)), '[]'::jsonb)
+       from (
+         select
+           id as "propertyId",
+           address,
+           city,
+           state_code as state,
+           zip,
+           parcel_id as "parcelId",
+           asset_group as "assetGroup",
+           asset_type as "assetType",
+           asset_subtype as "assetSubtype",
+           property_type as "propertyType",
+           property_use as "propertyUse",
+           total_units as "unitCount",
+           market_value as "marketValue",
+           has_active_listing as "hasActiveListing",
+           has_sale_history as "hasSaleHistory",
+           has_recorded_mortgage as "hasRecordedMortgage",
+           has_public_signal as "hasPublicSignal"
+         from flags
+         order by coalesce(market_value,0) desc, address
+         limit 25
+       ) e) as examples
+    from flags;
+  `);
+
+  const parcelCount = numberOrNull(summary?.parcel_count) ?? 0;
+  const pct = (value: unknown): number => {
+    if (parcelCount === 0) return 0;
+    return Math.round(((numberOrNull(value) ?? 0) / parcelCount) * 1000) / 10;
+  };
+
+  return c.json({
+    market: 'indianapolis',
+    geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
+    filters: { asset_group: requestedAssetGroup ?? null, coverage: includeCoverage },
+    totals: {
+      parcel_count: parcelCount,
+      known_units: numberOrNull(summary?.known_units) ?? 0,
+      market_value_sum: numberOrNull(summary?.market_value_sum) ?? 0,
+      assessed_value_sum: numberOrNull(summary?.assessed_value_sum) ?? 0,
+    },
+    coverage: {
+      parcels_with_active_listing: numberOrNull(summary?.parcels_with_active_listing) ?? 0,
+      active_listing_pct: pct(summary?.parcels_with_active_listing),
+      parcels_with_sale_history: numberOrNull(summary?.parcels_with_sale_history) ?? 0,
+      sale_history_pct: pct(summary?.parcels_with_sale_history),
+      parcels_with_recorded_mortgage: numberOrNull(summary?.parcels_with_recorded_mortgage) ?? 0,
+      recorded_mortgage_pct: pct(summary?.parcels_with_recorded_mortgage),
+      parcels_with_any_recorder_data: numberOrNull(summary?.parcels_with_any_recorder_data) ?? 0,
+      any_recorder_data_pct: pct(summary?.parcels_with_any_recorder_data),
+      parcels_with_public_signal: numberOrNull(summary?.parcels_with_public_signal) ?? 0,
+      public_signal_pct: pct(summary?.parcels_with_public_signal),
+    },
+    by_asset_group: summary?.by_asset_group ?? [],
+    top_property_uses: summary?.top_property_uses ?? [],
+    examples: summary?.examples ?? [],
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/v1/markets/:market/multifamily/coverage', async (c) => {
   const market = c.req.param('market').toLowerCase();
   if (!['indianapolis', 'indy'].includes(market)) {
@@ -1398,8 +1624,10 @@ app.get('/preview/market-dashboard', async (c) => {
   .seg { display:inline-flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:8px; background:#141816; }
   .seg button { height:28px; padding:0 10px; border:0; border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; font:inherit; font-size:12px; }
   .seg button.active { background:#243028; color:var(--text); }
+  select { height:34px; border:1px solid var(--line); border-radius:6px; background:#141816; color:var(--text); padding:0 10px; font:inherit; font-size:13px; }
   main { padding:22px 24px 32px; max-width:1440px; margin:0 auto; }
   .kpi-grid { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:12px; margin-bottom:18px; }
+  .asset-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr); gap:16px; margin-bottom:16px; align-items:start; }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
   .kpi-label { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:700; }
   .kpi-value { font-size:26px; font-weight:820; margin-top:7px; line-height:1; }
@@ -1425,15 +1653,15 @@ app.get('/preview/market-dashboard', async (c) => {
   .green { color:var(--green); }
   .amber { color:var(--amber); }
   .loading { padding:40px; color:var(--muted); text-align:center; }
-  @media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(3,minmax(150px,1fr)); } .layout { grid-template-columns:1fr; } }
+  @media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(3,minmax(150px,1fr)); } .layout,.asset-grid { grid-template-columns:1fr; } }
   @media (max-width:620px) { .topbar { align-items:flex-start; flex-direction:column; } main { padding:14px; } .kpi-grid { grid-template-columns:1fr 1fr; } .kpi-value { font-size:22px; } th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none;} }
 </style>
 </head>
 <body>
 <div class="topbar">
   <div>
-    <h1>Indianapolis Multifamily Market</h1>
-    <div class="subtitle">Buy Box Club market dashboard preview powered by MXRE</div>
+    <h1>Indianapolis Real Estate Market</h1>
+    <div class="subtitle">Buy Box Club asset dashboard preview powered by MXRE parcel, listing, and recorder data</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <span class="pill">Marion County, IN</span>
@@ -1442,7 +1670,7 @@ app.get('/preview/market-dashboard', async (c) => {
 </div>
 <main>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
-    <div class="muted" id="filter-note">Showing all multifamily on-market records.</div>
+    <div class="muted" id="filter-note">Showing all Indianapolis real estate assets with a multifamily drilldown.</div>
     <div class="seg" aria-label="Unit size filter">
       <button id="filter-all" class="active" onclick="setUnitFilter(null)">All MF</button>
       <button id="filter-2" onclick="setUnitFilter(2)">2+ Units</button>
@@ -1453,12 +1681,42 @@ app.get('/preview/market-dashboard', async (c) => {
   <div id="loading" class="card loading">Loading market dashboard...</div>
   <div id="content" style="display:none;">
     <div class="kpi-grid">
-      <div class="card"><div class="kpi-label">MF Properties</div><div class="kpi-value" id="kpi-props">-</div><div class="kpi-sub">classified inventory</div></div>
-      <div class="card"><div class="kpi-label">Known Units</div><div class="kpi-value" id="kpi-units">-</div><div class="kpi-sub">assessor-derived units</div></div>
-      <div class="card"><div class="kpi-label">Recorder Coverage</div><div class="kpi-value" id="kpi-recorder">-</div><div class="kpi-sub" id="kpi-recorder-sub">sale or mortgage records</div></div>
+      <div class="card"><div class="kpi-label">All Parcels</div><div class="kpi-value" id="kpi-all-parcels">-</div><div class="kpi-sub">Indianapolis asset universe</div></div>
+      <div class="card"><div class="kpi-label">Market Value</div><div class="kpi-value" id="kpi-market-value">-</div><div class="kpi-sub">assessor market value</div></div>
+      <div class="card"><div class="kpi-label">All Recorder Coverage</div><div class="kpi-value" id="kpi-all-recorder">-</div><div class="kpi-sub" id="kpi-all-recorder-sub">sale or mortgage records</div></div>
       <div class="card"><div class="kpi-label">Internal Listings</div><div class="kpi-value green" id="kpi-active">-</div><div class="kpi-sub" id="kpi-unique">- unique properties</div></div>
       <div class="card"><div class="kpi-label">External CRE</div><div class="kpi-value amber" id="kpi-external">-</div><div class="kpi-sub" id="kpi-external-sub">unverified observations</div></div>
       <div class="card"><div class="kpi-label">Median List</div><div class="kpi-value" id="kpi-list">-</div><div class="kpi-sub">active multifamily</div></div>
+    </div>
+    <div class="asset-grid">
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <h2>All Asset Classes</h2>
+            <div class="muted" id="asset-note" style="font-size:12px;margin-top:4px;">Parcel-led inventory by asset type.</div>
+          </div>
+          <select id="asset-select" onchange="setAssetGroup(this.value)">
+            <option value="">All assets</option>
+            <option value="single_family">Single family / condo</option>
+            <option value="small_multifamily">Small multifamily</option>
+            <option value="commercial_multifamily">Commercial multifamily</option>
+            <option value="mobile_home_rv">Mobile home / RV parks</option>
+            <option value="land">Land</option>
+            <option value="industrial">Industrial</option>
+            <option value="office">Office</option>
+            <option value="retail">Retail</option>
+            <option value="self_storage">Self-storage</option>
+            <option value="hospitality">Hospitality</option>
+            <option value="parking">Parking</option>
+            <option value="other_commercial">Other commercial</option>
+          </select>
+        </div>
+        <table><thead><tr><th>Asset Class</th><th>Parcels</th><th>Units</th><th>Value</th><th>Listings</th><th>Recorder</th></tr></thead><tbody id="asset-body"></tbody></table>
+      </div>
+      <div class="stack">
+        <div class="card"><div class="section-title"><h2>Top Uses</h2><span class="pill">assessor codes</span></div><div id="asset-uses"></div></div>
+        <div class="card"><div class="section-title"><h2>Examples</h2><span class="pill">highest value</span></div><div id="asset-examples"></div></div>
+      </div>
     </div>
     <div class="layout">
       <div class="card">
@@ -1504,6 +1762,32 @@ app.get('/preview/market-dashboard', async (c) => {
 const apiKey = '${process.env.MXRE_API_KEY ?? ''}';
 const fmt = (n) => n == null ? '-' : Number(n).toLocaleString('en-US');
 const money = (n) => n == null ? '-' : '$' + fmt(n);
+const compactMoney = (n) => {
+  if (n == null) return '-';
+  const value = Number(n);
+  if (!Number.isFinite(value)) return '-';
+  if (value >= 1000000000) return '$' + (value / 1000000000).toFixed(1) + 'B';
+  if (value >= 1000000) return '$' + (value / 1000000).toFixed(1) + 'M';
+  return money(value);
+};
+const assetLabels = {
+  single_family: 'Single family / condo',
+  small_multifamily: 'Small multifamily',
+  commercial_multifamily: 'Commercial multifamily',
+  mobile_home_rv: 'Mobile home / RV parks',
+  land: 'Land',
+  industrial: 'Industrial',
+  office: 'Office',
+  retail: 'Retail',
+  self_storage: 'Self-storage',
+  hospitality: 'Hospitality',
+  parking: 'Parking',
+  exempt_institutional: 'Exempt / institutional',
+  utilities_other: 'Utilities / other',
+  other_commercial: 'Other commercial',
+  other_residential: 'Other residential',
+  unknown: 'Unknown'
+};
 function bars(target, data, valueKey = null) {
   const el = document.getElementById(target);
   const entries = Array.isArray(data) ? data.map(row => [row.zip, row.listings, valueKey ? row[valueKey] : null]) : Object.entries(data ?? {}).map(([k, v]) => [k, v, null]);
@@ -1517,6 +1801,7 @@ function bars(target, data, valueKey = null) {
     </div>\`).join('') || '<div class="muted">No data</div>';
 }
 let currentMinUnits = null;
+let currentAssetGroup = '';
 function setUnitFilter(minUnits) {
   currentMinUnits = minUnits;
   for (const id of ['filter-all', 'filter-2', 'filter-3', 'filter-4']) document.getElementById(id).classList.remove('active');
@@ -1526,30 +1811,76 @@ function setUnitFilter(minUnits) {
   document.getElementById('loading').textContent = 'Loading market dashboard...';
   load();
 }
+function setAssetGroup(assetGroup) {
+  currentAssetGroup = assetGroup || '';
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('loading').textContent = 'Loading market dashboard...';
+  load();
+}
 async function load() {
   const params = new URLSearchParams();
   if (currentMinUnits) params.set('min_units', String(currentMinUnits));
+  const assetParams = new URLSearchParams();
+  if (currentAssetGroup) assetParams.set('asset_group', currentAssetGroup);
   const path = '/v1/markets/indianapolis/dashboard' + (params.toString() ? '?' + params.toString() : '');
   const coveragePath = '/v1/markets/indianapolis/multifamily/coverage' + (params.toString() ? '?' + params.toString() : '');
-  const [resp, coverageResp] = await Promise.all([
+  const assetsPath = '/v1/markets/indianapolis/assets' + (assetParams.toString() ? '?' + assetParams.toString() : '');
+  const [resp, coverageResp, assetsResp] = await Promise.all([
     fetch(path, { headers: { 'x-api-key': apiKey } }),
     fetch(coveragePath, { headers: { 'x-api-key': apiKey } }),
+    fetch(assetsPath, { headers: { 'x-api-key': apiKey } }),
   ]);
   const data = await resp.json();
   const coverage = await coverageResp.json();
+  const assets = await assetsResp.json();
   if (!resp.ok) throw new Error(data.detail || data.error || 'Request failed');
   if (!coverageResp.ok) throw new Error(coverage.detail || coverage.error || 'Coverage request failed');
-  document.getElementById('filter-note').textContent = currentMinUnits ? 'Showing Indianapolis multifamily with at least ' + currentMinUnits + ' units.' : 'Showing all multifamily on-market records.';
-  document.getElementById('kpi-props').textContent = fmt(data.inventory.total_multifamily_properties);
-  document.getElementById('kpi-units').textContent = fmt(data.inventory.known_multifamily_units);
-  document.getElementById('kpi-recorder').textContent = coverage.coverage.any_recorder_data_pct + '%';
-  document.getElementById('kpi-recorder-sub').textContent = fmt(coverage.coverage.parcels_with_any_recorder_data) + ' parcels with sale/mortgage data';
+  if (!assetsResp.ok) throw new Error(assets.detail || assets.error || 'Assets request failed');
+  document.getElementById('filter-note').textContent = currentMinUnits ? 'Showing all assets plus Indianapolis multifamily with at least ' + currentMinUnits + ' units.' : 'Showing all Indianapolis real estate assets with a multifamily drilldown.';
+  document.getElementById('kpi-all-parcels').textContent = fmt(assets.totals.parcel_count);
+  document.getElementById('kpi-market-value').textContent = compactMoney(assets.totals.market_value_sum);
+  document.getElementById('kpi-all-recorder').textContent = assets.filters.coverage ? assets.coverage.any_recorder_data_pct + '%' : '-';
+  document.getElementById('kpi-all-recorder-sub').textContent = assets.filters.coverage ? fmt(assets.coverage.parcels_with_any_recorder_data) + ' parcels with sale/mortgage data' : 'loaded in focused coverage views';
   document.getElementById('kpi-active').textContent = fmt(data.on_market.active_listing_rows);
   document.getElementById('kpi-unique').textContent = fmt(data.on_market.unique_properties) + ' unique properties';
   document.getElementById('kpi-external').textContent = fmt(data.on_market.external_listing_rows);
   document.getElementById('kpi-external-sub').textContent = fmt(data.on_market.external_4_plus_rows) + ' are 4+ unit CRE signals';
   document.getElementById('kpi-list').textContent = money(data.on_market.list_price.median);
   document.getElementById('generated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
+  document.getElementById('asset-note').textContent = currentAssetGroup
+    ? 'Showing only ' + (assetLabels[currentAssetGroup] || currentAssetGroup) + ' parcels.'
+    : 'Parcel-led inventory by asset type.';
+  document.getElementById('asset-body').innerHTML = (assets.by_asset_group ?? []).map(row => {
+    const recorderPct = row.parcels ? Math.round((Number(row.anyRecorderData || 0) / Number(row.parcels)) * 1000) / 10 : 0;
+    const recorderText = assets.filters.coverage ? fmt(row.anyRecorderData) + ' / ' + recorderPct + '%' : '-';
+    return \`
+      <tr>
+        <td><strong>\${assetLabels[row.assetGroup] || row.assetGroup}</strong><div class="muted" style="font-size:11px;margin-top:3px">\${row.assetGroup}</div></td>
+        <td>\${fmt(row.parcels)}</td>
+        <td>\${fmt(row.knownUnits)}</td>
+        <td>\${compactMoney(row.marketValue)}</td>
+        <td>\${fmt(row.activeListings)}</td>
+        <td>\${recorderText}</td>
+      </tr>
+    \`;
+  }).join('') || '<tr><td colspan="6" class="muted">No parcels match this asset filter.</td></tr>';
+  const uses = assets.top_property_uses ?? [];
+  const maxUse = Math.max(1, ...uses.map(row => Number(row.parcels) || 0));
+  document.getElementById('asset-uses').innerHTML = uses.slice(0, 12).map(row => \`
+    <div class="bar-row">
+      <div class="bar-label">\${row.assetGroup}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:\${Math.max(3, (Number(row.parcels) / maxUse) * 100)}%"></div></div>
+      <div class="bar-value">\${fmt(row.parcels)}</div>
+      <div class="muted" style="grid-column:1 / 4;font-size:11px;margin-top:-6px">\${row.propertyUse} - \${fmt(row.knownUnits)} units</div>
+    </div>
+  \`).join('') || '<div class="muted">No assessor-use data.</div>';
+  document.getElementById('asset-examples').innerHTML = (assets.examples ?? []).slice(0, 8).map(row => \`
+    <div class="metric-line">
+      <span><strong>\${row.address || 'No address'}</strong><div class="muted" style="font-size:11px;margin-top:3px">\${assetLabels[row.assetGroup] || row.assetGroup} - \${row.propertyUse || row.propertyType || '-'}</div></span>
+      <span style="text-align:right">\${compactMoney(row.marketValue)}<div class="muted" style="font-size:11px;margin-top:3px">\${row.unitCount ? fmt(row.unitCount) + ' units' : row.zip || ''}</div></span>
+    </div>
+  \`).join('') || '<div class="muted">No examples found.</div>';
   document.getElementById('cov-parcels').textContent = fmt(coverage.parcel_universe.parcel_count);
   document.getElementById('cov-units').textContent = fmt(coverage.parcel_universe.known_units);
   document.getElementById('cov-recorder').textContent = fmt(coverage.coverage.parcels_with_any_recorder_data) + ' / ' + coverage.coverage.any_recorder_data_pct + '%';
