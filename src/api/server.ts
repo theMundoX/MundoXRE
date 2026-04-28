@@ -1889,8 +1889,8 @@ app.get('/preview/market-dashboard', async (c) => {
 <body>
 <div class="topbar">
   <div>
-    <h1>Indianapolis Real Estate Market</h1>
-    <div class="subtitle">Buy Box Club asset dashboard preview powered by MXRE parcel, listing, and recorder data</div>
+    <h1>MXRE · Indianapolis Real Estate Intelligence</h1>
+    <div class="subtitle">MXRE admin dashboard powered by parcel, listing, recorder, rent, and assessor coverage data</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <select id="scope-select" onchange="setScope(this.value)">
@@ -1905,6 +1905,10 @@ app.get('/preview/market-dashboard', async (c) => {
   <div class="kpi-grid" style="margin-bottom:14px;">
     <div class="card"><div class="kpi-label">Active On Market Now</div><div class="kpi-value green">${activeAllUnique.toLocaleString('en-US')}</div><div class="kpi-sub">${activeAllRows.toLocaleString('en-US')} active listing rows across all linked Marion County assets</div></div>
     <div class="card"><div class="kpi-label">Active Multifamily Now</div><div class="kpi-value green">${activeMfUnique.toLocaleString('en-US')}</div><div class="kpi-sub">${activeMfRows.toLocaleString('en-US')} active listing rows across 2+ unit / apartment assets</div></div>
+    <div class="card"><div class="kpi-label">Core Readiness</div><div class="kpi-value" id="instant-core-readiness">89.6%</div><div class="kpi-sub">Indianapolis city / Marion County baseline</div></div>
+    <div class="card"><div class="kpi-label">Metro Readiness</div><div class="kpi-value" id="instant-metro-readiness">73.3%</div><div class="kpi-sub">Indianapolis MSA enrichment progress</div></div>
+    <div class="card"><div class="kpi-label">Core Parcel Universe</div><div class="kpi-value" id="instant-core-parcels">583,230</div><div class="kpi-sub">parcel-led MXRE coverage base</div></div>
+    <div class="card"><div class="kpi-label">Metro Parcel Universe</div><div class="kpi-value" id="instant-metro-parcels">1,160,106</div><div class="kpi-sub">all tracked metro parcels</div></div>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
     <div class="muted" id="filter-note">Showing all Indianapolis real estate assets with a multifamily drilldown.</div>
@@ -1915,8 +1919,8 @@ app.get('/preview/market-dashboard', async (c) => {
       <button id="filter-4" onclick="setUnitFilter(4)">4+ Units</button>
     </div>
   </div>
-  <div id="loading" class="card loading">Loading market dashboard...</div>
-  <div id="content" style="display:none;">
+  <div id="loading" class="card loading">Loading live MXRE dashboard panels...</div>
+  <div id="content" style="display:block;">
     <div class="kpi-grid">
       <div class="card"><div class="kpi-label">All Parcels</div><div class="kpi-value" id="kpi-all-parcels">-</div><div class="kpi-sub">Indianapolis asset universe</div></div>
       <div class="card"><div class="kpi-label">Market Value</div><div class="kpi-value" id="kpi-market-value">-</div><div class="kpi-sub">assessor market value</div></div>
@@ -2054,23 +2058,20 @@ function setUnitFilter(minUnits) {
   currentMinUnits = minUnits;
   for (const id of ['filter-all', 'filter-2', 'filter-3', 'filter-4']) document.getElementById(id).classList.remove('active');
   document.getElementById(minUnits ? 'filter-' + minUnits : 'filter-all').classList.add('active');
-  document.getElementById('content').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
-  document.getElementById('loading').textContent = 'Loading market dashboard...';
+  document.getElementById('loading').textContent = 'Refreshing live MXRE dashboard panels...';
   load();
 }
 function setScope(scope) {
   currentScope = scope === 'metro' ? 'metro' : scope === 'core' ? 'core' : 'city';
-  document.getElementById('content').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
-  document.getElementById('loading').textContent = 'Loading market dashboard...';
+  document.getElementById('loading').textContent = 'Refreshing live MXRE dashboard panels...';
   load();
 }
 function setAssetGroup(assetGroup) {
   currentAssetGroup = assetGroup || '';
-  document.getElementById('content').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
-  document.getElementById('loading').textContent = 'Loading market dashboard...';
+  document.getElementById('loading').textContent = 'Refreshing live MXRE dashboard panels...';
   load();
 }
 async function load() {
@@ -2084,18 +2085,12 @@ async function load() {
   const coveragePath = '/v1/markets/indianapolis/multifamily/coverage' + (params.toString() ? '?' + params.toString() : '');
   const assetsPath = '/v1/markets/indianapolis/assets' + (assetParams.toString() ? '?' + assetParams.toString() : '');
   const completionPath = '/v1/markets/indianapolis/completion?' + completionParams.toString();
-  const [resp, coverageResp, assetsResp, completionResp] = await Promise.all([
-    fetch(path, { headers: { 'x-api-key': apiKey } }),
-    fetch(coveragePath, { headers: { 'x-api-key': apiKey } }),
+  const [assetsResp, completionResp] = await Promise.all([
     fetch(assetsPath, { headers: { 'x-api-key': apiKey } }),
     fetch(completionPath, { headers: { 'x-api-key': apiKey } }),
   ]);
-  const data = await resp.json();
-  const coverage = await coverageResp.json();
   const assets = await assetsResp.json();
   const completion = await completionResp.json();
-  if (!resp.ok) throw new Error(data.detail || data.error || 'Request failed');
-  if (!coverageResp.ok) throw new Error(coverage.detail || coverage.error || 'Coverage request failed');
   if (!assetsResp.ok) throw new Error(assets.detail || assets.error || 'Assets request failed');
   if (!completionResp.ok) throw new Error(completion.detail || completion.error || 'Completion request failed');
   const scopeLabel = currentScope === 'metro' ? 'Indianapolis metro' : currentScope === 'core' ? 'Indianapolis core / Marion County' : 'Indianapolis city';
@@ -2104,13 +2099,15 @@ async function load() {
   document.getElementById('kpi-market-value').textContent = compactMoney(assets.totals.market_value_sum);
   document.getElementById('kpi-all-recorder').textContent = assets.filters.coverage ? assets.coverage.any_recorder_data_pct + '%' : '-';
   document.getElementById('kpi-all-recorder-sub').textContent = assets.filters.coverage ? fmt(assets.coverage.parcels_with_any_recorder_data) + ' parcels with sale/mortgage data' : 'loaded in focused coverage views';
-  document.getElementById('kpi-active').textContent = fmt(data.on_market.unique_properties);
-  document.getElementById('kpi-unique').textContent = fmt(data.on_market.active_listing_rows) + ' active listing rows from tracked sources';
-  document.getElementById('kpi-external').textContent = fmt(data.on_market.external_listing_rows);
-  document.getElementById('kpi-external-sub').textContent = fmt(data.on_market.external_4_plus_rows) + ' are 4+ unit CRE signals';
-  document.getElementById('kpi-list').textContent = money(data.on_market.list_price.median);
-  document.getElementById('generated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
+  document.getElementById('generated').textContent = 'Assets updated ' + new Date().toLocaleTimeString();
   document.getElementById('complete-score').textContent = completion.totals.readiness_score + '%';
+  if (currentScope === 'metro') {
+    document.getElementById('instant-metro-readiness').textContent = completion.totals.readiness_score + '%';
+    document.getElementById('instant-metro-parcels').textContent = fmt(completion.totals.parcel_count);
+  } else {
+    document.getElementById('instant-core-readiness').textContent = completion.totals.readiness_score + '%';
+    document.getElementById('instant-core-parcels').textContent = fmt(completion.totals.parcel_count);
+  }
   document.getElementById('complete-core').textContent = completion.metrics.core_complete.pct + '%';
   document.getElementById('complete-underwriting').textContent = completion.metrics.underwriting_complete.pct + '%';
   document.getElementById('complete-rental-universe').textContent = fmt(completion.metrics.rental_candidate_count.count);
@@ -2166,6 +2163,21 @@ async function load() {
       <span style="text-align:right">\${compactMoney(row.marketValue)}<div class="muted" style="font-size:11px;margin-top:3px">\${row.unitCount ? fmt(row.unitCount) + ' units' : row.zip || ''}</div></span>
     </div>
   \`).join('') || '<div class="muted">No examples found.</div>';
+  document.getElementById('loading').textContent = 'Loading listing and coverage panels...';
+  const [resp, coverageResp] = await Promise.all([
+    fetch(path, { headers: { 'x-api-key': apiKey } }),
+    fetch(coveragePath, { headers: { 'x-api-key': apiKey } }),
+  ]);
+  const data = await resp.json();
+  const coverage = await coverageResp.json();
+  if (!resp.ok) throw new Error(data.detail || data.error || 'Request failed');
+  if (!coverageResp.ok) throw new Error(coverage.detail || coverage.error || 'Coverage request failed');
+  document.getElementById('kpi-active').textContent = fmt(data.on_market.unique_properties);
+  document.getElementById('kpi-unique').textContent = fmt(data.on_market.active_listing_rows) + ' active listing rows from tracked sources';
+  document.getElementById('kpi-external').textContent = fmt(data.on_market.external_listing_rows);
+  document.getElementById('kpi-external-sub').textContent = fmt(data.on_market.external_4_plus_rows) + ' are 4+ unit CRE signals';
+  document.getElementById('kpi-list').textContent = money(data.on_market.list_price.median);
+  document.getElementById('generated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
   document.getElementById('cov-parcels').textContent = fmt(coverage.parcel_universe.parcel_count);
   document.getElementById('cov-units').textContent = fmt(coverage.parcel_universe.known_units);
   document.getElementById('cov-recorder').textContent = fmt(coverage.coverage.parcels_with_any_recorder_data) + ' / ' + coverage.coverage.any_recorder_data_pct + '%';
@@ -2206,7 +2218,11 @@ async function load() {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('content').style.display = 'block';
 }
-load().catch(err => { document.getElementById('loading').textContent = err.message; });
+load().catch(err => {
+  console.warn('MXRE live panel refresh failed', err);
+  document.getElementById('loading').textContent = 'Live MXRE panels are retrying; baseline readiness and visible dashboard sections remain available.';
+  setTimeout(() => load().catch(retryErr => console.warn('MXRE live panel retry failed', retryErr)), 30000);
+});
 </script>
 </body>
 </html>`);
