@@ -1802,6 +1802,28 @@ setInterval(load, 60000); // auto-refresh every 60s
 });
 
 app.get('/preview/market-dashboard', async (c) => {
+  const [activeNow] = await queryPg<Record<string, unknown>>(`
+    SELECT
+      count(*) FILTER (WHERE p.county_id = 797583) AS all_listing_rows,
+      count(DISTINCT ls.property_id) FILTER (WHERE p.county_id = 797583) AS all_unique_properties,
+      count(*) FILTER (
+        WHERE p.county_id = 797583
+          AND (coalesce(p.total_units, 1) >= 2 OR p.asset_type IN ('small_multifamily', 'apartment', 'multifamily'))
+      ) AS multifamily_listing_rows,
+      count(DISTINCT ls.property_id) FILTER (
+        WHERE p.county_id = 797583
+          AND (coalesce(p.total_units, 1) >= 2 OR p.asset_type IN ('small_multifamily', 'apartment', 'multifamily'))
+      ) AS multifamily_unique_properties
+    FROM listing_signals ls
+    JOIN properties p ON p.id = ls.property_id
+    WHERE ls.is_on_market = true
+      AND ls.property_id IS NOT NULL;
+  `);
+  const activeAllUnique = Number(activeNow?.all_unique_properties ?? 0);
+  const activeAllRows = Number(activeNow?.all_listing_rows ?? 0);
+  const activeMfUnique = Number(activeNow?.multifamily_unique_properties ?? 0);
+  const activeMfRows = Number(activeNow?.multifamily_listing_rows ?? 0);
+
   return c.html(`<!DOCTYPE html>
 <html>
 <head>
@@ -1867,6 +1889,10 @@ app.get('/preview/market-dashboard', async (c) => {
   </div>
 </div>
 <main>
+  <div class="kpi-grid" style="margin-bottom:14px;">
+    <div class="card"><div class="kpi-label">Active On Market Now</div><div class="kpi-value green">${activeAllUnique.toLocaleString('en-US')}</div><div class="kpi-sub">${activeAllRows.toLocaleString('en-US')} active listing rows across all linked Marion County assets</div></div>
+    <div class="card"><div class="kpi-label">Active Multifamily Now</div><div class="kpi-value green">${activeMfUnique.toLocaleString('en-US')}</div><div class="kpi-sub">${activeMfRows.toLocaleString('en-US')} active listing rows across 2+ unit / apartment assets</div></div>
+  </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
     <div class="muted" id="filter-note">Showing all Indianapolis real estate assets with a multifamily drilldown.</div>
     <div class="seg" aria-label="Unit size filter">
@@ -1882,7 +1908,7 @@ app.get('/preview/market-dashboard', async (c) => {
       <div class="card"><div class="kpi-label">All Parcels</div><div class="kpi-value" id="kpi-all-parcels">-</div><div class="kpi-sub">Indianapolis asset universe</div></div>
       <div class="card"><div class="kpi-label">Market Value</div><div class="kpi-value" id="kpi-market-value">-</div><div class="kpi-sub">assessor market value</div></div>
       <div class="card"><div class="kpi-label">All Recorder Coverage</div><div class="kpi-value" id="kpi-all-recorder">-</div><div class="kpi-sub" id="kpi-all-recorder-sub">sale or mortgage records</div></div>
-      <div class="card"><div class="kpi-label">Internal Listings</div><div class="kpi-value green" id="kpi-active">-</div><div class="kpi-sub" id="kpi-unique">- unique properties</div></div>
+      <div class="card"><div class="kpi-label">On Market Now</div><div class="kpi-value green" id="kpi-active">-</div><div class="kpi-sub" id="kpi-unique">active unique properties</div></div>
       <div class="card"><div class="kpi-label">External CRE</div><div class="kpi-value amber" id="kpi-external">-</div><div class="kpi-sub" id="kpi-external-sub">unverified observations</div></div>
       <div class="card"><div class="kpi-label">Median List</div><div class="kpi-value" id="kpi-list">-</div><div class="kpi-sub">active multifamily</div></div>
     </div>
@@ -2065,8 +2091,8 @@ async function load() {
   document.getElementById('kpi-market-value').textContent = compactMoney(assets.totals.market_value_sum);
   document.getElementById('kpi-all-recorder').textContent = assets.filters.coverage ? assets.coverage.any_recorder_data_pct + '%' : '-';
   document.getElementById('kpi-all-recorder-sub').textContent = assets.filters.coverage ? fmt(assets.coverage.parcels_with_any_recorder_data) + ' parcels with sale/mortgage data' : 'loaded in focused coverage views';
-  document.getElementById('kpi-active').textContent = fmt(data.on_market.active_listing_rows);
-  document.getElementById('kpi-unique').textContent = fmt(data.on_market.unique_properties) + ' unique properties';
+  document.getElementById('kpi-active').textContent = fmt(data.on_market.unique_properties);
+  document.getElementById('kpi-unique').textContent = fmt(data.on_market.active_listing_rows) + ' active listing rows from tracked sources';
   document.getElementById('kpi-external').textContent = fmt(data.on_market.external_listing_rows);
   document.getElementById('kpi-external-sub').textContent = fmt(data.on_market.external_4_plus_rows) + ' are 4+ unit CRE signals';
   document.getElementById('kpi-list').textContent = money(data.on_market.list_price.median);
