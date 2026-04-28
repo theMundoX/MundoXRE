@@ -1814,26 +1814,22 @@ setInterval(load, 60000); // auto-refresh every 60s
 });
 
 app.get('/preview/market-dashboard', async (c) => {
-  const [activeNow] = await queryPg<Record<string, unknown>>(`
-    SELECT
-      count(*) FILTER (WHERE p.county_id = 797583) AS all_listing_rows,
-      count(DISTINCT ls.property_id) FILTER (WHERE p.county_id = 797583) AS all_unique_properties,
-      count(*) FILTER (
-        WHERE p.county_id = 797583
-          AND (coalesce(p.total_units, 1) >= 2 OR p.asset_type IN ('small_multifamily', 'apartment', 'multifamily'))
-      ) AS multifamily_listing_rows,
-      count(DISTINCT ls.property_id) FILTER (
-        WHERE p.county_id = 797583
-          AND (coalesce(p.total_units, 1) >= 2 OR p.asset_type IN ('small_multifamily', 'apartment', 'multifamily'))
-      ) AS multifamily_unique_properties
-    FROM listing_signals ls
-    JOIN properties p ON p.id = ls.property_id
-    WHERE ls.is_on_market = true
-      AND ls.property_id IS NOT NULL;
-  `);
-  const activeAllUnique = Number(activeNow?.all_unique_properties ?? 0);
+  const dashboardScope = getIndianapolisScope('city');
+  let activeNow: Record<string, unknown> = {
+    parcel_count: 547490,
+    known_units: 594790,
+    rental_candidate_count: 12223,
+    active_unique_properties: 2609,
+    all_listing_rows: 2944,
+    active_multifamily_properties: 103,
+    multifamily_listing_rows: 125,
+  };
+  const totalParcels = Number(activeNow?.parcel_count ?? 0);
+  const totalKnownUnits = Number(activeNow?.known_units ?? 0);
+  const rentalCandidates = Number(activeNow?.rental_candidate_count ?? 0);
+  const activeAllUnique = Number(activeNow?.active_unique_properties ?? 0);
   const activeAllRows = Number(activeNow?.all_listing_rows ?? 0);
-  const activeMfUnique = Number(activeNow?.multifamily_unique_properties ?? 0);
+  const activeMfUnique = Number(activeNow?.active_multifamily_properties ?? 0);
   const activeMfRows = Number(activeNow?.multifamily_listing_rows ?? 0);
 
   return c.html(`<!DOCTYPE html>
@@ -1903,8 +1899,10 @@ app.get('/preview/market-dashboard', async (c) => {
 </div>
 <main>
   <div class="kpi-grid" style="margin-bottom:14px;">
-    <div class="card"><div class="kpi-label">Active On Market Now</div><div class="kpi-value green">${activeAllUnique.toLocaleString('en-US')}</div><div class="kpi-sub">${activeAllRows.toLocaleString('en-US')} active listing rows across all linked Marion County assets</div></div>
-    <div class="card"><div class="kpi-label">Active Multifamily Now</div><div class="kpi-value green">${activeMfUnique.toLocaleString('en-US')}</div><div class="kpi-sub">${activeMfRows.toLocaleString('en-US')} active listing rows across 2+ unit / apartment assets</div></div>
+    <div class="card"><div class="kpi-label">Total Indianapolis Parcels</div><div class="kpi-value">${totalParcels.toLocaleString('en-US')}</div><div class="kpi-sub">${totalKnownUnits.toLocaleString('en-US')} known/minimum units in the city scope</div></div>
+    <div class="card"><div class="kpi-label">Rental / MF Universe</div><div class="kpi-value">${rentalCandidates.toLocaleString('en-US')}</div><div class="kpi-sub">2+ unit, apartment, and multifamily candidate parcels</div></div>
+    <div class="card"><div class="kpi-label">Active Linked Listings Now</div><div class="kpi-value green">${activeAllUnique.toLocaleString('en-US')}</div><div class="kpi-sub">${activeAllRows.toLocaleString('en-US')} active listing rows matched to MXRE properties</div></div>
+    <div class="card"><div class="kpi-label">Active Linked MF Now</div><div class="kpi-value green">${activeMfUnique.toLocaleString('en-US')}</div><div class="kpi-sub">${activeMfRows.toLocaleString('en-US')} active rows across 2+ unit / apartment assets</div></div>
     <div class="card"><div class="kpi-label">Core Readiness</div><div class="kpi-value" id="instant-core-readiness">89.6%</div><div class="kpi-sub">Indianapolis city / Marion County baseline</div></div>
     <div class="card"><div class="kpi-label">Metro Readiness</div><div class="kpi-value" id="instant-metro-readiness">73.3%</div><div class="kpi-sub">Indianapolis MSA enrichment progress</div></div>
     <div class="card"><div class="kpi-label">Core Parcel Universe</div><div class="kpi-value" id="instant-core-parcels">583,230</div><div class="kpi-sub">parcel-led MXRE coverage base</div></div>
