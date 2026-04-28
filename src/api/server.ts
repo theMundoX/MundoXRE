@@ -677,6 +677,15 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
         and p.county_id = 797583
         and p.asset_type in ('small_multifamily', 'apartment')
         ${activeUnitFilterSql}
+    ),
+    external_active as (
+      select *
+      from external_market_listings
+      where market = 'indianapolis'
+        and asset_class = 'multifamily'
+        and status = 'active'
+        ${minUnits !== null ? `and coalesce(units, 0) >= ${minUnits}` : ''}
+        ${maxUnits !== null ? `and coalesce(units, 0) <= ${maxUnits}` : ''}
     )
     select
       (select count(*) from inventory)::int as total_multifamily_properties,
@@ -688,7 +697,9 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
          group by subtype
        ) s) as inventory_by_subtype,
       (select count(*) from active)::int as active_listing_rows,
+      (select count(*) from external_active)::int as external_listing_rows,
       (select count(distinct property_id) from active)::int as unique_properties,
+      (select coalesce(count(*), 0)::int from external_active where coalesce(units,0) >= 4) as external_4_plus_rows,
       (select coalesce(jsonb_object_agg(listing_source, listings), '{}'::jsonb)
        from (
          select listing_source, count(*)::int as listings
@@ -751,6 +762,27 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
          order by mls_list_price desc
          limit 10
        ) t) as top_listings
+       ,
+      (select coalesce(jsonb_agg(row_to_json(e)), '[]'::jsonb)
+       from (
+         select
+           id as "externalListingId",
+           title,
+           address,
+           city,
+           state_code as state,
+           zip,
+           units,
+           list_price as "listPrice",
+           price_per_unit as "pricePerUnit",
+           source,
+           source_url as "sourceUrl",
+           confidence,
+           observed_at as "observedAt"
+         from external_active
+         order by coalesce(units,0) desc, coalesce(list_price,0) desc
+         limit 10
+       ) e) as external_top_listings
   `);
 
   return c.json({
@@ -769,6 +801,8 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
     on_market: {
       active_listing_rows: numberOrNull(dashboard?.active_listing_rows) ?? 0,
       unique_properties: numberOrNull(dashboard?.unique_properties) ?? 0,
+      external_listing_rows: numberOrNull(dashboard?.external_listing_rows) ?? 0,
+      external_4_plus_rows: numberOrNull(dashboard?.external_4_plus_rows) ?? 0,
       by_source: dashboard?.by_source ?? {},
       by_subtype: dashboard?.by_subtype ?? {},
       by_zip: dashboard?.by_zip ?? [],
@@ -789,6 +823,7 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
         median: numberOrNull(dashboard?.days_on_market_median),
       },
       top_listings: dashboard?.top_listings ?? [],
+      external_top_listings: dashboard?.external_top_listings ?? [],
     },
     generated_at: new Date().toISOString(),
   });
@@ -1291,15 +1326,19 @@ app.get('/preview/market-dashboard', async (c) => {
     <div class="kpi-grid">
       <div class="card"><div class="kpi-label">MF Properties</div><div class="kpi-value" id="kpi-props">-</div><div class="kpi-sub">classified inventory</div></div>
       <div class="card"><div class="kpi-label">Known Units</div><div class="kpi-value" id="kpi-units">-</div><div class="kpi-sub">assessor-derived units</div></div>
-      <div class="card"><div class="kpi-label">Active Listings</div><div class="kpi-value green" id="kpi-active">-</div><div class="kpi-sub" id="kpi-unique">- unique properties</div></div>
+      <div class="card"><div class="kpi-label">Internal Listings</div><div class="kpi-value green" id="kpi-active">-</div><div class="kpi-sub" id="kpi-unique">- unique properties</div></div>
+      <div class="card"><div class="kpi-label">External CRE</div><div class="kpi-value amber" id="kpi-external">-</div><div class="kpi-sub" id="kpi-external-sub">unverified observations</div></div>
       <div class="card"><div class="kpi-label">Median List</div><div class="kpi-value" id="kpi-list">-</div><div class="kpi-sub">active multifamily</div></div>
       <div class="card"><div class="kpi-label">Median $/Door</div><div class="kpi-value" id="kpi-door">-</div><div class="kpi-sub">unit-normalized</div></div>
-      <div class="card"><div class="kpi-label">Median DOM</div><div class="kpi-value amber" id="kpi-dom">-</div><div class="kpi-sub">days on market</div></div>
     </div>
     <div class="layout">
       <div class="card">
         <div class="section-title"><h2>Top Active Listings</h2><span class="pill">source links</span></div>
         <table><thead><tr><th>Property / Complex</th><th>Type</th><th>Units</th><th>List Price</th><th>$/Door</th><th>Source</th></tr></thead><tbody id="listing-body"></tbody></table>
+      </div>
+      <div class="card" id="external-card" style="display:none;margin-top:16px;">
+        <div class="section-title"><h2>External CRE Observations</h2><span class="pill">needs verification</span></div>
+        <table><thead><tr><th>Title</th><th>Address</th><th>Units</th><th>List Price</th><th>$/Door</th><th>Source</th></tr></thead><tbody id="external-body"></tbody></table>
       </div>
       <div class="stack">
         <div class="card"><div class="section-title"><h2>Source Coverage</h2></div><div id="source-bars"></div></div>
@@ -1358,9 +1397,10 @@ async function load() {
   document.getElementById('kpi-units').textContent = fmt(data.inventory.known_multifamily_units);
   document.getElementById('kpi-active').textContent = fmt(data.on_market.active_listing_rows);
   document.getElementById('kpi-unique').textContent = fmt(data.on_market.unique_properties) + ' unique properties';
+  document.getElementById('kpi-external').textContent = fmt(data.on_market.external_listing_rows);
+  document.getElementById('kpi-external-sub').textContent = fmt(data.on_market.external_4_plus_rows) + ' are 4+ unit CRE signals';
   document.getElementById('kpi-list').textContent = money(data.on_market.list_price.median);
   document.getElementById('kpi-door').textContent = money(data.on_market.price_per_unit.median);
-  document.getElementById('kpi-dom').textContent = fmt(data.on_market.days_on_market.median);
   document.getElementById('generated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
   document.getElementById('list-p25').textContent = money(data.on_market.list_price.p25);
   document.getElementById('list-med').textContent = money(data.on_market.list_price.median);
@@ -1378,6 +1418,18 @@ async function load() {
         <div class="muted" style="font-size:11px;margin-top:3px">\${row.complexName ? row.address : 'Complex name not enriched yet'}\${row.managementCompany ? ' · ' + row.managementCompany : ''}</div>
       </td>
       <td>\${row.assetSubtype ?? '-'}</td><td>\${row.unitCount ?? '-'}</td><td>\${money(row.listPrice)}</td><td>\${money(row.pricePerUnit)}</td><td>\${row.listingSource ?? '-'}</td>
+    </tr>
+  \`).join('') || '<tr><td colspan="6" class="muted">No internally linked listings for this unit filter.</td></tr>';
+  const externalRows = data.on_market.external_top_listings ?? [];
+  document.getElementById('external-card').style.display = externalRows.length ? 'block' : 'none';
+  document.getElementById('external-body').innerHTML = externalRows.map(row => \`
+    <tr>
+      <td><a href="\${row.sourceUrl}" target="_blank">\${row.title || 'External listing'}</a><div class="muted" style="font-size:11px;margin-top:3px">\${row.confidence} confidence; verify before underwriting</div></td>
+      <td>\${row.address ?? '-'}</td>
+      <td>\${row.units ?? '-'}</td>
+      <td>\${money(row.listPrice)}</td>
+      <td>\${money(row.pricePerUnit)}</td>
+      <td>\${row.source === 'crexi_search_snapshot' ? 'Crexi snapshot' : (row.source ?? '-')}</td>
     </tr>
   \`).join('');
   document.getElementById('loading').style.display = 'none';
