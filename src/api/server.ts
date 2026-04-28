@@ -627,6 +627,16 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
   if (assetClass !== 'multifamily') {
     return c.json({ error: 'Unsupported asset_class', supported_asset_classes: ['multifamily'] }, 400);
   }
+  const minUnits = parsePositiveInt(c.req.query('min_units'));
+  const maxUnits = parsePositiveInt(c.req.query('max_units'));
+  const unitFilterSql = [
+    minUnits !== null ? `and coalesce(total_units, 0) >= ${minUnits}` : '',
+    maxUnits !== null ? `and coalesce(total_units, 0) <= ${maxUnits}` : '',
+  ].filter(Boolean).join('\n        ');
+  const activeUnitFilterSql = [
+    minUnits !== null ? `and coalesce(p.total_units, 0) >= ${minUnits}` : '',
+    maxUnits !== null ? `and coalesce(p.total_units, 0) <= ${maxUnits}` : '',
+  ].filter(Boolean).join('\n        ');
 
   const [dashboard] = await queryPg<Record<string, unknown>>(`
     with inventory as (
@@ -634,6 +644,7 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       from properties
       where county_id = 797583
         and asset_type in ('small_multifamily', 'apartment')
+        ${unitFilterSql}
     ),
     active as (
       select
@@ -658,6 +669,7 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       where l.is_on_market = true
         and p.county_id = 797583
         and p.asset_type in ('small_multifamily', 'apartment')
+        ${activeUnitFilterSql}
     )
     select
       (select count(*) from inventory)::int as total_multifamily_properties,
@@ -732,6 +744,10 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
     market: 'indianapolis',
     geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
     asset_class: assetClass,
+    filters: {
+      min_units: minUnits,
+      max_units: maxUnits,
+    },
     inventory: {
       total_multifamily_properties: numberOrNull(dashboard?.total_multifamily_properties) ?? 0,
       known_multifamily_units: numberOrNull(dashboard?.known_multifamily_units) ?? 0,
@@ -1142,6 +1158,9 @@ app.get('/preview/market-dashboard', async (c) => {
   h1 { margin:0; font-size:18px; font-weight:750; letter-spacing:0; }
   .subtitle { color:var(--muted); font-size:12px; margin-top:3px; }
   .pill { display:inline-flex; align-items:center; height:28px; padding:0 10px; border:1px solid var(--line); border-radius:6px; color:var(--muted); font-size:12px; white-space:nowrap; background:var(--panel); }
+  .seg { display:inline-flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:8px; background:#141816; }
+  .seg button { height:28px; padding:0 10px; border:0; border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; font:inherit; font-size:12px; }
+  .seg button.active { background:#243028; color:var(--text); }
   main { padding:22px 24px 32px; max-width:1440px; margin:0 auto; }
   .kpi-grid { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:12px; margin-bottom:18px; }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
@@ -1185,6 +1204,15 @@ app.get('/preview/market-dashboard', async (c) => {
   </div>
 </div>
 <main>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+    <div class="muted" id="filter-note">Showing all multifamily on-market records.</div>
+    <div class="seg" aria-label="Unit size filter">
+      <button id="filter-all" class="active" onclick="setUnitFilter(null)">All MF</button>
+      <button id="filter-2" onclick="setUnitFilter(2)">2+ Units</button>
+      <button id="filter-3" onclick="setUnitFilter(3)">3+ Units</button>
+      <button id="filter-4" onclick="setUnitFilter(4)">4+ Units</button>
+    </div>
+  </div>
   <div id="loading" class="card loading">Loading market dashboard...</div>
   <div id="content" style="display:none;">
     <div class="kpi-grid">
@@ -1235,10 +1263,24 @@ function bars(target, data, valueKey = null) {
       \${extra ? \`<div class="muted" style="grid-column:2 / 4;font-size:11px;margin-top:-6px">\${money(extra)} median</div>\` : ''}
     </div>\`).join('') || '<div class="muted">No data</div>';
 }
+let currentMinUnits = null;
+function setUnitFilter(minUnits) {
+  currentMinUnits = minUnits;
+  for (const id of ['filter-all', 'filter-2', 'filter-3', 'filter-4']) document.getElementById(id).classList.remove('active');
+  document.getElementById(minUnits ? 'filter-' + minUnits : 'filter-all').classList.add('active');
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('loading').textContent = 'Loading market dashboard...';
+  load();
+}
 async function load() {
-  const resp = await fetch('/v1/markets/indianapolis/dashboard', { headers: { 'x-api-key': apiKey } });
+  const params = new URLSearchParams();
+  if (currentMinUnits) params.set('min_units', String(currentMinUnits));
+  const path = '/v1/markets/indianapolis/dashboard' + (params.toString() ? '?' + params.toString() : '');
+  const resp = await fetch(path, { headers: { 'x-api-key': apiKey } });
   const data = await resp.json();
   if (!resp.ok) throw new Error(data.detail || data.error || 'Request failed');
+  document.getElementById('filter-note').textContent = currentMinUnits ? 'Showing Indianapolis multifamily with at least ' + currentMinUnits + ' units.' : 'Showing all multifamily on-market records.';
   document.getElementById('kpi-props').textContent = fmt(data.inventory.total_multifamily_properties);
   document.getElementById('kpi-units').textContent = fmt(data.inventory.known_multifamily_units);
   document.getElementById('kpi-active').textContent = fmt(data.on_market.active_listing_rows);
@@ -1277,6 +1319,12 @@ function numberOrNull(value: unknown): number | null {
     if (Number.isFinite(parsed)) return parsed;
   }
   return null;
+}
+
+function parsePositiveInt(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function normalizeJoinedProperty(value: unknown): Record<string, unknown> {
