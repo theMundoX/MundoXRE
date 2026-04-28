@@ -77,6 +77,21 @@ const steps: Step[] = [
     skip: SKIP_COMPLEX_PROFILES,
   },
   {
+    name: "Refresh apartment floorplan rent availability",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/scrape-rents-bulk.ts",
+      "--state=IN",
+      "--city=INDIANAPOLIS",
+      "--stale_days=1",
+      "--limit=500",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+  },
+  {
     name: "Refresh on-market listing signals",
     command: ["npx", "tsx", "scripts/ingest-listings-fast.ts"],
     required: false,

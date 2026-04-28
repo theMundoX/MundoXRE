@@ -11,6 +11,7 @@ Thumbs.db
 .idea/
 *.dmp
 worker.err
+logs/
 
 # Large data files — all source data lives in Supabase, not git
 data/
