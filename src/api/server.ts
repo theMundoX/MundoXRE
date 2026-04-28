@@ -444,6 +444,177 @@ app.get('/v1/coverage/state/:state', async (c) => {
   });
 });
 
+// Multifamily on-market feed for Buy Box Club / dashboard consumers.
+// Indianapolis starts with Marion County because that is the current complete asset-classified market.
+app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '100', 10) || 100, 1), 500);
+  const offset = Math.max(parseInt(c.req.query('offset') ?? '0', 10) || 0, 0);
+  const source = c.req.query('source')?.toLowerCase();
+  const subtype = c.req.query('subtype')?.toLowerCase();
+  const minUnits = parseInt(c.req.query('min_units') ?? '', 10);
+  const maxUnits = parseInt(c.req.query('max_units') ?? '', 10);
+
+  let query = db.from('listing_signals')
+    .select(`
+      id,
+      property_id,
+      address,
+      city,
+      state_code,
+      zip,
+      is_on_market,
+      mls_list_price,
+      listing_agent_name,
+      listing_brokerage,
+      listing_source,
+      listing_url,
+      days_on_market,
+      confidence,
+      first_seen_at,
+      last_seen_at,
+      delisted_at,
+      raw,
+      properties!inner(
+        id,
+        address,
+        city,
+        state_code,
+        zip,
+        county_id,
+        parcel_id,
+        owner_name,
+        property_type,
+        asset_type,
+        asset_subtype,
+        total_units,
+        unit_count_source,
+        asset_confidence,
+        living_sqft,
+        total_sqft,
+        bedrooms,
+        bathrooms_full,
+        year_built,
+        market_value,
+        assessed_value,
+        absentee_owner,
+        owner_occupied
+      )
+    `, { count: 'exact' })
+    .eq('is_on_market', true)
+    .eq('properties.county_id', 797583)
+    .in('properties.asset_type', ['small_multifamily', 'apartment'])
+    .order('last_seen_at', { ascending: false, nullsFirst: false })
+    .range(offset, offset + limit - 1);
+
+  if (source) query = query.eq('listing_source', source);
+  if (subtype) query = query.eq('properties.asset_subtype', subtype);
+  if (!Number.isNaN(minUnits)) query = query.gte('properties.total_units', minUnits);
+  if (!Number.isNaN(maxUnits)) query = query.lte('properties.total_units', maxUnits);
+
+  const { data, error, count } = await query;
+  if (error) return c.json({ error: 'Database error', detail: error.message }, 500);
+
+  let summaryQuery = db.from('listing_signals')
+    .select('listing_source, properties!inner(asset_subtype,total_units)')
+    .eq('is_on_market', true)
+    .eq('properties.county_id', 797583)
+    .in('properties.asset_type', ['small_multifamily', 'apartment'])
+    .limit(1000);
+
+  if (source) summaryQuery = summaryQuery.eq('listing_source', source);
+  if (subtype) summaryQuery = summaryQuery.eq('properties.asset_subtype', subtype);
+  if (!Number.isNaN(minUnits)) summaryQuery = summaryQuery.gte('properties.total_units', minUnits);
+  if (!Number.isNaN(maxUnits)) summaryQuery = summaryQuery.lte('properties.total_units', maxUnits);
+
+  const { data: summaryRows } = await summaryQuery;
+
+  const rows = (data ?? []).map((row: Record<string, unknown>) => {
+    const property = normalizeJoinedProperty(row.properties);
+    const listPrice = numberOrNull(row.mls_list_price);
+    const units = numberOrNull(property.total_units);
+    const livingSqft = numberOrNull(property.living_sqft);
+
+    return {
+      listingId: row.id,
+      propertyId: row.property_id,
+      property: {
+        address: property.address ?? row.address,
+        city: property.city ?? row.city,
+        state: property.state_code ?? row.state_code,
+        zip: property.zip ?? row.zip,
+        parcelId: property.parcel_id ?? null,
+        ownerName: property.owner_name ?? null,
+        assetType: property.asset_type ?? null,
+        assetSubtype: property.asset_subtype ?? null,
+        unitCount: units,
+        unitCountSource: property.unit_count_source ?? null,
+        assetConfidence: property.asset_confidence ?? null,
+        livingSqft,
+        totalSqft: numberOrNull(property.total_sqft),
+        bedrooms: numberOrNull(property.bedrooms),
+        bathroomsFull: numberOrNull(property.bathrooms_full),
+        yearBuilt: numberOrNull(property.year_built),
+        marketValue: numberOrNull(property.market_value),
+        assessedValue: numberOrNull(property.assessed_value),
+        absenteeOwner: Boolean(property.absentee_owner),
+        ownerOccupied: Boolean(property.owner_occupied),
+      },
+      market: {
+        onMarket: true,
+        listPrice,
+        pricePerUnit: listPrice && units && units > 0 ? Math.round(listPrice / units) : null,
+        pricePerSqft: listPrice && livingSqft && livingSqft > 0 ? Math.round((listPrice / livingSqft) * 100) / 100 : null,
+        daysOnMarket: numberOrNull(row.days_on_market),
+        listingSource: row.listing_source ?? null,
+        listingUrl: row.listing_url ?? null,
+        listingAgentName: row.listing_agent_name ?? null,
+        listingBrokerage: row.listing_brokerage ?? null,
+        confidence: row.confidence ?? null,
+        firstSeenAt: row.first_seen_at ?? null,
+        lastSeenAt: row.last_seen_at ?? null,
+      },
+      raw: row.raw ?? null,
+    };
+  });
+
+  const sourceCounts: Record<string, number> = {};
+  const subtypeCounts: Record<string, number> = {};
+  for (const summaryRow of (summaryRows ?? []) as Array<Record<string, unknown>>) {
+    const property = normalizeJoinedProperty(summaryRow.properties);
+    const sourceKey = String(summaryRow.listing_source ?? 'unknown');
+    const subtypeKey = String(property.asset_subtype ?? 'unknown');
+    sourceCounts[sourceKey] = (sourceCounts[sourceKey] ?? 0) + 1;
+    subtypeCounts[subtypeKey] = (subtypeCounts[subtypeKey] ?? 0) + 1;
+  }
+
+  return c.json({
+    market: 'indianapolis',
+    geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
+    asset_filter: ['small_multifamily', 'apartment'],
+    total: count ?? rows.length,
+    count: rows.length,
+    offset,
+    limit,
+    filters: {
+      source: source ?? null,
+      subtype: subtype ?? null,
+      min_units: Number.isNaN(minUnits) ? null : minUnits,
+      max_units: Number.isNaN(maxUnits) ? null : maxUnits,
+    },
+    summary: {
+      by_source: sourceCounts,
+      by_subtype: subtypeCounts,
+    },
+    results: rows,
+    generated_at: new Date().toISOString(),
+  });
+});
+
 // ── Ingest status (reads supervisor logs) ─────────────────────
 
 app.get('/v1/ingest-status', async (c) => {
@@ -602,15 +773,32 @@ app.get('/dashboard', async (c) => {
   <div id="ingest-status"></div>
 </div>
 
+<div class="section">
+  <h2>Indianapolis Multifamily On-Market</h2>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px;">
+      <div><div class="muted">Active Rows</div><div style="font-size:22px;font-weight:800" id="mf-total">-</div></div>
+      <div><div class="muted">Loaded</div><div style="font-size:22px;font-weight:800" id="mf-count">-</div></div>
+      <div><div class="muted">Sources</div><div style="font-size:13px;font-weight:700" id="mf-sources">-</div></div>
+      <div><div class="muted">Subtypes</div><div style="font-size:13px;font-weight:700" id="mf-subtypes">-</div></div>
+    </div>
+    <table>
+      <tr><th>Address</th><th>Type</th><th>Units</th><th>List Price</th><th>$/Door</th><th>Source</th></tr>
+      <tbody id="mf-on-market-body"></tbody>
+    </table>
+  </div>
+</div>
+
 <script>
 function fmt(n) { return n?.toLocaleString('en-US') ?? '—'; }
 
 async function load() {
   document.getElementById('last-updated').textContent = 'Loading...';
   try {
-    const [cov, ing] = await Promise.all([
+    const [cov, ing, mf] = await Promise.all([
       fetch('/v1/coverage', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
       fetch('/v1/ingest-status', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
+      fetch('/v1/markets/indianapolis/multifamily/on-market?limit=25', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
     ]);
 
     const allStates = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
@@ -625,6 +813,7 @@ async function load() {
       document.getElementById('states-grid').innerHTML = allStates.map(s => \`<button class="state-chip" onclick="loadState('\${s}')">\${s}</button>\`).join('');
       document.getElementById('last-updated').textContent = 'Coverage building · use state buttons or lookup below';
       renderIngestStatus(ing);
+      renderMultifamilyOnMarket(mf);
       return;
     }
 
@@ -665,11 +854,41 @@ async function load() {
     }).join('');
 
     renderIngestStatus(ing);
+    renderMultifamilyOnMarket(mf);
 
     document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
   } catch (e) {
     document.getElementById('last-updated').textContent = 'Error: ' + e.message;
   }
+}
+
+function renderMultifamilyOnMarket(mf) {
+  document.getElementById('mf-total').textContent = fmt(mf.total);
+  document.getElementById('mf-count').textContent = fmt(mf.count);
+  document.getElementById('mf-sources').textContent = Object.entries(mf.summary?.by_source ?? {}).map(([k, v]) => k + ': ' + v).join(' | ') || '-';
+  document.getElementById('mf-subtypes').textContent = Object.entries(mf.summary?.by_subtype ?? {}).map(([k, v]) => k + ': ' + v).join(' | ') || '-';
+
+  const body = document.getElementById('mf-on-market-body');
+  if (mf.error) {
+    body.innerHTML = \`<tr><td colspan="6" class="red">\${mf.detail || mf.error}</td></tr>\`;
+    return;
+  }
+
+  const rows = (mf.results ?? []).map(row => {
+    const url = row.market?.listingUrl;
+    const address = [row.property?.address, row.property?.city, row.property?.state, row.property?.zip].filter(Boolean).join(', ');
+    const link = url ? \`<a href="\${url}" target="_blank" style="color:#38bdf8">\${address}</a>\` : address;
+    return \`<tr>
+      <td>\${link}</td>
+      <td>\${row.property?.assetSubtype ?? '-'}</td>
+      <td>\${row.property?.unitCount ?? '-'}</td>
+      <td>\${row.market?.listPrice ? '$' + fmt(row.market.listPrice) : '-'}</td>
+      <td>\${row.market?.pricePerUnit ? '$' + fmt(row.market.pricePerUnit) : '-'}</td>
+      <td>\${row.market?.listingSource ?? '-'}</td>
+    </tr>\`;
+  }).join('');
+
+  body.innerHTML = rows || '<tr><td colspan="6" class="muted">No active multifamily listing rows found.</td></tr>';
 }
 
 function renderIngestStatus(ing) {
@@ -762,6 +981,20 @@ setInterval(load, 60000); // auto-refresh every 60s
 });
 
 // ── Helpers ──────────────────────────────────────────────────
+
+function numberOrNull(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function normalizeJoinedProperty(value: unknown): Record<string, unknown> {
+  if (Array.isArray(value)) return (value[0] as Record<string, unknown> | undefined) ?? {};
+  return (value as Record<string, unknown> | null) ?? {};
+}
 
 async function fetchAndRespond(c: Context, id: number) {
   const { data: props, error } = await db.from('properties')
