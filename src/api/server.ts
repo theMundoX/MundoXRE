@@ -829,6 +829,135 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
   });
 });
 
+app.get('/v1/markets/:market/multifamily/coverage', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const minUnits = parsePositiveInt(c.req.query('min_units'));
+  const unitFilterSql = minUnits !== null ? `and coalesce(p.total_units, 0) >= ${minUnits}` : '';
+
+  const [coverage] = await queryPg<Record<string, unknown>>(`
+    with universe as (
+      select
+        p.id,
+        p.address,
+        p.city,
+        p.state_code,
+        p.zip,
+        p.parcel_id,
+        p.asset_type,
+        p.asset_subtype,
+        p.total_units,
+        p.unit_count_source,
+        p.asset_confidence,
+        p.property_use,
+        p.market_value
+      from properties p
+      where p.county_id = 797583
+        and p.asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
+        ${unitFilterSql}
+    ),
+    flags as (
+      select
+        u.*,
+        exists(select 1 from sale_history s where s.property_id = u.id) as has_sale_history,
+        exists(select 1 from mortgage_records m where m.property_id = u.id) as has_recorded_mortgage,
+        exists(select 1 from listing_signals l where l.property_id = u.id and l.is_on_market = true) as has_active_listing,
+        exists(select 1 from property_complex_profiles cp where cp.property_id = u.id) as has_complex_profile
+      from universe u
+    )
+    select
+      count(*)::int as parcel_count,
+      coalesce(sum(coalesce(total_units,0)),0)::int as known_units,
+      count(*) filter (where asset_type = 'commercial_multifamily')::int as commercial_multifamily_parcels,
+      count(*) filter (where asset_type in ('small_multifamily','apartment'))::int as residential_multifamily_parcels,
+      count(*) filter (where has_sale_history)::int as parcels_with_sale_history,
+      count(*) filter (where has_recorded_mortgage)::int as parcels_with_recorded_mortgage,
+      count(*) filter (where has_sale_history or has_recorded_mortgage)::int as parcels_with_any_recorder_data,
+      count(*) filter (where has_active_listing)::int as parcels_with_active_listing,
+      count(*) filter (where has_complex_profile)::int as parcels_with_complex_profile,
+      (select coalesce(jsonb_object_agg(asset_subtype, jsonb_build_object('parcels', parcels, 'known_units', known_units)), '{}'::jsonb)
+       from (
+         select asset_subtype, count(*)::int as parcels, coalesce(sum(coalesce(total_units,0)),0)::int as known_units
+         from universe
+         group by asset_subtype
+         order by count(*) desc
+       ) s) as by_subtype,
+      (select coalesce(jsonb_object_agg(zip, parcels), '{}'::jsonb)
+       from (
+         select zip, count(*)::int as parcels
+         from universe
+         group by zip
+         order by count(*) desc
+         limit 20
+       ) z) as by_zip,
+      (select coalesce(jsonb_agg(row_to_json(r)), '[]'::jsonb)
+       from (
+         select
+           id as "propertyId",
+           address,
+           city,
+           state_code as state,
+           zip,
+           parcel_id as "parcelId",
+           asset_type as "assetType",
+           asset_subtype as "assetSubtype",
+           total_units as "unitCount",
+           unit_count_source as "unitCountSource",
+           asset_confidence as "assetConfidence",
+           property_use as "propertyUse",
+           market_value as "marketValue",
+           has_sale_history as "hasSaleHistory",
+           has_recorded_mortgage as "hasRecordedMortgage",
+           has_active_listing as "hasActiveListing",
+           has_complex_profile as "hasComplexProfile"
+         from flags
+         where not (has_sale_history or has_recorded_mortgage)
+         order by coalesce(total_units,0) desc, market_value desc nulls last
+         limit 25
+       ) r) as recorder_gap_examples
+    from flags;
+  `);
+
+  const parcelCount = numberOrNull(coverage?.parcel_count) ?? 0;
+  const pct = (value: unknown): number => {
+    if (parcelCount === 0) return 0;
+    return Math.round(((numberOrNull(value) ?? 0) / parcelCount) * 1000) / 10;
+  };
+
+  return c.json({
+    market: 'indianapolis',
+    geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
+    filters: { min_units: minUnits },
+    parcel_universe: {
+      parcel_count: parcelCount,
+      known_units: numberOrNull(coverage?.known_units) ?? 0,
+      commercial_multifamily_parcels: numberOrNull(coverage?.commercial_multifamily_parcels) ?? 0,
+      residential_multifamily_parcels: numberOrNull(coverage?.residential_multifamily_parcels) ?? 0,
+      by_subtype: coverage?.by_subtype ?? {},
+      by_zip: coverage?.by_zip ?? {},
+    },
+    coverage: {
+      parcels_with_sale_history: numberOrNull(coverage?.parcels_with_sale_history) ?? 0,
+      sale_history_pct: pct(coverage?.parcels_with_sale_history),
+      parcels_with_recorded_mortgage: numberOrNull(coverage?.parcels_with_recorded_mortgage) ?? 0,
+      recorded_mortgage_pct: pct(coverage?.parcels_with_recorded_mortgage),
+      parcels_with_any_recorder_data: numberOrNull(coverage?.parcels_with_any_recorder_data) ?? 0,
+      any_recorder_data_pct: pct(coverage?.parcels_with_any_recorder_data),
+      parcels_with_active_listing: numberOrNull(coverage?.parcels_with_active_listing) ?? 0,
+      active_listing_pct: pct(coverage?.parcels_with_active_listing),
+      parcels_with_complex_profile: numberOrNull(coverage?.parcels_with_complex_profile) ?? 0,
+      complex_profile_pct: pct(coverage?.parcels_with_complex_profile),
+    },
+    gaps: {
+      recorder_gap_examples: coverage?.recorder_gap_examples ?? [],
+    },
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/v1/markets/:market/complexes', async (c) => {
   const market = c.req.param('market').toLowerCase();
   if (!['indianapolis', 'indy'].includes(market)) {
@@ -1326,10 +1455,10 @@ app.get('/preview/market-dashboard', async (c) => {
     <div class="kpi-grid">
       <div class="card"><div class="kpi-label">MF Properties</div><div class="kpi-value" id="kpi-props">-</div><div class="kpi-sub">classified inventory</div></div>
       <div class="card"><div class="kpi-label">Known Units</div><div class="kpi-value" id="kpi-units">-</div><div class="kpi-sub">assessor-derived units</div></div>
+      <div class="card"><div class="kpi-label">Recorder Coverage</div><div class="kpi-value" id="kpi-recorder">-</div><div class="kpi-sub" id="kpi-recorder-sub">sale or mortgage records</div></div>
       <div class="card"><div class="kpi-label">Internal Listings</div><div class="kpi-value green" id="kpi-active">-</div><div class="kpi-sub" id="kpi-unique">- unique properties</div></div>
       <div class="card"><div class="kpi-label">External CRE</div><div class="kpi-value amber" id="kpi-external">-</div><div class="kpi-sub" id="kpi-external-sub">unverified observations</div></div>
       <div class="card"><div class="kpi-label">Median List</div><div class="kpi-value" id="kpi-list">-</div><div class="kpi-sub">active multifamily</div></div>
-      <div class="card"><div class="kpi-label">Median $/Door</div><div class="kpi-value" id="kpi-door">-</div><div class="kpi-sub">unit-normalized</div></div>
     </div>
     <div class="layout">
       <div class="card">
@@ -1341,6 +1470,18 @@ app.get('/preview/market-dashboard', async (c) => {
         <table><thead><tr><th>Title</th><th>Address</th><th>Units</th><th>List Price</th><th>$/Door</th><th>Source</th></tr></thead><tbody id="external-body"></tbody></table>
       </div>
       <div class="stack">
+        <div class="card">
+          <div class="section-title"><h2>Parcel Coverage</h2></div>
+          <div class="metric-list">
+            <div class="metric-line"><span class="muted">Parcel universe</span><strong id="cov-parcels">-</strong></div>
+            <div class="metric-line"><span class="muted">Known/min units</span><strong id="cov-units">-</strong></div>
+            <div class="metric-line"><span class="muted">Any recorder data</span><strong id="cov-recorder">-</strong></div>
+            <div class="metric-line"><span class="muted">Sale history</span><strong id="cov-sales">-</strong></div>
+            <div class="metric-line"><span class="muted">Recorded mortgage</span><strong id="cov-mortgages">-</strong></div>
+            <div class="metric-line"><span class="muted">Active listing linked</span><strong id="cov-listings">-</strong></div>
+            <div class="metric-line"><span class="muted">Complex profile</span><strong id="cov-profiles">-</strong></div>
+          </div>
+        </div>
         <div class="card"><div class="section-title"><h2>Source Coverage</h2></div><div id="source-bars"></div></div>
         <div class="card"><div class="section-title"><h2>Subtype Mix</h2></div><div id="subtype-bars"></div></div>
         <div class="card">
@@ -1389,19 +1530,33 @@ async function load() {
   const params = new URLSearchParams();
   if (currentMinUnits) params.set('min_units', String(currentMinUnits));
   const path = '/v1/markets/indianapolis/dashboard' + (params.toString() ? '?' + params.toString() : '');
-  const resp = await fetch(path, { headers: { 'x-api-key': apiKey } });
+  const coveragePath = '/v1/markets/indianapolis/multifamily/coverage' + (params.toString() ? '?' + params.toString() : '');
+  const [resp, coverageResp] = await Promise.all([
+    fetch(path, { headers: { 'x-api-key': apiKey } }),
+    fetch(coveragePath, { headers: { 'x-api-key': apiKey } }),
+  ]);
   const data = await resp.json();
+  const coverage = await coverageResp.json();
   if (!resp.ok) throw new Error(data.detail || data.error || 'Request failed');
+  if (!coverageResp.ok) throw new Error(coverage.detail || coverage.error || 'Coverage request failed');
   document.getElementById('filter-note').textContent = currentMinUnits ? 'Showing Indianapolis multifamily with at least ' + currentMinUnits + ' units.' : 'Showing all multifamily on-market records.';
   document.getElementById('kpi-props').textContent = fmt(data.inventory.total_multifamily_properties);
   document.getElementById('kpi-units').textContent = fmt(data.inventory.known_multifamily_units);
+  document.getElementById('kpi-recorder').textContent = coverage.coverage.any_recorder_data_pct + '%';
+  document.getElementById('kpi-recorder-sub').textContent = fmt(coverage.coverage.parcels_with_any_recorder_data) + ' parcels with sale/mortgage data';
   document.getElementById('kpi-active').textContent = fmt(data.on_market.active_listing_rows);
   document.getElementById('kpi-unique').textContent = fmt(data.on_market.unique_properties) + ' unique properties';
   document.getElementById('kpi-external').textContent = fmt(data.on_market.external_listing_rows);
   document.getElementById('kpi-external-sub').textContent = fmt(data.on_market.external_4_plus_rows) + ' are 4+ unit CRE signals';
   document.getElementById('kpi-list').textContent = money(data.on_market.list_price.median);
-  document.getElementById('kpi-door').textContent = money(data.on_market.price_per_unit.median);
   document.getElementById('generated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
+  document.getElementById('cov-parcels').textContent = fmt(coverage.parcel_universe.parcel_count);
+  document.getElementById('cov-units').textContent = fmt(coverage.parcel_universe.known_units);
+  document.getElementById('cov-recorder').textContent = fmt(coverage.coverage.parcels_with_any_recorder_data) + ' / ' + coverage.coverage.any_recorder_data_pct + '%';
+  document.getElementById('cov-sales').textContent = fmt(coverage.coverage.parcels_with_sale_history) + ' / ' + coverage.coverage.sale_history_pct + '%';
+  document.getElementById('cov-mortgages').textContent = fmt(coverage.coverage.parcels_with_recorded_mortgage) + ' / ' + coverage.coverage.recorded_mortgage_pct + '%';
+  document.getElementById('cov-listings').textContent = fmt(coverage.coverage.parcels_with_active_listing) + ' / ' + coverage.coverage.active_listing_pct + '%';
+  document.getElementById('cov-profiles').textContent = fmt(coverage.coverage.parcels_with_complex_profile) + ' / ' + coverage.coverage.complex_profile_pct + '%';
   document.getElementById('list-p25').textContent = money(data.on_market.list_price.p25);
   document.getElementById('list-med').textContent = money(data.on_market.list_price.median);
   document.getElementById('list-p75').textContent = money(data.on_market.list_price.p75);
