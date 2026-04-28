@@ -18,7 +18,7 @@
 import "dotenv/config";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { chromium, type Browser } from "playwright";
-import { initProxies, getResidentialProxy } from "../src/utils/proxy.js";
+import { initProxies } from "../src/utils/proxy.js";
 import { getStealthConfig } from "../src/utils/stealth.js";
 import {
   detectPlatform,
@@ -375,19 +375,7 @@ let sharedBrowser: Browser | null = null;
 async function getBrowser(): Promise<Browser> {
   if (sharedBrowser && sharedBrowser.isConnected()) return sharedBrowser;
 
-  const proxyUrl = getResidentialProxy();
   const launchOpts: Parameters<typeof chromium.launch>[0] = { headless: true };
-
-  if (proxyUrl) {
-    try {
-      const parsed = new URL(proxyUrl);
-      launchOpts.proxy = {
-        server: `${parsed.protocol}//${parsed.hostname}:${parsed.port}`,
-        username: parsed.username || undefined,
-        password: parsed.password || undefined,
-      };
-    } catch { /* launch without proxy */ }
-  }
 
   sharedBrowser = await chromium.launch(launchOpts);
   return sharedBrowser;

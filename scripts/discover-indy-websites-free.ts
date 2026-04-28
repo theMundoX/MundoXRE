@@ -42,6 +42,17 @@ const SOURCES = [
   },
 ];
 
+const PUBLIC_PORTFOLIO_SEEDS = [
+  "https://www.deylen.com/downtown-indianapolis-apartments",
+  "https://www.deylen.com/availability",
+  "https://www.indyhinge.com/",
+  "https://www.indyslate.com/",
+  "https://www.indyforte.com/",
+  "https://www.ardmoreindy.com/",
+  "https://www.deylen.com/fletcher-place-lofts",
+  "https://www.deylen.com/fletcher-place-terrace",
+];
+
 interface OverpassElement {
   type: string;
   id: number;
@@ -214,8 +225,9 @@ function extractIndianapolisAddressCandidates(html: string): Array<{ street: str
   const text = textFromHtml(html);
   const candidates = new Map<string, { street: string; city: string | null; state: string | null; zip: string | null }>();
   const patterns = [
-    /\b(\d{1,6}\s+[A-Z0-9][A-Z0-9 .'-]{2,80}?\s+(?:ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|DR|DRIVE|RD|ROAD|LN|LANE|CT|COURT|PL|PLACE|CIR|CIRCLE|PKWY|PARKWAY|WAY|TER|TERRACE))\s*(?:[,•-]\s*)?INDIANAPOLIS\s*,?\s*IN(?:DIANA)?\.?\s*(462\d{2})?/gi,
+    /\b(\d{1,6}\s+[A-Z0-9][A-Z0-9 .'-]{2,80}?\s+(?:ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|DR|DRIVE|RD|ROAD|LN|LANE|CT|COURT|PL|PLACE|CIR|CIRCLE|PKWY|PARKWAY|WAY|TER|TERRACE))\s*(?:[,•·|-]\s*)?INDIANAPOLIS\s*,?\s*IN(?:DIANA)?\.?\s*(462\d{2})?/gi,
     /\b(\d{1,6}\s+(?:N|S|E|W|NORTH|SOUTH|EAST|WEST)\s+[A-Z0-9][A-Z0-9 .'-]{2,80}?)\s*(?:[,•-]\s*)?INDIANAPOLIS\s*,?\s*IN(?:DIANA)?\.?\s*(462\d{2})?/gi,
+    /\b(\d{1,6}\s+[A-Z0-9][A-Z0-9 .'-]{2,80}?\s+(?:ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|DR|DRIVE|RD|ROAD|LN|LANE|CT|COURT|PL|PLACE|CIR|CIRCLE|PKWY|PARKWAY|WAY|TER|TERRACE))\s*(462\d{2})\b/gi,
   ];
 
   for (const pattern of patterns) {
@@ -228,6 +240,35 @@ function extractIndianapolisAddressCandidates(html: string): Array<{ street: str
   }
 
   return [...candidates.values()];
+}
+
+async function discoverSeedUrls(seedUrls: string[]) {
+  let checked = 0;
+  let matched = 0;
+  let saved = 0;
+  const matchedSeedUrls: Array<{ url: string; source: string }> = [];
+
+  for (const url of seedUrls.slice(0, LIMIT)) {
+    checked++;
+    const html = await fetchText(url);
+    if (!html) continue;
+
+    const structuredAddress = extractAddress(html);
+    const candidates = structuredAddress ? [structuredAddress] : extractIndianapolisAddressCandidates(html);
+    const seenPropertyIds = new Set<number>();
+    for (const address of candidates.slice(0, 12)) {
+      const property = await matchProperty(address);
+      if (!property || seenPropertyIds.has(property.id)) continue;
+      seenPropertyIds.add(property.id);
+      matched++;
+      console.log(`  [seed] ${url} -> property ${property.id} (${property.address})`);
+      await upsertWebsite(property.id, url, detectPlatform(url), "public_portfolio_seed");
+      matchedSeedUrls.push({ url, source: "public_portfolio_seed" });
+      saved++;
+    }
+  }
+
+  return { checked, matched, saved, matchedSeedUrls };
 }
 
 function extractAddress(html: string): { street: string; city: string | null; state: string | null; zip: string | null } | null {
@@ -406,6 +447,12 @@ async function main() {
   let saved = 0;
   const matchedSeedUrls: Array<{ url: string; source: string }> = [];
 
+  console.log("\nSource: public_portfolio_seeds");
+  const seedStats = await discoverSeedUrls(PUBLIC_PORTFOLIO_SEEDS);
+  matched += seedStats.matched;
+  saved += seedStats.saved;
+  matchedSeedUrls.push(...seedStats.matchedSeedUrls);
+
   for (const [index, candidate] of unique.entries()) {
     console.log(`\n[${index + 1}/${unique.length}] ${candidate.url}`);
     const html = await fetchText(candidate.url);
@@ -473,7 +520,7 @@ async function main() {
 
   console.log("\nSummary");
   console.log("=".repeat(52));
-  console.log(JSON.stringify({ platformCandidates: unique.length, osmCandidates: osmElements.length, relatedCandidates: relatedStats.checked, matched, noAddress, noMatch, saved, dryRun: DRY_RUN }, null, 2));
+  console.log(JSON.stringify({ platformCandidates: unique.length, portfolioSeedCandidates: seedStats.checked, osmCandidates: osmElements.length, relatedCandidates: relatedStats.checked, matched, noAddress, noMatch, saved, dryRun: DRY_RUN }, null, 2));
 }
 
 main().catch((error) => {

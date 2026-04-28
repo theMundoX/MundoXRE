@@ -225,8 +225,8 @@ function likelyFloorplanLink(text: string, href: string): boolean {
 
 async function collectCandidateUrls(pageUrl: string, context: BrowserContext): Promise<string[]> {
   const page = await context.newPage();
-  await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await page.waitForTimeout(2500);
+  await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 12_000 });
+  await page.waitForTimeout(1000);
   const links = await page.evaluate(() => Array.from(document.querySelectorAll("a[href]")).map((a) => ({
     href: (a as HTMLAnchorElement).href,
     text: (a.textContent || "").trim(),
@@ -234,15 +234,18 @@ async function collectCandidateUrls(pageUrl: string, context: BrowserContext): P
   await page.close().catch(() => {});
 
   const urls = new Set<string>([pageUrl]);
-  for (const suffix of ["/floorplans", "/floor-plans", "/apartments", "/availability", "/floorplans.aspx"]) {
-    urls.add(pageUrl.replace(/\/$/, "") + suffix);
+  const path = new URL(pageUrl).pathname.toLowerCase();
+  if (!/(floor|avail|apartments)/i.test(path)) {
+    for (const suffix of ["/floor-plans", "/floorplans", "/apartments", "/availability"]) {
+      urls.add(pageUrl.replace(/\/$/, "") + suffix);
+    }
   }
   for (const link of links) {
     if (!isDomainBlocked(link.href) && (sameOrigin(pageUrl, link.href) || likelyFloorplanLink(link.text, link.href)) && likelyFloorplanLink(link.text, link.href)) {
       urls.add(link.href.split("#")[0]);
     }
   }
-  return Array.from(urls).slice(0, 8);
+  return Array.from(urls).slice(0, 4);
 }
 
 export async function scrapeDirectPropertySite(
@@ -267,8 +270,8 @@ export async function scrapeDirectPropertySite(
       if (isDomainBlocked(candidate)) continue;
       const page = await context.newPage();
       try {
-        await page.goto(candidate, { waitUntil: "domcontentloaded", timeout: 30_000 });
-        await page.waitForTimeout(6000);
+        await page.goto(candidate, { waitUntil: "domcontentloaded", timeout: 12_000 });
+        await page.waitForTimeout(2000);
         const data = (await page.evaluate(DIRECT_EXTRACT_SCRIPT)) as ScrapedPropertyData | null;
         if (data) {
           data.website_url = url;
