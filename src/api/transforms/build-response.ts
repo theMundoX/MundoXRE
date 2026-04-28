@@ -194,8 +194,17 @@ export function buildPropertyResponse(
 
   const bedrooms = typeof p.bedrooms === 'number' ? Math.max(0, Math.min(4, p.bedrooms)) : null;
   const fmrEstimate = !latestRent && fmr ? fmrRentForBedrooms(fmr, bedrooms) : null;
-  const currentRent = (latestRent?.asking_rent as number) ?? (latestRent?.rent as number) ?? fmrEstimate;
+  const unitCount = normalizeUnitCount((p.total_units as number) ?? null);
+  const rentPerDoor = (latestRent?.rent_per_door as number)
+    ?? (latestRent?.asking_rent as number)
+    ?? (latestRent?.rent as number)
+    ?? fmrEstimate;
+  const totalMonthlyRent = (latestRent?.total_monthly_rent as number)
+    ?? (rentPerDoor && unitCount ? rentPerDoor * unitCount : null);
+  const currentRent = totalMonthlyRent ?? rentPerDoor;
+  const unitBasis = unitCount && unitCount > 1 ? 'per_unit' : (rentPerDoor ? 'total' : null);
   const rentSqft = (latestRent?.sqft as number) ?? (fmrEstimate ? livingSqft : null);
+  const rentPsfBase = unitBasis === 'per_unit' ? rentPerDoor : currentRent;
   const publicSignalsMapped: PublicPropertySignal[] = publicSignals.map((signal) => ({
     type: (signal.signal_type as string) ?? 'unknown',
     status: (signal.status as string) ?? null,
@@ -219,6 +228,11 @@ export function buildPropertyResponse(
       lat: (p.latitude as number) ?? (p.lat as number) ?? null,
       lng: (p.longitude as number) ?? (p.lng as number) ?? null,
       type: (p.property_type as string) ?? 'SFR',
+      assetType: (p.asset_type as string) ?? null,
+      assetSubtype: (p.asset_subtype as string) ?? null,
+      unitCount,
+      unitCountSource: (p.unit_count_source as string) ?? null,
+      assetConfidence: (p.asset_confidence as string) ?? null,
       use: (p.property_use as string) ?? null,
       landUse: (p.land_use as string) ?? null,
       zoning: (p.zoning as string) ?? null,
@@ -312,11 +326,15 @@ export function buildPropertyResponse(
     rent: {
       currentRent,
       rentSource: latestRent ? 'scraped' : (fmrEstimate ? 'estimated_fmr' : null),
+      unitBasis,
+      unitCount,
+      rentPerDoor,
+      totalMonthlyRent,
       observedAt: (latestRent?.observed_at as string) ?? (fmrEstimate ? new Date().toISOString().slice(0, 10) : null),
       beds: (latestRent?.beds as number) ?? bedrooms,
       baths: (latestRent?.baths as number) ?? null,
       sqft: rentSqft,
-      rentPerSqft: currentRent && rentSqft ? Math.round((currentRent / rentSqft) * 100) / 100 : null,
+      rentPerSqft: rentPsfBase && rentSqft ? Math.round((rentPsfBase / rentSqft) * 100) / 100 : null,
       fmr,
       history: rentHistory,
     },
@@ -375,6 +393,11 @@ function fmrRentForBedrooms(fmr: FMRData, bedrooms: number | null): number | nul
   if (typeof preferred === 'number' && preferred > 0) return preferred;
   const fallback = fmr.twoBed ?? fmr.threeBed ?? fmr.oneBed ?? fmr.fourBed ?? fmr.efficiency;
   return typeof fallback === 'number' && fallback > 0 ? fallback : null;
+}
+
+function normalizeUnitCount(value: number | null): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return null;
+  return Math.round(value);
 }
 
 function isSaleDocument(row: Row): boolean {

@@ -27,7 +27,11 @@ export interface Property {
   lng?: number;
   msa?: string;
   property_type?: string;
+  asset_type?: string;
+  asset_subtype?: string;
   total_units?: number;
+  unit_count_source?: string;
+  asset_confidence?: string;
   stories?: number;
   year_built?: number;
   total_sqft?: number;
@@ -100,6 +104,10 @@ export interface RentSnapshot {
   baths?: number;
   sqft?: number;
   asking_rent?: number;
+  rent_per_door?: number;
+  estimated_unit_count?: number;
+  total_monthly_rent?: number;
+  rent_unit_basis?: string;
   effective_rent?: number;
   concession_value?: number;
   asking_psf?: number;

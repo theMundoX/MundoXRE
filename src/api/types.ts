@@ -172,6 +172,11 @@ export interface MXREPropertyResponse {
     lat: number | null;
     lng: number | null;
     type: string;
+    assetType: string | null;
+    assetSubtype: string | null;
+    unitCount: number | null;
+    unitCountSource: string | null;
+    assetConfidence: string | null;
     use: string | null;
     landUse: string | null;
     zoning: string | null;
@@ -260,6 +265,10 @@ export interface MXREPropertyResponse {
   rent: {
     currentRent: number | null;
     rentSource: 'scraped' | 'estimated_fmr' | null;
+    unitBasis: 'per_unit' | 'total' | null;
+    unitCount: number | null;
+    rentPerDoor: number | null;
+    totalMonthlyRent: number | null;
     observedAt: string | null;
     beds: number | null;
     baths: number | null;
