@@ -62,6 +62,11 @@ const SKIP_URL_PARTS = [
   "/sitemap",
 ];
 
+const RELATED_LINK_TEXT = /(apartment|apartments|availability|floor\s*plans?|floorplans|lofts|flats|townhomes|properties|portfolio|communities|rent)/i;
+const INDIANAPOLIS_ZIP_RE = /\b462\d{2}\b/;
+const RENT_DATA_PAGE_RE = /(apartments|availability|floor-plan|floorplans|floor-plans|rent)/i;
+const LOW_VALUE_RELATED_PAGE_RE = /(privacy|accessibility|photo|gallery|amenit|pet-friendly|neighborhood|map-directions|residents|apply|contact)/i;
+
 function detectPlatform(url: string): string {
   const host = new URL(url).hostname.toLowerCase();
   if (host.includes("rentcafe.com")) return "rentcafe";
@@ -184,6 +189,47 @@ function extractLinks(html: string, source: (typeof SOURCES)[number]): string[] 
   return [...urls];
 }
 
+function extractAllLinks(html: string, baseUrl: string): string[] {
+  const urls = new Set<string>();
+  for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    const href = match[1];
+    const label = textFromHtml(match[2] ?? "");
+    if (!RELATED_LINK_TEXT.test(`${label} ${href}`)) continue;
+    try {
+      const absolute = new URL(href.replace(/&amp;/g, "&"), baseUrl);
+      if (absolute.protocol !== "http:" && absolute.protocol !== "https:") continue;
+      if (/\/floor-plan\/[^/]+\/?$/i.test(absolute.pathname)) continue;
+      if (!RENT_DATA_PAGE_RE.test(`${label} ${absolute.pathname}`)) continue;
+      if (LOW_VALUE_RELATED_PAGE_RE.test(absolute.pathname)) continue;
+      const cleaned = cleanUrl(absolute.toString());
+      if (cleaned) urls.add(cleaned);
+    } catch {
+      // Ignore malformed links.
+    }
+  }
+  return [...urls];
+}
+
+function extractIndianapolisAddressCandidates(html: string): Array<{ street: string; city: string | null; state: string | null; zip: string | null }> {
+  const text = textFromHtml(html);
+  const candidates = new Map<string, { street: string; city: string | null; state: string | null; zip: string | null }>();
+  const patterns = [
+    /\b(\d{1,6}\s+[A-Z0-9][A-Z0-9 .'-]{2,80}?\s+(?:ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|DR|DRIVE|RD|ROAD|LN|LANE|CT|COURT|PL|PLACE|CIR|CIRCLE|PKWY|PARKWAY|WAY|TER|TERRACE))\s*(?:[,•-]\s*)?INDIANAPOLIS\s*,?\s*IN(?:DIANA)?\.?\s*(462\d{2})?/gi,
+    /\b(\d{1,6}\s+(?:N|S|E|W|NORTH|SOUTH|EAST|WEST)\s+[A-Z0-9][A-Z0-9 .'-]{2,80}?)\s*(?:[,•-]\s*)?INDIANAPOLIS\s*,?\s*IN(?:DIANA)?\.?\s*(462\d{2})?/gi,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      const street = textFromHtml(match[1] ?? "");
+      const zip = match[2]?.match(INDIANAPOLIS_ZIP_RE)?.[0] ?? null;
+      if (!street || !/^\d+\s+/.test(street)) continue;
+      candidates.set(normalizeAddress(street), { street, city: "Indianapolis", state: "IN", zip });
+    }
+  }
+
+  return [...candidates.values()];
+}
+
 function extractAddress(html: string): { street: string; city: string | null; state: string | null; zip: string | null } | null {
   const streetPatterns = [
     /"streetAddress"\s*:\s*"([^"]+)"/i,
@@ -297,6 +343,42 @@ async function upsertWebsite(propertyId: number, url: string, platform: string, 
     .or("website.is.null,website.eq.");
 }
 
+async function discoverFromRelatedPages(seedUrls: Array<{ url: string; source: string }>) {
+  const related = new Map<string, string>();
+  for (const seed of seedUrls) {
+    const html = await fetchText(seed.url);
+    if (!html) continue;
+    for (const link of extractAllLinks(html, seed.url)) {
+      related.set(link, seed.source);
+    }
+  }
+
+  let checked = 0;
+  let matched = 0;
+  let saved = 0;
+  const relatedUrls = [...related.entries()].slice(0, LIMIT);
+  console.log(`  discovered ${relatedUrls.length} related candidate pages`);
+
+  for (const [url, source] of relatedUrls) {
+    checked++;
+    const html = await fetchText(url);
+    if (!html) continue;
+
+    const structuredAddress = extractAddress(html);
+    const candidates = structuredAddress ? [structuredAddress] : extractIndianapolisAddressCandidates(html);
+    for (const address of candidates.slice(0, 12)) {
+      const property = await matchProperty(address);
+      if (!property) continue;
+      matched++;
+      console.log(`  [related] ${url} -> property ${property.id} (${property.address})`);
+      await upsertWebsite(property.id, url, detectPlatform(url), `related_page:${source}`);
+      saved++;
+    }
+  }
+
+  return { checked, matched, saved };
+}
+
 async function main() {
   console.log("MXRE - Free Indianapolis website discovery");
   console.log("=".repeat(52));
@@ -322,6 +404,7 @@ async function main() {
   let noAddress = 0;
   let noMatch = 0;
   let saved = 0;
+  const matchedSeedUrls: Array<{ url: string; source: string }> = [];
 
   for (const [index, candidate] of unique.entries()) {
     console.log(`\n[${index + 1}/${unique.length}] ${candidate.url}`);
@@ -349,6 +432,7 @@ async function main() {
     matched++;
     console.log(`  matched property ${property.id}: ${property.address}, ${property.zip}`);
     await upsertWebsite(property.id, candidate.url, candidate.platform, candidate.source);
+    matchedSeedUrls.push({ url: candidate.url, source: candidate.source });
     saved++;
   }
 
@@ -376,14 +460,20 @@ async function main() {
     osmMatched++;
     console.log(`  [osm] ${tags.name ?? cleaned} -> property ${property.id} (${property.address})`);
     await upsertWebsite(property.id, cleaned, detectPlatform(cleaned), "openstreetmap_overpass");
+    matchedSeedUrls.push({ url: cleaned, source: "openstreetmap_overpass" });
     osmSaved++;
   }
   matched += osmMatched;
   saved += osmSaved;
 
+  console.log("\nSource: related_public_pages");
+  const relatedStats = await discoverFromRelatedPages(matchedSeedUrls);
+  matched += relatedStats.matched;
+  saved += relatedStats.saved;
+
   console.log("\nSummary");
   console.log("=".repeat(52));
-  console.log(JSON.stringify({ platformCandidates: unique.length, osmCandidates: osmElements.length, matched, noAddress, noMatch, saved, dryRun: DRY_RUN }, null, 2));
+  console.log(JSON.stringify({ platformCandidates: unique.length, osmCandidates: osmElements.length, relatedCandidates: relatedStats.checked, matched, noAddress, noMatch, saved, dryRun: DRY_RUN }, null, 2));
 }
 
 main().catch((error) => {

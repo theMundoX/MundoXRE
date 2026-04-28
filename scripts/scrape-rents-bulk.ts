@@ -80,6 +80,31 @@ interface PropertyRow {
   website: string | null;
 }
 
+function websitePriority(url: string): number {
+  const path = (() => {
+    try {
+      return new URL(url).pathname.toLowerCase();
+    } catch {
+      return url.toLowerCase();
+    }
+  })();
+
+  if (/\/floor-plan\//i.test(path)) return 10;
+  if (/floor-plans|floorplans|apartments|availability/i.test(path)) return 100;
+  return 50;
+}
+
+function chooseBestWebsitePerProperty(websites: PropertyWebsite[]): PropertyWebsite[] {
+  const best = new Map<number, PropertyWebsite>();
+  for (const website of websites) {
+    const current = best.get(website.property_id);
+    if (!current || websitePriority(website.url) > websitePriority(current.url)) {
+      best.set(website.property_id, website);
+    }
+  }
+  return [...best.values()];
+}
+
 // ─── Database Queries ───────────────────────────────────────────────
 
 /**
@@ -130,7 +155,7 @@ async function getWebsitesToScrape(db: SupabaseClient): Promise<PropertyWebsite[
         });
       }
 
-      return websites;
+      return chooseBestWebsitePerProperty(websites);
     }
   } catch {
     // property_websites table might not exist, fall back
@@ -177,13 +202,13 @@ async function getWebsitesToScrape(db: SupabaseClient): Promise<PropertyWebsite[
   }
 
   // Map to PropertyWebsite shape (without real website_id)
-  return properties.map((p) => ({
+  return chooseBestWebsitePerProperty(properties.map((p) => ({
     id: 0, // No website table row
     property_id: p.id,
     url: p.website!,
     platform: detectPlatform(p.website!),
     last_scraped_at: null,
-  }));
+  })));
 }
 
 /**
@@ -254,11 +279,6 @@ async function saveScrapedData(
         deleteQuery = deleteQuery.eq("floorplan_id", floorplanId);
       } else {
         deleteQuery = deleteQuery.is("floorplan_id", null);
-      }
-      if (websiteId > 0) {
-        deleteQuery = deleteQuery.eq("website_id", websiteId);
-      } else {
-        deleteQuery = deleteQuery.is("website_id", null);
       }
       const { error: deleteSnapshotError } = await deleteQuery;
       if (deleteSnapshotError) {
