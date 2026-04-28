@@ -29,6 +29,8 @@ const SKIP_PUBLIC_SIGNALS = hasFlag("skip-public-signals");
 const SKIP_COMPLEX_PROFILES = hasFlag("skip-complex-profiles");
 const SKIP_EXTERNAL_CRE = hasFlag("skip-external-cre");
 const SKIP_HAMILTON = hasFlag("skip-hamilton");
+const SKIP_HENDRICKS = hasFlag("skip-hendricks");
+const SKIP_MADISON = hasFlag("skip-madison");
 
 interface Step {
   name: string;
@@ -69,6 +71,20 @@ const steps: Step[] = [
     required: false,
     supportsDryRun: true,
     skip: SKIP_HAMILTON,
+  },
+  {
+    name: "Enrich Hendricks County assessor coverage",
+    command: ["npx", "tsx", "scripts/enrich-hendricks-in-assessor.ts", ...(DRY_RUN ? ["--dry-run", "--limit=10000"] : [])],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_HENDRICKS,
+  },
+  {
+    name: "Enrich Madison County parcel coverage",
+    command: ["npx", "tsx", "scripts/enrich-madison-in-parcels.ts", ...(DRY_RUN ? ["--dry-run", "--limit=10000"] : [])],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_MADISON,
   },
   {
     name: "Seed external CRE market observations",

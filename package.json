@@ -34,6 +34,8 @@
     "market:indy:refresh": "tsx scripts/refresh-indianapolis-market.ts",
     "market:indy:refresh:dry": "tsx scripts/refresh-indianapolis-market.ts --dry-run",
     "market:indy:enrich:hamilton": "tsx scripts/enrich-hamilton-in-assessor.ts",
+    "market:indy:enrich:hendricks": "tsx scripts/enrich-hendricks-in-assessor.ts",
+    "market:indy:enrich:madison": "tsx scripts/enrich-madison-in-parcels.ts",
     "api": "tsx src/api/server.ts",
     "verify:liens": "tsx scripts/verify-liens.ts",
     "lookup:liens": "tsx scripts/lookup-liens-by-owner.ts",
