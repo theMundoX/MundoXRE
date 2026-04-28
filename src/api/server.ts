@@ -507,7 +507,7 @@ app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
     `, { count: 'exact' })
     .eq('is_on_market', true)
     .eq('properties.county_id', 797583)
-    .in('properties.asset_type', ['small_multifamily', 'apartment'])
+    .in('properties.asset_type', ['small_multifamily', 'apartment', 'commercial_multifamily'])
     .order('last_seen_at', { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1);
 
@@ -523,7 +523,7 @@ app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
     .select('listing_source, properties!inner(asset_subtype,total_units)')
     .eq('is_on_market', true)
     .eq('properties.county_id', 797583)
-    .in('properties.asset_type', ['small_multifamily', 'apartment'])
+    .in('properties.asset_type', ['small_multifamily', 'apartment', 'commercial_multifamily'])
     .limit(1000);
 
   if (source) summaryQuery = summaryQuery.eq('listing_source', source);
@@ -595,7 +595,7 @@ app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
   return c.json({
     market: 'indianapolis',
     geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
-    asset_filter: ['small_multifamily', 'apartment'],
+    asset_filter: ['small_multifamily', 'apartment', 'commercial_multifamily'],
     total: count ?? rows.length,
     count: rows.length,
     offset,
@@ -643,7 +643,7 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       select asset_type, coalesce(asset_subtype, asset_type, 'unknown') as subtype, coalesce(total_units, 0) as total_units
       from properties
       where county_id = 797583
-        and asset_type in ('small_multifamily', 'apartment')
+        and asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
         ${unitFilterSql}
     ),
     active as (
@@ -675,7 +675,7 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       left join property_complex_profiles cp on cp.property_id = p.id
       where l.is_on_market = true
         and p.county_id = 797583
-        and p.asset_type in ('small_multifamily', 'apartment')
+        and p.asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
         ${activeUnitFilterSql}
     ),
     external_active as (
@@ -870,7 +870,7 @@ app.get('/v1/markets/:market/complexes', async (c) => {
     from properties p
     left join property_complex_profiles cp on cp.property_id = p.id
     where p.county_id = 797583
-      and p.asset_type in ('small_multifamily', 'apartment')
+      and p.asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
       ${unitFilterSql}
     order by coalesce(p.total_units, 0) desc, p.address
     limit ${limit}

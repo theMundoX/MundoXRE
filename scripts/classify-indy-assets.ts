@@ -5,6 +5,9 @@
  * Marion/DLGF property_use codes give reliable small-multifamily signals:
  * - RES TWO FAMILY ... 520   => duplex, 2 units
  * - RES THREE FAMILY ... 530 => triplex, 3 units
+ * - COMM - APT 4 - 19 ... 401 => commercial multifamily, inferred 4+ units
+ * - COM - APT 20-39 ... 402   => commercial multifamily, inferred 20+ units
+ * - COM - APT 40+ ... 403     => commercial multifamily, inferred 40+ units
  */
 
 import "dotenv/config";
@@ -73,6 +76,57 @@ async function main() {
     county_id = 797583
     AND upper(coalesce(city,'')) LIKE '%INDIANAPOLIS%'
   `;
+
+  await updateBatched(
+    "Commercial multifamily 40+ unit code",
+    `asset_type = 'commercial_multifamily',
+             asset_subtype = 'apartment_40_plus',
+             total_units = CASE WHEN coalesce(total_units,0) >= 40 THEN total_units ELSE 40 END,
+             unit_count_source = CASE WHEN coalesce(total_units,0) >= 40 THEN coalesce(unit_count_source, 'assessor_explicit') ELSE 'assessor_use_minimum' END,
+             asset_confidence = CASE WHEN coalesce(total_units,0) >= 40 THEN 'high' ELSE 'medium' END,
+             is_apartment = true,
+             is_sfr = false,
+             updated_at = now()`,
+    `${indyWhere}
+     AND upper(coalesce(property_use,'')) LIKE 'COM%APT 40 OR MORE UNITS%403%'
+     AND (asset_type IS DISTINCT FROM 'commercial_multifamily'
+       OR asset_subtype IS DISTINCT FROM 'apartment_40_plus'
+       OR coalesce(total_units,0) < 40)`,
+  );
+
+  await updateBatched(
+    "Commercial multifamily 20-39 unit code",
+    `asset_type = 'commercial_multifamily',
+             asset_subtype = 'apartment_20_39',
+             total_units = CASE WHEN coalesce(total_units,0) BETWEEN 20 AND 39 THEN total_units ELSE 20 END,
+             unit_count_source = CASE WHEN coalesce(total_units,0) BETWEEN 20 AND 39 THEN coalesce(unit_count_source, 'assessor_explicit') ELSE 'assessor_use_minimum' END,
+             asset_confidence = CASE WHEN coalesce(total_units,0) BETWEEN 20 AND 39 THEN 'high' ELSE 'medium' END,
+             is_apartment = true,
+             is_sfr = false,
+             updated_at = now()`,
+    `${indyWhere}
+     AND upper(coalesce(property_use,'')) LIKE 'COM%APT 20-39 UNITS%402%'
+     AND (asset_type IS DISTINCT FROM 'commercial_multifamily'
+       OR asset_subtype IS DISTINCT FROM 'apartment_20_39'
+       OR coalesce(total_units,0) < 20)`,
+  );
+
+  await updateBatched(
+    "Commercial multifamily 4-19 unit code",
+    `asset_type = 'commercial_multifamily',
+             asset_subtype = 'apartment_4_19',
+             total_units = CASE WHEN coalesce(total_units,0) BETWEEN 4 AND 19 THEN total_units ELSE 4 END,
+             unit_count_source = CASE WHEN coalesce(total_units,0) BETWEEN 4 AND 19 THEN coalesce(unit_count_source, 'assessor_explicit') ELSE 'assessor_use_minimum' END,
+             asset_confidence = CASE WHEN coalesce(total_units,0) BETWEEN 4 AND 19 THEN 'high' ELSE 'medium' END,
+             is_apartment = true,
+             is_sfr = false,
+             updated_at = now()`,
+    `${indyWhere}
+     AND upper(coalesce(property_use,'')) LIKE 'COMM%APT 4 - 19 UNITS%401%'
+     AND (asset_type IS DISTINCT FROM 'commercial_multifamily'
+       OR asset_subtype IS DISTINCT FROM 'apartment_4_19'
+       OR coalesce(total_units,0) < 4)`,
+  );
 
   await updateBatched(
     "Duplex from DLGF two-family code",
