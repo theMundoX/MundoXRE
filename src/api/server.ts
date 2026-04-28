@@ -10,7 +10,7 @@ const db = getDb();
 
 // ── Auth middleware (skip for /health) ────────────────────────
 app.use('*', async (c, next) => {
-  if (c.req.path === '/health' || c.req.path === '/' || c.req.path === '/dashboard') return next();
+  if (c.req.path === '/health' || c.req.path === '/' || c.req.path === '/dashboard' || c.req.path === '/preview/market-dashboard') return next();
 
   const apiKey = c.req.header('x-api-key');
   const expected = process.env.MXRE_API_KEY;
@@ -1123,6 +1123,146 @@ async function lookupAddress() {
 
 load();
 setInterval(load, 60000); // auto-refresh every 60s
+</script>
+</body>
+</html>`);
+});
+
+app.get('/preview/market-dashboard', async (c) => {
+  return c.html(`<!DOCTYPE html>
+<html>
+<head>
+<title>MXRE Market Dashboard Preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: dark; --bg:#101312; --panel:#181c1b; --line:#303735; --text:#edf4ef; --muted:#9aa7a1; --green:#35c677; --blue:#55a8ff; --amber:#f1b84b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 24px; border-bottom:1px solid var(--line); background:#131715; position:sticky; top:0; z-index:2; }
+  h1 { margin:0; font-size:18px; font-weight:750; letter-spacing:0; }
+  .subtitle { color:var(--muted); font-size:12px; margin-top:3px; }
+  .pill { display:inline-flex; align-items:center; height:28px; padding:0 10px; border:1px solid var(--line); border-radius:6px; color:var(--muted); font-size:12px; white-space:nowrap; background:var(--panel); }
+  main { padding:22px 24px 32px; max-width:1440px; margin:0 auto; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:12px; margin-bottom:18px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .kpi-label { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:700; }
+  .kpi-value { font-size:26px; font-weight:820; margin-top:7px; line-height:1; }
+  .kpi-sub { color:var(--muted); font-size:12px; margin-top:8px; min-height:16px; }
+  .layout { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(330px,.8fr); gap:16px; align-items:start; }
+  .section-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  h2 { margin:0; font-size:14px; color:#dfe8e3; }
+  table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  th { color:var(--muted); font-size:11px; text-transform:uppercase; text-align:left; font-weight:750; border-bottom:1px solid var(--line); padding:8px; }
+  td { border-bottom:1px solid #252b29; padding:10px 8px; font-size:13px; vertical-align:top; color:#dbe7e1; overflow-wrap:anywhere; }
+  tr:hover td { background:#1c2220; }
+  a { color:var(--blue); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .stack { display:grid; gap:16px; }
+  .bar-row { display:grid; grid-template-columns:90px 1fr 48px; gap:10px; align-items:center; margin:10px 0; }
+  .bar-label,.bar-value { color:var(--muted); font-size:12px; }
+  .bar-track { height:8px; border-radius:4px; background:#2a302e; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:4px; background:var(--green); }
+  .metric-list { display:grid; gap:10px; }
+  .metric-line { display:flex; justify-content:space-between; gap:12px; padding-bottom:10px; border-bottom:1px solid #252b29; font-size:13px; }
+  .metric-line:last-child { border-bottom:0; padding-bottom:0; }
+  .muted { color:var(--muted); }
+  .green { color:var(--green); }
+  .amber { color:var(--amber); }
+  .loading { padding:40px; color:var(--muted); text-align:center; }
+  @media (max-width:1100px) { .kpi-grid { grid-template-columns:repeat(3,minmax(150px,1fr)); } .layout { grid-template-columns:1fr; } }
+  @media (max-width:620px) { .topbar { align-items:flex-start; flex-direction:column; } main { padding:14px; } .kpi-grid { grid-template-columns:1fr 1fr; } .kpi-value { font-size:22px; } th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none;} }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <h1>Indianapolis Multifamily Market</h1>
+    <div class="subtitle">Buy Box Club market dashboard preview powered by MXRE</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <span class="pill">Marion County, IN</span>
+    <span class="pill" id="generated">Loading</span>
+  </div>
+</div>
+<main>
+  <div id="loading" class="card loading">Loading market dashboard...</div>
+  <div id="content" style="display:none;">
+    <div class="kpi-grid">
+      <div class="card"><div class="kpi-label">MF Properties</div><div class="kpi-value" id="kpi-props">-</div><div class="kpi-sub">classified inventory</div></div>
+      <div class="card"><div class="kpi-label">Known Units</div><div class="kpi-value" id="kpi-units">-</div><div class="kpi-sub">assessor-derived units</div></div>
+      <div class="card"><div class="kpi-label">Active Listings</div><div class="kpi-value green" id="kpi-active">-</div><div class="kpi-sub" id="kpi-unique">- unique properties</div></div>
+      <div class="card"><div class="kpi-label">Median List</div><div class="kpi-value" id="kpi-list">-</div><div class="kpi-sub">active multifamily</div></div>
+      <div class="card"><div class="kpi-label">Median $/Door</div><div class="kpi-value" id="kpi-door">-</div><div class="kpi-sub">unit-normalized</div></div>
+      <div class="card"><div class="kpi-label">Median DOM</div><div class="kpi-value amber" id="kpi-dom">-</div><div class="kpi-sub">days on market</div></div>
+    </div>
+    <div class="layout">
+      <div class="card">
+        <div class="section-title"><h2>Top Active Listings</h2><span class="pill">source links</span></div>
+        <table><thead><tr><th>Address</th><th>Type</th><th>Units</th><th>List Price</th><th>$/Door</th><th>Source</th></tr></thead><tbody id="listing-body"></tbody></table>
+      </div>
+      <div class="stack">
+        <div class="card"><div class="section-title"><h2>Source Coverage</h2></div><div id="source-bars"></div></div>
+        <div class="card"><div class="section-title"><h2>Subtype Mix</h2></div><div id="subtype-bars"></div></div>
+        <div class="card">
+          <div class="section-title"><h2>Price Bands</h2></div>
+          <div class="metric-list">
+            <div class="metric-line"><span class="muted">List p25</span><strong id="list-p25">-</strong></div>
+            <div class="metric-line"><span class="muted">List median</span><strong id="list-med">-</strong></div>
+            <div class="metric-line"><span class="muted">List p75</span><strong id="list-p75">-</strong></div>
+            <div class="metric-line"><span class="muted">Door p25</span><strong id="door-p25">-</strong></div>
+            <div class="metric-line"><span class="muted">Door median</span><strong id="door-med">-</strong></div>
+            <div class="metric-line"><span class="muted">Door p75</span><strong id="door-p75">-</strong></div>
+          </div>
+        </div>
+        <div class="card"><div class="section-title"><h2>Top ZIPs</h2></div><div id="zip-bars"></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+const apiKey = '${process.env.MXRE_API_KEY ?? ''}';
+const fmt = (n) => n == null ? '-' : Number(n).toLocaleString('en-US');
+const money = (n) => n == null ? '-' : '$' + fmt(n);
+function bars(target, data, valueKey = null) {
+  const el = document.getElementById(target);
+  const entries = Array.isArray(data) ? data.map(row => [row.zip, row.listings, valueKey ? row[valueKey] : null]) : Object.entries(data ?? {}).map(([k, v]) => [k, v, null]);
+  const max = Math.max(1, ...entries.map(([, v]) => Number(v) || 0));
+  el.innerHTML = entries.map(([label, value, extra]) => \`
+    <div class="bar-row">
+      <div class="bar-label">\${label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:\${Math.max(3, (Number(value) / max) * 100)}%"></div></div>
+      <div class="bar-value">\${fmt(value)}</div>
+      \${extra ? \`<div class="muted" style="grid-column:2 / 4;font-size:11px;margin-top:-6px">\${money(extra)} median</div>\` : ''}
+    </div>\`).join('') || '<div class="muted">No data</div>';
+}
+async function load() {
+  const resp = await fetch('/v1/markets/indianapolis/dashboard', { headers: { 'x-api-key': apiKey } });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.detail || data.error || 'Request failed');
+  document.getElementById('kpi-props').textContent = fmt(data.inventory.total_multifamily_properties);
+  document.getElementById('kpi-units').textContent = fmt(data.inventory.known_multifamily_units);
+  document.getElementById('kpi-active').textContent = fmt(data.on_market.active_listing_rows);
+  document.getElementById('kpi-unique').textContent = fmt(data.on_market.unique_properties) + ' unique properties';
+  document.getElementById('kpi-list').textContent = money(data.on_market.list_price.median);
+  document.getElementById('kpi-door').textContent = money(data.on_market.price_per_unit.median);
+  document.getElementById('kpi-dom').textContent = fmt(data.on_market.days_on_market.median);
+  document.getElementById('generated').textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
+  document.getElementById('list-p25').textContent = money(data.on_market.list_price.p25);
+  document.getElementById('list-med').textContent = money(data.on_market.list_price.median);
+  document.getElementById('list-p75').textContent = money(data.on_market.list_price.p75);
+  document.getElementById('door-p25').textContent = money(data.on_market.price_per_unit.p25);
+  document.getElementById('door-med').textContent = money(data.on_market.price_per_unit.median);
+  document.getElementById('door-p75').textContent = money(data.on_market.price_per_unit.p75);
+  bars('source-bars', data.on_market.by_source);
+  bars('subtype-bars', data.on_market.by_subtype);
+  bars('zip-bars', data.on_market.by_zip, 'median_price_per_unit');
+  document.getElementById('listing-body').innerHTML = (data.on_market.top_listings ?? []).map(row => \`
+    <tr><td><a href="\${row.listingUrl}" target="_blank">\${row.address}, \${row.zip}</a></td><td>\${row.assetSubtype ?? '-'}</td><td>\${row.unitCount ?? '-'}</td><td>\${money(row.listPrice)}</td><td>\${money(row.pricePerUnit)}</td><td>\${row.listingSource ?? '-'}</td></tr>
+  \`).join('');
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+}
+load().catch(err => { document.getElementById('loading').textContent = err.message; });
 </script>
 </body>
 </html>`);
