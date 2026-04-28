@@ -1,14 +1,13 @@
 #!/usr/bin/env tsx
 /**
- * Property Website Discovery for Lawton, OK
+ * Property Website Discovery
  *
  * Uses Google Places API (New) to find apartment complexes and their websites.
  * Detects platform (RentCafe, AppFolio, Entrata, etc.) and stores in property_websites.
  *
  * Usage:
- *   npx tsx scripts/discover-websites.ts --city=Lawton --state=OK
- *   npx tsx scripts/discover-websites.ts --county_id=3
- *   npx tsx scripts/discover-websites.ts --city=Lawton --state=OK --dry-run
+ *   npx tsx scripts/discover-websites.ts --city=Indianapolis --state=IN --county_id=797583
+ *   npx tsx scripts/discover-websites.ts --city=Indianapolis --state=IN --county_id=797583 --dry-run
  */
 
 import "dotenv/config";
@@ -371,7 +370,12 @@ async function main() {
 
   if (!GOOGLE_API_KEY) {
     console.error("\nERROR: GOOGLE_PLACES_API_KEY not set in .env");
-    console.log("\nFalling back to known RentCafe apartment discovery...\n");
+    if (city.toUpperCase() !== "LAWTON" || state.toUpperCase() !== "OK") {
+      console.log("\nWebsite discovery needs GOOGLE_PLACES_API_KEY for this market.");
+      console.log("Skipping discovery safely. No database writes were performed.");
+      return;
+    }
+    console.log("\nFalling back to known Lawton RentCafe apartment discovery...\n");
     await discoverKnownRentCafe();
     return;
   }
@@ -438,10 +442,11 @@ async function main() {
     }
   }
 
-  // Also try known RentCafe patterns for Lawton
-  console.log("\nStep 3: Trying known RentCafe URL patterns...\n");
-  const extraFound = await tryKnownRentCafePatterns(db, countyId);
-  stats.saved += extraFound;
+  if (city.toUpperCase() === "LAWTON" && state.toUpperCase() === "OK") {
+    console.log("\nStep 3: Trying known RentCafe URL patterns...\n");
+    const extraFound = await tryKnownRentCafePatterns(db, countyId);
+    stats.saved += extraFound;
+  }
 
   console.log("\n" + "=".repeat(50));
   console.log("Discovery Summary");
@@ -577,7 +582,8 @@ async function discoverKnownRentCafe() {
   // Also try the RentCafe search/city page
   console.log("\nTrying RentCafe city search page...\n");
   try {
-    const searchUrl = `https://www.rentcafe.com/apartments-for-rent/us/ok/lawton/`;
+    const searchCity = city.toLowerCase().replace(/\s+/g, "-");
+    const searchUrl = `https://www.rentcafe.com/apartments-for-rent/us/${state.toLowerCase()}/${searchCity}/`;
     const resp = await fetch(searchUrl, {
       redirect: "follow",
       signal: AbortSignal.timeout(10000),

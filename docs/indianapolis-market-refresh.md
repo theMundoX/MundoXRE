@@ -26,8 +26,9 @@ logs/market-refresh/
 2. Ingest Indianapolis public parcel signals.
 3. Seed external CRE observations.
 4. Upsert multifamily complex profiles.
-5. Refresh apartment floorplan rent availability.
-6. Refresh on-market listing signals.
+5. Discover Indianapolis apartment websites.
+6. Refresh apartment floorplan rent availability.
+7. Refresh on-market listing signals.
 
 Each step stays as a separate source-specific script so it can be rerun, debugged, or replaced without changing the whole pipeline.
 
@@ -103,3 +104,5 @@ MXRE should reproduce this from public sources by storing both the stable facts 
 | As Of | `rent_snapshots.observed_at` | scraper run date |
 
 The daily job now includes `scripts/scrape-rents-bulk.ts` for Indianapolis so floorplan rent availability can be updated repeatedly rather than manually.
+
+Website discovery runs before rent availability. For Indianapolis, this requires `GOOGLE_PLACES_API_KEY` in `.env`; without it the discovery step safely exits without writing placeholder properties.

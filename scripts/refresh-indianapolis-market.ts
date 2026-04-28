@@ -77,6 +77,20 @@ const steps: Step[] = [
     skip: SKIP_COMPLEX_PROFILES,
   },
   {
+    name: "Discover Indianapolis apartment websites",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/discover-websites.ts",
+      "--city=Indianapolis",
+      "--state=IN",
+      "--county_id=797583",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+  },
+  {
     name: "Refresh apartment floorplan rent availability",
     command: [
       "npx",
