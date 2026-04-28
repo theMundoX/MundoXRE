@@ -19,7 +19,7 @@ export interface OnMarketRecord {
   mls_list_price?: number;
   listing_agent_name?: string;
   listing_brokerage?: string;
-  listing_source: "zillow" | "redfin" | "realtor";
+  listing_source: "zillow" | "redfin" | "realtor" | "movoto";
   listing_url?: string;
   days_on_market?: number;
   property_type?: string;
@@ -71,7 +71,7 @@ export interface ListingProgress {
 // ─── Abstract Adapter ───────────────────────────────────────────────
 
 export abstract class ListingAdapter {
-  abstract readonly source: "zillow" | "redfin" | "realtor";
+  abstract readonly source: "zillow" | "redfin" | "realtor" | "movoto";
 
   abstract canHandle(area: ListingSearchArea): boolean;
 
