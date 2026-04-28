@@ -31,6 +31,8 @@
     "compute:taxes": "tsx scripts/compute-oh-taxes.ts",
     "enrich:mortgages": "tsx scripts/enrich-mortgage-amounts.ts",
     "reingest:shapefile": "tsx scripts/reingest-fairfield-shapefile.ts",
+    "market:indy:refresh": "tsx scripts/refresh-indianapolis-market.ts",
+    "market:indy:refresh:dry": "tsx scripts/refresh-indianapolis-market.ts --dry-run",
     "api": "tsx src/api/server.ts",
     "verify:liens": "tsx scripts/verify-liens.ts",
     "lookup:liens": "tsx scripts/lookup-liens-by-owner.ts",
