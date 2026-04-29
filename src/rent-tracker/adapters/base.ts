@@ -18,6 +18,10 @@ export interface OnMarketRecord {
   is_on_market: boolean;
   mls_list_price?: number;
   listing_agent_name?: string;
+  listing_agent_first_name?: string;
+  listing_agent_last_name?: string;
+  listing_agent_email?: string;
+  listing_agent_phone?: string;
   listing_brokerage?: string;
   listing_source: "zillow" | "redfin" | "realtor" | "movoto";
   listing_url?: string;

@@ -27,6 +27,14 @@ function normalizeCity(city: string): string {
   return city.replace(/\s+/g, " ").trim().toUpperCase();
 }
 
+function splitAgentName(name: string | undefined): { first?: string; last?: string } {
+  const clean = name?.replace(/\s+/g, " ").trim();
+  if (!clean) return {};
+  const parts = clean.split(" ").filter(Boolean);
+  if (parts.length === 1) return { first: parts[0] };
+  return { first: parts[0], last: parts.slice(1).join(" ") };
+}
+
 // ─── Validation ─────────────────────────────────────────────────────
 
 function isValidPrice(price: number | undefined): boolean {
@@ -63,6 +71,7 @@ export function normalizeListing(raw: OnMarketRecord): ListingSignal | null {
   const city = normalizeCity(raw.city);
   const stateCode = raw.state.toUpperCase().trim().slice(0, 2);
   const zip = extractZip(raw.zip);
+  const agentNameParts = splitAgentName(raw.listing_agent_name);
 
   return {
     address,
@@ -72,6 +81,12 @@ export function normalizeListing(raw: OnMarketRecord): ListingSignal | null {
     is_on_market: raw.is_on_market,
     mls_list_price: isValidPrice(raw.mls_list_price) ? raw.mls_list_price : undefined,
     listing_agent_name: raw.listing_agent_name?.trim() || undefined,
+    listing_agent_first_name: raw.listing_agent_first_name?.trim() || agentNameParts.first,
+    listing_agent_last_name: raw.listing_agent_last_name?.trim() || agentNameParts.last,
+    listing_agent_email: raw.listing_agent_email?.trim() || undefined,
+    listing_agent_phone: raw.listing_agent_phone?.trim() || undefined,
+    agent_contact_source: raw.listing_agent_email || raw.listing_agent_phone ? raw.listing_source : undefined,
+    agent_contact_confidence: raw.listing_agent_email || raw.listing_agent_phone ? "source_listing" : undefined,
     listing_brokerage: raw.listing_brokerage?.trim() || undefined,
     listing_source: raw.listing_source,
     listing_url: raw.listing_url || undefined,

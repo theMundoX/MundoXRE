@@ -219,10 +219,23 @@ export interface ListingSignal {
   is_on_market: boolean;
   mls_list_price?: number;
   listing_agent_name?: string;
+  listing_agent_first_name?: string;
+  listing_agent_last_name?: string;
+  listing_agent_email?: string;
+  listing_agent_phone?: string;
+  agent_contact_source?: string;
+  agent_contact_confidence?: string;
   listing_brokerage?: string;
   listing_source: string; // "zillow" | "redfin" | "realtor"
   listing_url?: string;
   days_on_market?: number;
+  creative_finance_score?: number | null;
+  creative_finance_status?: string | null;
+  creative_finance_terms?: string[] | null;
+  creative_finance_negative_terms?: string[] | null;
+  creative_finance_rate_text?: string | null;
+  creative_finance_source?: string | null;
+  creative_finance_observed_at?: string | null;
   confidence: string; // "high" | "single"
   first_seen_at: string;
   last_seen_at: string;
