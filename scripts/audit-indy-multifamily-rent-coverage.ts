@@ -26,80 +26,115 @@ const pct = (value: unknown, total: unknown) => {
 };
 
 async function main() {
+  // Keep this on indexed columns. Free-text property_use scans on the full
+  // Indianapolis property table were causing pg/query read timeouts.
+  const mfWhere = `
+    county_id = 797583
+    and (
+      coalesce(total_units,1) >= 2
+      or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily')
+    )
+  `;
+
   const [summary] = await pg(`
     with mf as (
-      select p.id, p.asset_type, p.total_units
-      from properties p
-      where p.county_id = 797583
-        and upper(coalesce(p.city,'')) like '%INDIANAPOLIS%'
-        and (coalesce(p.total_units,1) >= 2 or p.asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily'))
-    ), rents as (
-      select property_id,
-             count(*) as rent_rows,
-             count(*) filter (where beds = 0) as studio_rows,
-             count(*) filter (where beds = 1) as one_bed_rows,
-             count(*) filter (where beds = 2) as two_bed_rows,
-             count(*) filter (where beds = 3) as three_bed_rows,
-             max(observed_at) as latest_rent_observed
-      from rent_snapshots
-      where property_id in (select id from mf)
-      group by property_id
-    ), floorplans as (
-      select property_id, count(*) as floorplan_rows
-      from floorplans
-      where property_id in (select id from mf)
-      group by property_id
-    ), listings as (
-      select property_id, count(*) filter (where is_on_market = true) as active_listing_rows
-      from listing_signals
-      where property_id in (select id from mf)
-      group by property_id
-    ), profiles as (
-      select property_id,
-             count(*) filter (where nullif(complex_name,'') is not null) as profile_name_rows,
-             count(*) filter (where nullif(website,'') is not null) as profile_website_rows
-      from property_complex_profiles
-      where property_id in (select id from mf)
-      group by property_id
+      select id, asset_type, total_units
+      from properties
+      where ${mfWhere}
     )
     select
       count(*)::int as mf_parcels,
       sum(coalesce(total_units,1))::int as mf_units,
-      count(*) filter (where coalesce(total_units,0) >= 4 or asset_type in ('apartment','commercial_multifamily'))::int as four_plus_parcels,
-      count(*) filter (where coalesce(l.active_listing_rows,0) > 0)::int as active_linked_mf_parcels,
-      coalesce(sum(l.active_listing_rows),0)::int as active_linked_mf_rows,
-      count(*) filter (where coalesce(pr.profile_name_rows,0) > 0)::int as parcels_with_complex_name,
-      count(*) filter (where coalesce(pr.profile_website_rows,0) > 0)::int as parcels_with_website,
-      count(*) filter (where coalesce(fp.floorplan_rows,0) > 0)::int as parcels_with_floorplans,
-      coalesce(sum(fp.floorplan_rows),0)::int as floorplan_rows,
-      count(*) filter (where coalesce(r.rent_rows,0) > 0)::int as parcels_with_any_rent_snapshot,
-      coalesce(sum(r.rent_rows),0)::int as rent_snapshot_rows,
-      count(*) filter (where coalesce(r.studio_rows,0) > 0)::int as parcels_with_studio_rent,
-      count(*) filter (where coalesce(r.one_bed_rows,0) > 0)::int as parcels_with_1br_rent,
-      count(*) filter (where coalesce(r.two_bed_rows,0) > 0)::int as parcels_with_2br_rent,
-      count(*) filter (where coalesce(r.three_bed_rows,0) > 0)::int as parcels_with_3br_rent,
-      max(r.latest_rent_observed) as latest_rent_observed
-    from mf
-    left join rents r on r.property_id = mf.id
-    left join floorplans fp on fp.property_id = mf.id
-    left join listings l on l.property_id = mf.id
-    left join profiles pr on pr.property_id = mf.id;
+      count(*) filter (where coalesce(total_units,0) >= 4 or asset_type in ('apartment','commercial_multifamily'))::int as four_plus_parcels
+    from mf;
   `);
 
-  const total = Number(summary.mf_parcels ?? 0);
+  const mfIds = await pg(`select id from properties where ${mfWhere};`);
+  const ids = mfIds.map(row => Number(row.id)).filter(Number.isFinite);
+  const total = Number(summary.mf_parcels ?? ids.length);
+  const chunks: number[][] = [];
+  for (let i = 0; i < ids.length; i += 1000) chunks.push(ids.slice(i, i + 1000));
+
+  const metrics = {
+    active_linked_mf_parcels: 0,
+    active_linked_mf_rows: 0,
+    parcels_with_complex_name: 0,
+    parcels_with_website: 0,
+    parcels_with_floorplans: 0,
+    floorplan_rows: 0,
+    parcels_with_any_rent_snapshot: 0,
+    rent_snapshot_rows: 0,
+    parcels_with_studio_rent: 0,
+    parcels_with_1br_rent: 0,
+    parcels_with_2br_rent: 0,
+    parcels_with_3br_rent: 0,
+    latest_rent_observed: null as unknown,
+  };
+
+  for (const chunk of chunks) {
+    const idList = chunk.join(",");
+    const [listings] = await pg(`
+      select count(distinct property_id)::int as parcels, count(*)::int as rows
+      from listing_signals
+      where is_on_market = true and property_id in (${idList});
+    `);
+    const [profiles] = await pg(`
+      select
+        count(distinct property_id) filter (where nullif(complex_name,'') is not null)::int as names,
+        count(distinct property_id) filter (where nullif(website,'') is not null)::int as websites
+      from property_complex_profiles
+      where property_id in (${idList});
+    `);
+    const [floorplans] = await pg(`
+      select count(distinct property_id)::int as parcels, count(*)::int as rows
+      from floorplans
+      where property_id in (${idList});
+    `);
+    const [rents] = await pg(`
+      select
+        count(distinct property_id)::int as parcels,
+        count(*)::int as rows,
+        count(distinct property_id) filter (where beds = 0)::int as studio,
+        count(distinct property_id) filter (where beds = 1)::int as one_bed,
+        count(distinct property_id) filter (where beds = 2)::int as two_bed,
+        count(distinct property_id) filter (where beds = 3)::int as three_bed,
+        max(observed_at) as latest
+      from rent_snapshots
+      where property_id in (${idList});
+    `);
+
+    metrics.active_linked_mf_parcels += Number(listings.parcels ?? 0);
+    metrics.active_linked_mf_rows += Number(listings.rows ?? 0);
+    metrics.parcels_with_complex_name += Number(profiles.names ?? 0);
+    metrics.parcels_with_website += Number(profiles.websites ?? 0);
+    metrics.parcels_with_floorplans += Number(floorplans.parcels ?? 0);
+    metrics.floorplan_rows += Number(floorplans.rows ?? 0);
+    metrics.parcels_with_any_rent_snapshot += Number(rents.parcels ?? 0);
+    metrics.rent_snapshot_rows += Number(rents.rows ?? 0);
+    metrics.parcels_with_studio_rent += Number(rents.studio ?? 0);
+    metrics.parcels_with_1br_rent += Number(rents.one_bed ?? 0);
+    metrics.parcels_with_2br_rent += Number(rents.two_bed ?? 0);
+    metrics.parcels_with_3br_rent += Number(rents.three_bed ?? 0);
+    if (rents.latest && (!metrics.latest_rent_observed || String(rents.latest) > String(metrics.latest_rent_observed))) {
+      metrics.latest_rent_observed = rents.latest;
+    }
+  }
+
   const report = {
     market: "indianapolis",
+    scope: "marion_county_indexed_multifamily_universe",
     generated_at: new Date().toISOString(),
     ...summary,
+    ...metrics,
     coverage_pct: {
-      complex_name: pct(summary.parcels_with_complex_name, total),
-      website: pct(summary.parcels_with_website, total),
-      floorplans: pct(summary.parcels_with_floorplans, total),
-      any_rent_snapshot: pct(summary.parcels_with_any_rent_snapshot, total),
-      studio_rent: pct(summary.parcels_with_studio_rent, total),
-      one_bed_rent: pct(summary.parcels_with_1br_rent, total),
-      two_bed_rent: pct(summary.parcels_with_2br_rent, total),
-      three_bed_rent: pct(summary.parcels_with_3br_rent, total),
+      complex_name: pct(metrics.parcels_with_complex_name, total),
+      website: pct(metrics.parcels_with_website, total),
+      floorplans: pct(metrics.parcels_with_floorplans, total),
+      any_rent_snapshot: pct(metrics.parcels_with_any_rent_snapshot, total),
+      studio_rent: pct(metrics.parcels_with_studio_rent, total),
+      one_bed_rent: pct(metrics.parcels_with_1br_rent, total),
+      two_bed_rent: pct(metrics.parcels_with_2br_rent, total),
+      three_bed_rent: pct(metrics.parcels_with_3br_rent, total),
     },
   };
 
