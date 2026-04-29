@@ -220,20 +220,24 @@ function sameOrigin(baseUrl: string, candidate: string): boolean {
 
 function likelyFloorplanLink(text: string, href: string): boolean {
   const value = `${text} ${href}`.toLowerCase();
-  return /(floor|availability|available|apartments|layouts|pricing|rates|units)/.test(value);
+  return /(floor|availability|available|apartments|layouts|pricing|rates|units|listing|listings|appfolio|sightmap)/.test(value);
 }
 
 async function collectCandidateUrls(pageUrl: string, context: BrowserContext): Promise<string[]> {
   const page = await context.newPage();
   await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 12_000 });
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(4000);
   const links = await page.evaluate(() => Array.from(document.querySelectorAll("a[href]")).map((a) => ({
     href: (a as HTMLAnchorElement).href,
     text: (a.textContent || "").trim(),
   })));
+  const iframeUrls = await page.evaluate(() => Array.from(document.querySelectorAll("iframe[src]"))
+    .map((iframe) => (iframe as HTMLIFrameElement).src)
+    .filter(Boolean));
   await page.close().catch(() => {});
 
   const urls = new Set<string>([pageUrl]);
+  const priorityUrls = new Set<string>();
   const path = new URL(pageUrl).pathname.toLowerCase();
   if (!/(floor|avail|apartments)/i.test(path)) {
     for (const suffix of ["/floor-plans", "/floorplans", "/apartments", "/availability"]) {
@@ -245,7 +249,12 @@ async function collectCandidateUrls(pageUrl: string, context: BrowserContext): P
       urls.add(link.href.split("#")[0]);
     }
   }
-  return Array.from(urls).slice(0, 4);
+  for (const iframeUrl of iframeUrls) {
+    if (!isDomainBlocked(iframeUrl) && likelyFloorplanLink("", iframeUrl)) {
+      priorityUrls.add(iframeUrl.split("#")[0]);
+    }
+  }
+  return [...priorityUrls, ...urls].slice(0, 12);
 }
 
 export async function scrapeDirectPropertySite(
