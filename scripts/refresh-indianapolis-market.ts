@@ -31,6 +31,7 @@ const SKIP_EXTERNAL_CRE = hasFlag("skip-external-cre");
 const SKIP_HAMILTON = hasFlag("skip-hamilton");
 const SKIP_HENDRICKS = hasFlag("skip-hendricks");
 const SKIP_MADISON = hasFlag("skip-madison");
+const SKIP_LISTING_QUALITY = hasFlag("skip-listing-quality");
 
 interface Step {
   name: string;
@@ -128,11 +129,46 @@ const steps: Step[] = [
     supportsDryRun: true,
   },
   {
-    name: "Refresh on-market listing signals",
+    name: "Refresh on-market Redfin listing signals",
     command: ["npx", "tsx", "scripts/ingest-listings-fast.ts"],
     required: false,
     supportsDryRun: false,
     skip: SKIP_LISTINGS,
+  },
+  {
+    name: "Refresh Indianapolis Movoto listing/contact signals",
+    command: ["npx", "tsx", "scripts/ingest-movoto-indy.ts"],
+    required: false,
+    supportsDryRun: false,
+    skip: SKIP_LISTINGS,
+  },
+  {
+    name: "Refresh Indianapolis multi-source listing signals",
+    command: ["npx", "tsx", "scripts/daily-listing-scan.ts", "--state", "IN", "--cities", "Indianapolis"],
+    required: false,
+    supportsDryRun: false,
+    skip: SKIP_LISTINGS,
+  },
+  {
+    name: "Backfill listing agent contact fields",
+    command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--limit=10000"],
+    required: false,
+    supportsDryRun: false,
+    skip: SKIP_LISTINGS || SKIP_LISTING_QUALITY,
+  },
+  {
+    name: "Score creative finance listing descriptions",
+    command: ["npx", "tsx", "scripts/score-creative-finance-signals.ts", "--limit=10000"],
+    required: false,
+    supportsDryRun: false,
+    skip: SKIP_LISTINGS || SKIP_LISTING_QUALITY,
+  },
+  {
+    name: "Audit on-market agent/contact coverage",
+    command: ["npx", "tsx", "scripts/audit-on-market-agent-coverage.ts"],
+    required: false,
+    supportsDryRun: false,
+    skip: SKIP_LISTINGS || SKIP_LISTING_QUALITY,
   },
 ];
 

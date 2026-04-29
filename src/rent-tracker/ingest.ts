@@ -77,10 +77,12 @@ async function ingestArea(
   // Collect listings from all sources
   const allRecords: OnMarketRecord[] = [];
   const maxRecords = options.maxRecords ?? Infinity;
+  const completedSources = new Set<string>();
 
   for (const adapter of enabledSources) {
     console.log(`  Running ${adapter.source} adapter for ${areaLabel}...`);
     result.sources_used.push(adapter.source);
+    let adapterHadFatalError = false;
 
     try {
       for await (const record of adapter.fetchListings(area, (p) => {
@@ -94,8 +96,11 @@ async function ingestArea(
         if (result.listings_found >= maxRecords) break;
       }
     } catch (err) {
+      adapterHadFatalError = true;
       console.error(`  ${adapter.source} failed:`, err instanceof Error ? err.message : "Unknown");
       result.errors++;
+    } finally {
+      if (!adapterHadFatalError) completedSources.add(adapter.source);
     }
   }
 
@@ -144,6 +149,7 @@ async function ingestArea(
       );
 
       const delistedIds = previouslyActive
+        .filter((p) => completedSources.has(p.listing_source))
         .filter((p) => {
           const key = `${p.address}|${p.city}|${p.state_code}|${p.listing_source}`;
           return !currentAddresses.has(key);

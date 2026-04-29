@@ -894,6 +894,111 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
   });
 });
 
+app.get('/v1/markets/:market/price-changes', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const days = Math.min(parsePositiveInt(c.req.query('days')) ?? 7, 365);
+  const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 50, 500);
+  const direction = (c.req.query('direction') ?? 'drops').toLowerCase();
+  const directionSql = direction === 'increases'
+    ? 'and e.list_price > e.previous_list_price'
+    : direction === 'all'
+      ? ''
+      : 'and e.list_price < e.previous_list_price';
+
+  const rows = await queryPg<Record<string, unknown>>(`
+    select
+      e.event_at as "eventAt",
+      e.address,
+      e.city,
+      e.state_code as state,
+      e.zip,
+      e.listing_source as "listingSource",
+      e.listing_url as "listingUrl",
+      e.previous_list_price as "previousListPrice",
+      e.list_price as "listPrice",
+      (e.list_price - e.previous_list_price)::numeric as "priceChange",
+      case
+        when e.previous_list_price > 0 then round(((e.list_price - e.previous_list_price) / e.previous_list_price) * 100, 2)
+        else null
+      end as "priceChangePct",
+      e.days_on_market as "daysOnMarket",
+      e.listing_agent_name as "listingAgentName",
+      e.listing_brokerage as "listingBrokerage"
+    from listing_signal_events e
+    where e.event_type = 'price_changed'
+      and e.list_price is not null
+      and e.previous_list_price is not null
+      and e.state_code = 'IN'
+      and e.city ilike '%INDIANAPOLIS%'
+      and e.event_at >= now() - interval '${days} days'
+      ${directionSql}
+    order by abs(e.list_price - e.previous_list_price) desc nulls last, e.event_at desc
+    limit ${limit};
+  `);
+
+  return c.json({
+    market: 'indianapolis',
+    days,
+    direction,
+    count: rows.length,
+    results: rows,
+    generated_at: new Date().toISOString(),
+  });
+});
+
+app.get('/v1/markets/:market/pre-foreclosures', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const status = c.req.query('status') ?? 'active';
+  const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 50, 500);
+  const rows = await queryPg<Record<string, unknown>>(`
+    select
+      id,
+      property_id as "propertyId",
+      parcel_id as "parcelId",
+      address,
+      city,
+      state_code as state,
+      zip,
+      county_name as "countyName",
+      owner_name as "ownerName",
+      borrower_name as "borrowerName",
+      lender_name as "lenderName",
+      case_number as "caseNumber",
+      filing_date as "filingDate",
+      sale_date as "saleDate",
+      auction_date as "auctionDate",
+      notice_type as "noticeType",
+      status,
+      source,
+      source_url as "sourceUrl",
+      confidence,
+      first_seen_at as "firstSeenAt",
+      last_seen_at as "lastSeenAt"
+    from pre_foreclosure_signals
+    where state_code = 'IN'
+      and city ilike '%INDIANAPOLIS%'
+      and status = '${status.replace(/'/g, "''")}'
+    order by coalesce(filing_date, sale_date, auction_date) desc nulls last, last_seen_at desc
+    limit ${limit};
+  `);
+
+  return c.json({
+    market: 'indianapolis',
+    status,
+    count: rows.length,
+    results: rows,
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/v1/markets/:market/assets', async (c) => {
   const market = c.req.param('market').toLowerCase();
   if (!['indianapolis', 'indy'].includes(market)) {

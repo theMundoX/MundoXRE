@@ -36,6 +36,7 @@ const START_PAGE = Math.max(1, parseInt(getArg("start-page") ?? "1", 10) || 1);
 const MAX_PAGES = parseInt(getArg("max-pages") ?? "0", 10) || Infinity;
 const DELAY_MS = parseInt(getArg("delay-ms") ?? "1400", 10);
 const REQUEST_TIMEOUT_MS = parseInt(getArg("timeout-ms") ?? "30000", 10);
+const MAX_CONSECUTIVE_ERRORS = parseInt(getArg("max-consecutive-errors") ?? "20", 10);
 const BATCH_SIZE = 50;
 
 type MovotoListing = Record<string, any>;
@@ -214,6 +215,7 @@ async function collectPageSignals(urls: string[], observedAt: string): Promise<L
   const seen = new Set<string>();
   const start = Math.min(START_PAGE - 1, urls.length);
   const limit = Math.min(urls.length, start + MAX_PAGES);
+  let consecutiveErrors = 0;
 
   for (let i = start; i < limit; i++) {
     const url = urls[i];
@@ -231,8 +233,14 @@ async function collectPageSignals(urls: string[], observedAt: string): Promise<L
           signals.push(signal);
         }
       }
+      consecutiveErrors = 0;
     } catch (err) {
+      consecutiveErrors++;
       console.log(`  Page ${i + 1}/${limit} skipped: ${err instanceof Error ? err.message : "unknown error"}`);
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        console.log(`  Stopping page crawl after ${consecutiveErrors} consecutive page errors; keeping collected signals and moving on.`);
+        break;
+      }
     }
 
     if ((i + 1) % 25 === 0 || i + 1 === limit) {
@@ -263,6 +271,7 @@ async function main() {
   console.log("=".repeat(45));
   console.log(`Dry run: ${DRY_RUN}`);
   console.log(`Delay: ${DELAY_MS}ms`);
+  console.log(`Max consecutive page errors: ${MAX_CONSECUTIVE_ERRORS}`);
   console.log(`Page slice: ${START_PAGE} to ${Number.isFinite(MAX_PAGES) ? START_PAGE + MAX_PAGES - 1 : "end"}`);
 
   const sitemapUrls = await fetchSitemapUrls();

@@ -71,6 +71,16 @@ async function redfinFetch(url: string, init: RequestInit = {}): Promise<Respons
     if (proxyUrl) {
       reportProxyFailure(proxyUrl);
       console.log(`  Redfin proxy fetch failed via ${redactProxyUrl(proxyUrl)}: ${err instanceof Error ? err.message : "Unknown"}`);
+      const directInit: RequestInit = {
+        ...init,
+        headers: requestInit.headers,
+      };
+      try {
+        console.log("  Redfin: retrying without proxy for this request");
+        return await fetch(url, directInit);
+      } catch {
+        // Preserve the original proxy failure message for retry/backoff logs.
+      }
     }
     throw err;
   }

@@ -5,7 +5,8 @@
  * Legal constraints enforced at the adapter level:
  *   - Public pages only (no login, no CAPTCHA bypass)
  *   - No copyrighted content (photos, descriptions, marketing copy)
- *   - Agent PII (phone/email) comes from state license databases, not listings
+ *   - Agent business contact fields come only from public listing, broker/profile,
+ *     or state license sources and must keep source/confidence provenance
  */
 
 // ─── Types ───────────────────────────────────────────────────────────

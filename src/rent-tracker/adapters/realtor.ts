@@ -23,7 +23,7 @@ const LISTING_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 async function createRealtorBrowser(): Promise<{ context: BrowserContext; close: () => Promise<void> }> {
   const stealth = getStealthConfig();
-  const proxyUrl = getResidentialProxy();
+  const proxyUrl = process.env.REALTOR_USE_PROXY === "true" ? getResidentialProxy() : null;
 
   const launchOpts: Parameters<typeof chromium.launch>[0] = { headless: true };
 

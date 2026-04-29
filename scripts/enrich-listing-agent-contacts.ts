@@ -42,11 +42,26 @@ function walk(value: unknown): unknown[] {
   return Object.values(value as Record<string, unknown>).flatMap(walk);
 }
 
-function rawText(raw: Record<string, unknown> | null): string {
-  return walk(raw)
-    .filter((value): value is string | number => typeof value === "string" || typeof value === "number")
-    .map(String)
-    .join(" ");
+function valuesByKey(raw: Record<string, unknown> | null, keyPattern: RegExp): string {
+  const out: string[] = [];
+
+  function visit(value: unknown, path = "") {
+    if (value == null) return;
+    if (typeof value !== "object") {
+      if (keyPattern.test(path) && (typeof value === "string" || typeof value === "number")) out.push(String(value));
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => visit(item, `${path}[${index}]`));
+      return;
+    }
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      visit(child, path ? `${path}.${key}` : key);
+    }
+  }
+
+  visit(raw);
+  return out.join(" ");
 }
 
 function splitName(name: string | null): { first: string | null; last: string | null } {
@@ -57,9 +72,10 @@ function splitName(name: string | null): { first: string | null; last: string | 
 }
 
 function extractContact(raw: Record<string, unknown> | null) {
-  const text = rawText(raw);
-  const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]?.toLowerCase() ?? null;
-  const phone = text.match(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/)?.[0] ?? null;
+  const emailText = valuesByKey(raw, /(^|\.)(email|agentEmail|contactEmail|brokerEmail|mail)$/i);
+  const phoneText = valuesByKey(raw, /(^|\.)(phone|agentPhone|contactPhone|brokerPhone|officePhone|mobile|cell|tel|telephone)$/i);
+  const email = emailText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]?.toLowerCase() ?? null;
+  const phone = phoneText.match(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/)?.[0] ?? null;
   return { email, phone: phone?.replace(/[^\d+]/g, "").replace(/^1(?=\d{10}$)/, "") ?? null };
 }
 

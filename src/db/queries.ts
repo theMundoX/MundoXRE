@@ -243,6 +243,27 @@ export interface ListingSignal {
   raw?: Record<string, unknown>;
 }
 
+export interface ListingSignalEvent {
+  listing_signal_id?: number;
+  property_id?: number;
+  address: string;
+  city: string;
+  state_code: string;
+  zip?: string;
+  listing_source: string;
+  listing_url?: string;
+  event_type: string;
+  event_at: string;
+  list_price?: number;
+  previous_list_price?: number;
+  mls_status?: string;
+  previous_mls_status?: string;
+  days_on_market?: number;
+  listing_agent_name?: string;
+  listing_brokerage?: string;
+  raw?: Record<string, unknown>;
+}
+
 export interface AgentLicense {
   id?: number;
   agent_name: string;
@@ -619,6 +640,21 @@ export async function upsertListingSignal(signal: ListingSignal) {
 
 export async function upsertListingSignals(signals: ListingSignal[]) {
   const db = getWriteDb();
+  const existingRows = new Map<string, ListingSignal>();
+
+  for (const signal of signals) {
+    const { data } = await db
+      .from("listing_signals")
+      .select("*")
+      .eq("address", signal.address)
+      .eq("city", signal.city)
+      .eq("state_code", signal.state_code)
+      .eq("listing_source", signal.listing_source)
+      .maybeSingle();
+
+    if (data) existingRows.set(listingSignalKey(signal), data as ListingSignal);
+  }
+
   const rows = signals.map((s) => ({
     ...s,
     updated_at: new Date().toISOString(),
@@ -626,10 +662,13 @@ export async function upsertListingSignals(signals: ListingSignal[]) {
   const { data, error } = await db
     .from("listing_signals")
     .upsert(rows, { onConflict: "address,city,state_code,listing_source" })
-    .select();
-  if (error) throw new Error(`Failed to bulk upsert listing signals: ${error.message}`);
-  return data ?? [];
-}
+      .select();
+    if (error) throw new Error(`Failed to bulk upsert listing signals: ${error.message}`);
+    const upserted = data ?? [];
+    const events = buildListingEvents(upserted as ListingSignal[], existingRows);
+    if (events.length > 0) await insertListingSignalEvents(events);
+    return upserted;
+  }
 
 export async function getListingSignals(propertyId: number) {
   const db = getDb();
@@ -668,15 +707,41 @@ export async function getOnMarketProperties(filters: ListingFilters) {
 export async function markDelisted(signalIds: number[]) {
   if (signalIds.length === 0) return;
   const db = getWriteDb();
+  const { data: currentRows } = await db
+    .from("listing_signals")
+    .select("*")
+    .in("id", signalIds);
+
+  const eventAt = new Date().toISOString();
+  const events = ((currentRows ?? []) as ListingSignal[]).map((row) => ({
+    listing_signal_id: row.id,
+    property_id: row.property_id,
+    address: row.address,
+    city: row.city,
+    state_code: row.state_code,
+    zip: row.zip,
+    listing_source: row.listing_source,
+    listing_url: row.listing_url,
+    event_type: "delisted",
+    event_at: eventAt,
+    list_price: row.mls_list_price,
+    mls_status: rawStatus(row.raw),
+    days_on_market: row.days_on_market,
+    listing_agent_name: row.listing_agent_name,
+    listing_brokerage: row.listing_brokerage,
+    raw: row.raw,
+  }));
+
   const { error } = await db
     .from("listing_signals")
     .update({
       is_on_market: false,
-      delisted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      delisted_at: eventAt,
+      updated_at: eventAt,
     })
     .in("id", signalIds);
   if (error) throw new Error("Failed to mark listings as delisted.");
+  if (events.length > 0) await insertListingSignalEvents(events);
 }
 
 export async function getActiveListingsByArea(stateCode: string, city: string) {
@@ -690,6 +755,72 @@ export async function getActiveListingsByArea(stateCode: string, city: string) {
     .is("delisted_at", null);
   if (error) throw new Error("Failed to retrieve active listings.");
   return data ?? [];
+}
+
+function listingSignalKey(signal: Pick<ListingSignal, "address" | "city" | "state_code" | "listing_source">): string {
+  return `${signal.address}|${signal.city}|${signal.state_code}|${signal.listing_source}`;
+}
+
+function rawStatus(raw: Record<string, unknown> | undefined): string | undefined {
+  const value = raw?.mlsStatus ?? raw?.status ?? raw?.homeStatus ?? raw?.statusType;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function buildListingEvents(
+  upserted: ListingSignal[],
+  existingRows: Map<string, ListingSignal>,
+): ListingSignalEvent[] {
+  const eventAt = new Date().toISOString();
+  const events: ListingSignalEvent[] = [];
+
+  for (const row of upserted) {
+    const previous = existingRows.get(listingSignalKey(row));
+    const currentStatus = rawStatus(row.raw);
+    const previousStatus = rawStatus(previous?.raw);
+    let eventType: string | null = null;
+
+    if (!previous) eventType = "listed";
+    else if (previous.is_on_market === false && row.is_on_market === true) eventType = "relisted";
+    else if ((previous.mls_list_price ?? null) !== (row.mls_list_price ?? null)) eventType = "price_changed";
+    else if ((previousStatus ?? null) !== (currentStatus ?? null)) eventType = "status_changed";
+    else if (
+      (previous.listing_agent_name ?? null) !== (row.listing_agent_name ?? null) ||
+      (previous.listing_brokerage ?? null) !== (row.listing_brokerage ?? null)
+    ) {
+      eventType = "contact_updated";
+    }
+
+    if (!eventType) continue;
+
+    events.push({
+      listing_signal_id: row.id,
+      property_id: row.property_id,
+      address: row.address,
+      city: row.city,
+      state_code: row.state_code,
+      zip: row.zip,
+      listing_source: row.listing_source,
+      listing_url: row.listing_url,
+      event_type: eventType,
+      event_at: eventAt,
+      list_price: row.mls_list_price,
+      previous_list_price: previous?.mls_list_price,
+      mls_status: currentStatus,
+      previous_mls_status: previousStatus,
+      days_on_market: row.days_on_market,
+      listing_agent_name: row.listing_agent_name,
+      listing_brokerage: row.listing_brokerage,
+      raw: row.raw,
+    });
+  }
+
+  return events;
+}
+
+async function insertListingSignalEvents(events: ListingSignalEvent[]) {
+  const db = getWriteDb();
+  const { error } = await db.from("listing_signal_events").insert(events);
+  if (error) throw new Error(`Failed to insert listing signal events: ${error.message}`);
 }
 
 // ─── Agent Licenses ─────────────────────────────────────────────────
