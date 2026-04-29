@@ -152,6 +152,12 @@ function directProfileUrls(row: ListingRow): string[] {
   return [...new Set(urls)];
 }
 
+function homepageUrls(row: ListingRow): string[] {
+  return brokerageDomainHints(row.listing_brokerage)
+    .flatMap(domain => [`https://www.${domain}/`, `https://${domain}/`])
+    .filter((url, index, all) => all.indexOf(url) === index);
+}
+
 function extractEmails(html: string): string[] {
   const decoded = cleanText(html)
     .replace(/\s+\[at\]\s+|\s+\(at\)\s+|\s+ at \s+/gi, "@")
@@ -159,6 +165,43 @@ function extractEmails(html: string): string[] {
   const matches = decoded.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
   return [...new Set(matches.map(email => email.toLowerCase()))]
     .filter(email => !email.endsWith(".png") && !email.endsWith(".jpg") && !email.includes("example.com"));
+}
+
+function sameSiteUrl(baseUrl: string, href: string): string | null {
+  try {
+    const url = new URL(href, baseUrl);
+    const base = new URL(baseUrl);
+    if (url.hostname.replace(/^www\./, "") !== base.hostname.replace(/^www\./, "")) return null;
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function extractLikelyProfileLinks(baseUrl: string, html: string, row: ListingRow): string[] {
+  const name = splitName(row);
+  const last = name ? slug(name.last) : "";
+  const full = name ? slug(name.full) : "";
+  const decodedHtml = html.replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+  const links: string[] = [];
+
+  for (const match of decodedHtml.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+    const href = match[1];
+    const text = cleanText(match[2]).toLowerCase();
+    const url = sameSiteUrl(baseUrl, href);
+    if (!url) continue;
+    const haystack = `${url.toLowerCase()} ${text}`;
+    if (
+      /agent|advisor|broker|team|staff|people|about|contact|commercial|real-estate|profile/.test(haystack)
+      || (last && haystack.includes(last))
+      || (full && haystack.includes(full))
+    ) {
+      links.push(url);
+    }
+  }
+
+  return [...new Set(links)].slice(0, 16);
 }
 
 function extractLinksFromDuckDuckGo(html: string): string[] {
@@ -260,6 +303,25 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     stats.profile_pages++;
     const candidate = verifyEmailPage(html, row, profileUrl);
     if (candidate) return candidate;
+  }
+
+  for (const homeUrl of homepageUrls(row)) {
+    await sleep(DELAY_MS);
+    const homeHtml = await fetchText(homeUrl);
+    if (!homeHtml) continue;
+    stats.profile_pages++;
+    const homeCandidate = verifyEmailPage(homeHtml, row, homeUrl);
+    if (homeCandidate) return homeCandidate;
+
+    const profileLinks = extractLikelyProfileLinks(homeUrl, homeHtml, row);
+    for (const profileLink of profileLinks) {
+      await sleep(DELAY_MS);
+      const profileHtml = await fetchText(profileLink);
+      if (!profileHtml) continue;
+      stats.profile_pages++;
+      const candidate = verifyEmailPage(profileHtml, row, profileLink);
+      if (candidate) return candidate;
+    }
   }
 
   const name = splitName(row);
