@@ -1017,6 +1017,7 @@ app.get('/v1/markets/:market/opportunities', async (c) => {
   const maxPrice = parsePositiveInt(c.req.query('max_price'));
   const minUnits = parsePositiveInt(c.req.query('min_units'));
   const maxUnits = parsePositiveInt(c.req.query('max_units'));
+  const sort = (c.req.query('sort') ?? 'fresh').toLowerCase();
   const page = Math.max(parsePositiveInt(c.req.query('page')) ?? 1, 1);
   const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 25, 100);
   const offset = (page - 1) * limit;
@@ -1033,6 +1034,13 @@ app.get('/v1/markets/:market/opportunities', async (c) => {
     minUnits !== null ? `and coalesce(p.total_units, 0) >= ${minUnits}` : '',
     maxUnits !== null ? `and coalesce(p.total_units, 0) <= ${maxUnits}` : '',
   ].filter(Boolean).join('\n        ');
+  const orderSql = sort === 'price_desc'
+    ? 'coalesce(mls_list_price, 0) desc, address'
+    : sort === 'price_asc'
+      ? 'coalesce(mls_list_price, 999999999) asc, address'
+      : sort === 'creative'
+        ? 'coalesce(creative_finance_score, -1) desc, coalesce(days_on_market, 0) desc, address'
+        : 'last_seen_at desc nulls last, coalesce(days_on_market, 0) desc, address';
 
   const [result] = await queryPg<Record<string, unknown>>(`
     with normalized as (
@@ -1149,7 +1157,7 @@ app.get('/v1/markets/:market/opportunities', async (c) => {
            null::numeric as "nearestBusMiles",
            last_seen_at as "lastSeenAt"
          from active
-         order by coalesce(creative_finance_score, -1) desc, coalesce(mls_list_price, 0) desc, address
+         order by ${orderSql}
          limit ${limit} offset ${offset}
        ) r) as results;
   `);
@@ -1157,7 +1165,7 @@ app.get('/v1/markets/:market/opportunities', async (c) => {
   return c.json({
     market: 'indianapolis',
     geography: { scope: scope.key, scope_label: scope.label },
-    filters: { asset: requestedAsset, zip: zip ?? null, min_price: minPrice, max_price: maxPrice, min_units: minUnits, max_units: maxUnits },
+    filters: { asset: requestedAsset, zip: zip ?? null, min_price: minPrice, max_price: maxPrice, min_units: minUnits, max_units: maxUnits, sort },
     page,
     limit,
     total: numberOrNull(result?.total) ?? 0,
@@ -2162,6 +2170,7 @@ function renderAnalystMarketDashboard(): string {
       <input id="maxPrice" placeholder="Max price">
       <input id="minUnits" placeholder="Min units">
       <input id="maxUnits" placeholder="Max units">
+      <select id="sort"><option value="fresh">Fresh / DOM</option><option value="creative">Creative score</option><option value="price_asc">Price low</option><option value="price_desc">Price high</option></select>
       <button class="btn" onclick="loadDashboard(1)">Apply</button>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary" onclick="setUnitBand(2,4)">2-4 doors</button><button class="btn secondary" onclick="setUnitBand(5,10)">5-10</button><button class="btn secondary" onclick="setUnitBand(11,20)">11-20</button><button class="btn secondary" onclick="setUnitBand(21,'')">21+</button><button class="btn secondary" onclick="clearFilters()">Clear</button><button class="btn secondary" onclick="addressLookup()">Address lookup</button></div>
@@ -2182,7 +2191,7 @@ const apiKey=${JSON.stringify(apiKey)};
 let asset='all'; let page=1; let lastTotal=0; const limit=25;
 const fmt=n=>Number(n||0).toLocaleString(); const money=n=>n?('$'+Number(n).toLocaleString()):'-';
 document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');asset=btn.dataset.asset;page=1;loadDashboard(1)}));
-function qs(){const p=new URLSearchParams({asset,page:String(page),limit:String(limit),scope:'city'}); for (const [id,key] of [['zip','zip'],['minPrice','min_price'],['maxPrice','max_price'],['minUnits','min_units'],['maxUnits','max_units']]) { const v=document.getElementById(id).value.trim(); if(v)p.set(key,v); } return p.toString();}
+function qs(){const p=new URLSearchParams({asset,page:String(page),limit:String(limit),scope:'city',sort:document.getElementById('sort').value}); for (const [id,key] of [['zip','zip'],['minPrice','min_price'],['maxPrice','max_price'],['minUnits','min_units'],['maxUnits','max_units']]) { const v=document.getElementById(id).value.trim(); if(v)p.set(key,v); } return p.toString();}
 async function loadDashboard(next){page=next||page; document.getElementById('status').textContent='Loading'; const data=await fetch('/v1/markets/indianapolis/opportunities?'+qs(),{headers:{'x-api-key':apiKey}}).then(r=>r.json()); if(data.error){document.getElementById('status').textContent=data.error;return;} lastTotal=data.total||0; render(data); document.getElementById('status').textContent='Updated '+new Date().toLocaleTimeString();}
 function render(data){document.getElementById('m-active').textContent=fmt(data.total); document.getElementById('m-zips').textContent=fmt((data.by_zip||[]).length); document.getElementById('m-creative').textContent=fmt((data.by_zip||[]).reduce((a,z)=>a+Number(z.creativePositive||0),0)); const max=Math.max(1,...(data.by_zip||[]).map(z=>Number(z.listings)||0)); document.getElementById('zip-rollup').innerHTML=(data.by_zip||[]).map(z=>'<div class="bar-row"><div>'+z.zip+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(4,Number(z.listings)/max*100)+'%"></div></div><div>'+fmt(z.listings)+'</div><div class="sub" style="grid-column:2/4;margin-top:-6px">median '+money(z.medianPrice)+' · creative '+fmt(z.creativePositive)+' · contact '+fmt(z.withContact)+'</div></div>').join('')||'<div class="muted">No zip data.</div>'; document.getElementById('deals').innerHTML=(data.results||[]).map(row=>'<tr><td><a href="'+(row.listingUrl||'#')+'" target="_blank">'+(row.address||'No address')+'</a><div class="sub">'+(row.zip||'')+' · '+(row.assetGroup||'')+' · '+(row.propertyUse||'')+'</div></td><td>'+money(row.listPrice)+'</td><td>'+((row.unitCount&&row.unitCount>0)?fmt(row.unitCount):'-')+'</td><td>'+[row.bedrooms,row.bathrooms].filter(Boolean).join(' / ')+'</td><td>'+(row.daysOnMarket??'-')+'</td><td>'+creative(row)+'</td><td>'+contact(row)+'</td><td><span class="tag">crime n/a</span><br><span class="tag" style="margin-top:4px">bus n/a</span></td></tr>').join('')||'<tr><td colspan="8" class="muted">No active listings match these filters.</td></tr>'; document.getElementById('page-label').textContent='Page '+page+' · '+fmt(data.total)+' results';}
 function creative(r){if(r.creativeFinanceStatus==='negative')return '<span class="tag bad">No creative</span>'; if(r.creativeFinanceScore)return '<span class="tag good">'+r.creativeFinanceScore+'</span><div class="sub">'+(r.creativeFinanceTerms||[]).join(', ')+'</div>'; return '<span class="tag">n/a</span>'}
