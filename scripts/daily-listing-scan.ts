@@ -91,7 +91,11 @@ async function main() {
   console.log(`\n── Matching listings to properties for ${state} ──`);
   let matchResult = { matched: 0, unmatched: 0 };
   try {
-    matchResult = await matchListingsToProperties(state);
+    for (const city of cities) {
+      const cityMatch = await matchListingsToProperties(state, city);
+      matchResult.matched += cityMatch.matched;
+      matchResult.unmatched += cityMatch.unmatched;
+    }
   } catch (err) {
     console.error(`  Matching failed: ${err instanceof Error ? err.message : "Unknown"}`);
     totalErrors++;
