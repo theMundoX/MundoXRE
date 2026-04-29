@@ -1096,9 +1096,16 @@ app.get('/v1/markets/:market/opportunities', async (c) => {
         l.creative_finance_terms,
         l.creative_finance_negative_terms,
         l.creative_finance_rate_text,
+        pls.crime_score,
+        pls.nearest_bus_distance_miles,
+        pls.nearest_bus_stop_name,
+        pls.bus_routes,
+        pls.crime_incidents_05mi_365d,
+        pls.violent_crime_05mi_365d,
         l.last_seen_at
       from listing_signals l
       join normalized p on p.id = l.property_id
+      left join property_location_scores pls on pls.property_id = p.id
       where l.is_on_market = true
         ${assetWhere}
         ${listingWhere}
@@ -1153,8 +1160,12 @@ app.get('/v1/markets/:market/opportunities', async (c) => {
            creative_finance_terms as "creativeFinanceTerms",
            creative_finance_negative_terms as "creativeFinanceNegativeTerms",
            creative_finance_rate_text as "creativeFinanceRateText",
-           null::numeric as "crimeScore",
-           null::numeric as "nearestBusMiles",
+           crime_score as "crimeScore",
+           nearest_bus_distance_miles as "nearestBusMiles",
+           nearest_bus_stop_name as "nearestBusStopName",
+           bus_routes as "busRoutes",
+           crime_incidents_05mi_365d as "crimeIncidents05Mi365d",
+           violent_crime_05mi_365d as "violentCrime05Mi365d",
            last_seen_at as "lastSeenAt"
          from active
          order by ${orderSql}
@@ -1172,8 +1183,8 @@ app.get('/v1/markets/:market/opportunities', async (c) => {
     by_zip: result?.by_zip ?? [],
     results: result?.results ?? [],
     data_gaps: {
-      crime: 'not_ingested_yet',
-      transit_proximity: 'not_ingested_yet',
+      crime: 'IMPD public incident scoring active for geocoded properties',
+      transit_proximity: 'IndyGo GTFS nearest-stop scoring active for geocoded properties',
       neighborhood_names: 'zip_fallback_until_neighborhood_layer_is_ingested',
     },
     generated_at: new Date().toISOString(),
@@ -2158,7 +2169,7 @@ function renderAnalystMarketDashboard(): string {
     <div class="card"><h3>Active Listings</h3><div class="metric" id="m-active">-</div><div class="sub">Current filtered on-market rows</div></div>
     <div class="card"><h3>Zip Coverage</h3><div class="metric" id="m-zips">-</div><div class="sub">Zips represented by active listings</div></div>
     <div class="card"><h3>Creative Finance</h3><div class="metric" id="m-creative">-</div><div class="sub">Positive language detected</div></div>
-    <div class="card"><h3>Data Gaps</h3><div class="metric" style="font-size:17px">Crime + Transit</div><div class="sub">Not ingested yet; UI fields reserved</div></div>
+    <div class="card"><h3>Location Intel</h3><div class="metric" style="font-size:17px">Crime + Transit</div><div class="sub">IMPD incidents and IndyGo stops scored for geocoded listings</div></div>
   </section>
 
   <section class="card" style="margin-top:12px">
@@ -2193,9 +2204,10 @@ const fmt=n=>Number(n||0).toLocaleString(); const money=n=>n?('$'+Number(n).toLo
 document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');asset=btn.dataset.asset;page=1;loadDashboard(1)}));
 function qs(){const p=new URLSearchParams({asset,page:String(page),limit:String(limit),scope:'city',sort:document.getElementById('sort').value}); for (const [id,key] of [['zip','zip'],['minPrice','min_price'],['maxPrice','max_price'],['minUnits','min_units'],['maxUnits','max_units']]) { const v=document.getElementById(id).value.trim(); if(v)p.set(key,v); } return p.toString();}
 async function loadDashboard(next){page=next||page; document.getElementById('status').textContent='Loading'; const data=await fetch('/v1/markets/indianapolis/opportunities?'+qs(),{headers:{'x-api-key':apiKey}}).then(r=>r.json()); if(data.error){document.getElementById('status').textContent=data.error;return;} lastTotal=data.total||0; render(data); document.getElementById('status').textContent='Updated '+new Date().toLocaleTimeString();}
-function render(data){document.getElementById('m-active').textContent=fmt(data.total); document.getElementById('m-zips').textContent=fmt((data.by_zip||[]).length); document.getElementById('m-creative').textContent=fmt((data.by_zip||[]).reduce((a,z)=>a+Number(z.creativePositive||0),0)); const max=Math.max(1,...(data.by_zip||[]).map(z=>Number(z.listings)||0)); document.getElementById('zip-rollup').innerHTML=(data.by_zip||[]).map(z=>'<div class="bar-row"><div>'+z.zip+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(4,Number(z.listings)/max*100)+'%"></div></div><div>'+fmt(z.listings)+'</div><div class="sub" style="grid-column:2/4;margin-top:-6px">median '+money(z.medianPrice)+' · creative '+fmt(z.creativePositive)+' · contact '+fmt(z.withContact)+'</div></div>').join('')||'<div class="muted">No zip data.</div>'; document.getElementById('deals').innerHTML=(data.results||[]).map(row=>'<tr><td><a href="'+(row.listingUrl||'#')+'" target="_blank">'+(row.address||'No address')+'</a><div class="sub">'+(row.zip||'')+' · '+(row.assetGroup||'')+' · '+(row.propertyUse||'')+'</div></td><td>'+money(row.listPrice)+'</td><td>'+((row.unitCount&&row.unitCount>0)?fmt(row.unitCount):'-')+'</td><td>'+[row.bedrooms,row.bathrooms].filter(Boolean).join(' / ')+'</td><td>'+(row.daysOnMarket??'-')+'</td><td>'+creative(row)+'</td><td>'+contact(row)+'</td><td><span class="tag">crime n/a</span><br><span class="tag" style="margin-top:4px">bus n/a</span></td></tr>').join('')||'<tr><td colspan="8" class="muted">No active listings match these filters.</td></tr>'; document.getElementById('page-label').textContent='Page '+page+' · '+fmt(data.total)+' results';}
+function render(data){document.getElementById('m-active').textContent=fmt(data.total); document.getElementById('m-zips').textContent=fmt((data.by_zip||[]).length); document.getElementById('m-creative').textContent=fmt((data.by_zip||[]).reduce((a,z)=>a+Number(z.creativePositive||0),0)); const max=Math.max(1,...(data.by_zip||[]).map(z=>Number(z.listings)||0)); document.getElementById('zip-rollup').innerHTML=(data.by_zip||[]).map(z=>'<div class="bar-row"><div>'+z.zip+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(4,Number(z.listings)/max*100)+'%"></div></div><div>'+fmt(z.listings)+'</div><div class="sub" style="grid-column:2/4;margin-top:-6px">median '+money(z.medianPrice)+' · creative '+fmt(z.creativePositive)+' · contact '+fmt(z.withContact)+'</div></div>').join('')||'<div class="muted">No zip data.</div>'; document.getElementById('deals').innerHTML=(data.results||[]).map(row=>'<tr><td><a href="'+(row.listingUrl||'#')+'" target="_blank">'+(row.address||'No address')+'</a><div class="sub">'+(row.zip||'')+' · '+(row.assetGroup||'')+' · '+(row.propertyUse||'')+'</div></td><td>'+money(row.listPrice)+'</td><td>'+((row.unitCount&&row.unitCount>0)?fmt(row.unitCount):'-')+'</td><td>'+[row.bedrooms,row.bathrooms].filter(Boolean).join(' / ')+'</td><td>'+(row.daysOnMarket??'-')+'</td><td>'+creative(row)+'</td><td>'+contact(row)+'</td><td>'+riskTransit(row)+'</td></tr>').join('')||'<tr><td colspan="8" class="muted">No active listings match these filters.</td></tr>'; document.getElementById('page-label').textContent='Page '+page+' · '+fmt(data.total)+' results';}
 function creative(r){if(r.creativeFinanceStatus==='negative')return '<span class="tag bad">No creative</span>'; if(r.creativeFinanceScore)return '<span class="tag good">'+r.creativeFinanceScore+'</span><div class="sub">'+(r.creativeFinanceTerms||[]).join(', ')+'</div>'; return '<span class="tag">n/a</span>'}
 function contact(r){const name=r.listingAgentName||[r.listingAgentFirstName,r.listingAgentLastName].filter(Boolean).join(' '); return '<div>'+(name||'-')+'</div><div class="sub">'+(r.listingAgentEmail||r.listingAgentPhone||r.listingBrokerage||'contact gap')+'</div>'}
+function riskTransit(r){const crime=r.crimeScore==null?'<span class="tag">crime n/a</span>':'<span class="tag '+(Number(r.crimeScore)>=65?'bad':Number(r.crimeScore)>=30?'warn':'good')+'">crime '+Number(r.crimeScore).toFixed(1)+'</span>'; const bus=r.nearestBusMiles==null?'<span class="tag" style="margin-top:4px">bus n/a</span>':'<span class="tag good" style="margin-top:4px">'+Number(r.nearestBusMiles).toFixed(2)+' mi bus</span>'; const detail=r.nearestBusStopName?'<div class="sub">'+r.nearestBusStopName+(Array.isArray(r.busRoutes)&&r.busRoutes.length?' · routes '+r.busRoutes.slice(0,4).join(', '):'')+'</div>':''; return crime+'<br>'+bus+detail}
 function setUnitBand(min,max){document.getElementById('minUnits').value=min;document.getElementById('maxUnits').value=max;asset='multifamily';document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.asset==='multifamily'));loadDashboard(1)}
 function clearFilters(){['zip','minPrice','maxPrice','minUnits','maxUnits','address'].forEach(id=>document.getElementById(id).value='');loadDashboard(1)}
 function prevPage(){if(page>1)loadDashboard(page-1)} function nextPage(){if(page*limit<lastTotal)loadDashboard(page+1)}
