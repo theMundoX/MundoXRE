@@ -2227,7 +2227,7 @@ function renderAnalystMarketDashboard(): string {
 <script>
 const apiKey=${JSON.stringify(apiKey)};
 let asset='all'; let page=1; let lastTotal=0; let creativeOnly=false; const limit=25;
-const fmt=n=>Number(n||0).toLocaleString(); const money=n=>n?('$'+Number(n).toLocaleString()):'-'; const pct=(a,b)=>Number(b||0)?Math.round(Number(a||0)/Number(b)*1000)/10:0;
+const fmt=n=>Number(n||0).toLocaleString(); const money=n=>n?('$'+Number(n).toLocaleString()):'-'; const pct=(a,b)=>{const den=Number(b||0); if(!den)return 0; const raw=Number(a||0)/den*100; if(raw>0&&raw<0.1)return '<0.1'; return Math.round(raw*10)/10;};
 document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');asset=btn.dataset.asset;page=1;loadDashboard(1)}));
 document.getElementById('creative-card').addEventListener('click', toggleCreativeReport);
 document.getElementById('creative-report-btn').addEventListener('click', event=>{event.stopPropagation();toggleCreativeReport();});

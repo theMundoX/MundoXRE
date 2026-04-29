@@ -15,7 +15,9 @@ import "dotenv/config";
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const DRY_RUN = process.argv.includes("--dry-run");
-const BATCH_SIZE = 5000;
+const getArg = (name: string) => process.argv.find((arg) => arg.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
+const BATCH_SIZE = Math.max(100, Number.parseInt(getArg("batch-size") ?? "1000", 10));
+const MAX_RETRIES = Math.max(1, Number.parseInt(getArg("retries") ?? "3", 10));
 
 async function pg(query: string): Promise<any[]> {
   if (DRY_RUN && /^\s*(update|insert|delete|alter|create)/i.test(query)) {
@@ -23,18 +25,30 @@ async function pg(query: string): Promise<any[]> {
     return [];
   }
 
-  const res = await fetch(PG_URL, {
-    method: "POST",
-    headers: {
-      apikey: PG_KEY,
-      Authorization: `Bearer ${PG_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ query }),
-    signal: AbortSignal.timeout(120_000),
-  });
-  if (!res.ok) throw new Error(`pg/query ${res.status}: ${await res.text()}`);
-  return res.json();
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(PG_URL, {
+        method: "POST",
+        headers: {
+          apikey: PG_KEY,
+          Authorization: `Bearer ${PG_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (!res.ok) throw new Error(`pg/query ${res.status}: ${await res.text()}`);
+      return res.json();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt >= MAX_RETRIES) break;
+      const delayMs = attempt * 5000;
+      console.warn(`\n  query failed (${lastError.message.slice(0, 120)}); retrying in ${delayMs / 1000}s`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError ?? new Error("pg/query failed");
 }
 
 async function updateBatched(label: string, setSql: string, whereSql: string) {
@@ -71,6 +85,7 @@ async function main() {
   console.log("MXRE - Indianapolis asset classification");
   console.log("=".repeat(48));
   console.log(`Dry run: ${DRY_RUN}`);
+  console.log(`Batch size: ${BATCH_SIZE}`);
 
   const indyWhere = `
     county_id = 797583

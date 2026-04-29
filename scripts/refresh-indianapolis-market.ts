@@ -25,6 +25,7 @@ const hasFlag = (name: string) => args.includes(`--${name}`);
 
 const DRY_RUN = hasFlag("dry-run");
 const SKIP_LISTINGS = hasFlag("skip-listings");
+const SKIP_CLASSIFY = hasFlag("skip-classify");
 const SKIP_PUBLIC_SIGNALS = hasFlag("skip-public-signals");
 const SKIP_COMPLEX_PROFILES = hasFlag("skip-complex-profiles");
 const SKIP_EXTERNAL_CRE = hasFlag("skip-external-cre");
@@ -55,9 +56,10 @@ interface StepResult {
 const steps: Step[] = [
   {
     name: "Classify Indianapolis parcel asset types",
-    command: ["npx", "tsx", "scripts/classify-indy-assets.ts", ...(DRY_RUN ? ["--dry-run"] : [])],
+    command: ["npx", "tsx", "scripts/classify-indy-assets.ts", "--batch-size=1000", ...(DRY_RUN ? ["--dry-run"] : [])],
     required: true,
     supportsDryRun: true,
+    skip: SKIP_CLASSIFY,
   },
   {
     name: "Ingest Indianapolis public parcel signals",
