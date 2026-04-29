@@ -263,6 +263,7 @@ async function discoverSeedUrls(seedUrls: string[]) {
       matched++;
       console.log(`  [seed] ${url} -> property ${property.id} (${property.address})`);
       await upsertWebsite(property.id, url, detectPlatform(url), "public_portfolio_seed");
+      await upsertComplexProfile(property.id, url, extractComplexName(html, url), "public_portfolio_seed");
       matchedSeedUrls.push({ url, source: "public_portfolio_seed" });
       saved++;
     }
@@ -306,6 +307,32 @@ function extractAddress(html: string): { street: string; city: string | null; st
     state: find(statePatterns),
     zip: find(zipPatterns)?.match(/\d{5}/)?.[0] ?? null,
   };
+}
+
+function extractComplexName(html: string, fallbackUrl: string): string | null {
+  const candidates = [
+    html.match(/"name"\s*:\s*"([^"]{3,120})"/i)?.[1],
+    html.match(/<meta\s+property=["']og:site_name["']\s+content=["']([^"']{3,120})["']/i)?.[1],
+    html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']{3,120})["']/i)?.[1],
+    html.match(/<title[^>]*>([^<]{3,140})<\/title>/i)?.[1],
+  ];
+
+  for (const candidate of candidates) {
+    const cleaned = textFromHtml(candidate ?? "")
+      .replace(/\s*\|\s*.*$/g, "")
+      .replace(/\s+-\s+Apartments.*$/i, " Apartments")
+      .replace(/\s+in\s+Indianapolis.*$/i, "")
+      .trim();
+    if (cleaned && !/^(apartments for rent|floor plans|availability|home)$/i.test(cleaned)) return cleaned;
+  }
+
+  try {
+    const host = new URL(fallbackUrl).hostname.replace(/^www\./, "");
+    const first = host.split(".")[0]?.replace(/[-_]+/g, " ").trim();
+    return first ? first.replace(/\b\w/g, c => c.toUpperCase()) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function matchProperty(address: { street: string; city: string | null; state: string | null; zip: string | null }) {
@@ -384,6 +411,26 @@ async function upsertWebsite(propertyId: number, url: string, platform: string, 
     .or("website.is.null,website.eq.");
 }
 
+async function upsertComplexProfile(propertyId: number, url: string, complexName: string | null, sourceName: string) {
+  if (DRY_RUN || !complexName) return;
+
+  const { error } = await db.from("property_complex_profiles").upsert(
+    {
+      property_id: propertyId,
+      complex_name: complexName,
+      website: url,
+      source: sourceName,
+      source_url: url,
+      confidence: "medium",
+      last_seen_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      raw: { discovery_url: url },
+    },
+    { onConflict: "property_id" },
+  );
+  if (error) throw error;
+}
+
 async function discoverFromRelatedPages(seedUrls: Array<{ url: string; source: string }>) {
   const related = new Map<string, string>();
   for (const seed of seedUrls) {
@@ -413,6 +460,7 @@ async function discoverFromRelatedPages(seedUrls: Array<{ url: string; source: s
       matched++;
       console.log(`  [related] ${url} -> property ${property.id} (${property.address})`);
       await upsertWebsite(property.id, url, detectPlatform(url), `related_page:${source}`);
+      await upsertComplexProfile(property.id, url, extractComplexName(html, url), `related_page:${source}`);
       saved++;
     }
   }
@@ -479,6 +527,7 @@ async function main() {
     matched++;
     console.log(`  matched property ${property.id}: ${property.address}, ${property.zip}`);
     await upsertWebsite(property.id, candidate.url, candidate.platform, candidate.source);
+    await upsertComplexProfile(property.id, candidate.url, extractComplexName(html, candidate.url), candidate.source);
     matchedSeedUrls.push({ url: candidate.url, source: candidate.source });
     saved++;
   }
@@ -507,6 +556,7 @@ async function main() {
     osmMatched++;
     console.log(`  [osm] ${tags.name ?? cleaned} -> property ${property.id} (${property.address})`);
     await upsertWebsite(property.id, cleaned, detectPlatform(cleaned), "openstreetmap_overpass");
+    await upsertComplexProfile(property.id, cleaned, tags.name ?? null, "openstreetmap_overpass");
     matchedSeedUrls.push({ url: cleaned, source: "openstreetmap_overpass" });
     osmSaved++;
   }
