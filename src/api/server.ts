@@ -999,6 +999,179 @@ app.get('/v1/markets/:market/pre-foreclosures', async (c) => {
   });
 });
 
+app.get('/v1/markets/:market/opportunities', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const scope = getIndianapolisScope(c.req.query('scope'));
+  const requestedAsset = (c.req.query('asset') ?? 'all').toLowerCase();
+  const allowedAssets = ['all', 'single_family', 'multifamily'];
+  if (!allowedAssets.includes(requestedAsset)) {
+    return c.json({ error: 'Unsupported asset', supported_assets: allowedAssets }, 400);
+  }
+
+  const zip = c.req.query('zip')?.replace(/[^\d]/g, '').slice(0, 5);
+  const minPrice = parsePositiveInt(c.req.query('min_price'));
+  const maxPrice = parsePositiveInt(c.req.query('max_price'));
+  const minUnits = parsePositiveInt(c.req.query('min_units'));
+  const maxUnits = parsePositiveInt(c.req.query('max_units'));
+  const page = Math.max(parsePositiveInt(c.req.query('page')) ?? 1, 1);
+  const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 25, 100);
+  const offset = (page - 1) * limit;
+
+  const assetWhere = requestedAsset === 'single_family'
+    ? "and asset_group = 'single_family'"
+    : requestedAsset === 'multifamily'
+      ? "and asset_group in ('small_multifamily','commercial_multifamily')"
+      : '';
+  const listingWhere = [
+    zip ? `and l.zip = '${zip}'` : '',
+    minPrice !== null ? `and l.mls_list_price >= ${minPrice}` : '',
+    maxPrice !== null ? `and l.mls_list_price <= ${maxPrice}` : '',
+    minUnits !== null ? `and coalesce(p.total_units, 0) >= ${minUnits}` : '',
+    maxUnits !== null ? `and coalesce(p.total_units, 0) <= ${maxUnits}` : '',
+  ].filter(Boolean).join('\n        ');
+
+  const [result] = await queryPg<Record<string, unknown>>(`
+    with normalized as (
+      select
+        p.*,
+        case
+          when p.asset_type = 'commercial_multifamily' or coalesce(p.property_use, '') ilike '%APT%UNITS%' then 'commercial_multifamily'
+          when p.asset_type = 'small_multifamily'
+            or coalesce(p.property_use, '') ilike '%TWO FAMILY%'
+            or coalesce(p.property_use, '') ilike '%THREE FAMILY%' then 'small_multifamily'
+          when p.asset_subtype in ('sfr', 'condo')
+            or coalesce(p.property_use, '') ilike '%ONE FAMILY%'
+            or coalesce(p.property_use, '') ilike '%CONDO%'
+            or coalesce(p.property_use, '') ilike 'RES VAC%' then 'single_family'
+          else coalesce(nullif(p.asset_type, ''), nullif(p.property_type, ''), 'unknown')
+        end as asset_group
+      from properties p
+      where ${scope.whereSql}
+    ),
+    active as (
+      select
+        l.id as listing_id,
+        l.property_id,
+        p.address,
+        p.city,
+        p.state_code,
+        p.zip,
+        p.asset_group,
+        p.asset_type,
+        p.asset_subtype,
+        p.property_type,
+        p.property_use,
+        p.total_units,
+        p.bedrooms,
+        p.bathrooms,
+        p.bathrooms_full,
+        p.living_sqft,
+        p.year_built,
+        p.market_value,
+        l.mls_list_price,
+        l.days_on_market,
+        l.listing_source,
+        l.listing_url,
+        l.listing_agent_name,
+        l.listing_agent_first_name,
+        l.listing_agent_last_name,
+        l.listing_agent_email,
+        l.listing_agent_phone,
+        l.listing_brokerage,
+        l.agent_contact_confidence,
+        l.creative_finance_score,
+        l.creative_finance_status,
+        l.creative_finance_terms,
+        l.creative_finance_negative_terms,
+        l.creative_finance_rate_text,
+        l.last_seen_at
+      from listing_signals l
+      join normalized p on p.id = l.property_id
+      where l.is_on_market = true
+        ${assetWhere}
+        ${listingWhere}
+    )
+    select
+      (select count(*) from active)::int as total,
+      (select coalesce(jsonb_agg(row_to_json(z)), '[]'::jsonb)
+       from (
+         select
+           zip,
+           count(*)::int as listings,
+           round(percentile_cont(0.5) within group (order by mls_list_price))::int as "medianPrice",
+           round(percentile_cont(0.5) within group (order by days_on_market))::int as "medianDom",
+           count(*) filter (where creative_finance_status = 'positive')::int as "creativePositive",
+           count(*) filter (where listing_agent_email is not null or listing_agent_phone is not null)::int as "withContact"
+         from active
+         group by zip
+         order by count(*) desc, zip
+         limit 40
+       ) z) as by_zip,
+      (select coalesce(jsonb_agg(row_to_json(r)), '[]'::jsonb)
+       from (
+         select
+           listing_id as "listingId",
+           property_id as "propertyId",
+           address,
+           city,
+           state_code as state,
+           zip,
+           asset_group as "assetGroup",
+           asset_subtype as "assetSubtype",
+           property_use as "propertyUse",
+           total_units as "unitCount",
+           bedrooms,
+           coalesce(bathrooms, bathrooms_full) as bathrooms,
+           living_sqft as "livingSqft",
+           year_built as "yearBuilt",
+           market_value as "marketValue",
+           mls_list_price as "listPrice",
+           days_on_market as "daysOnMarket",
+           listing_source as "listingSource",
+           listing_url as "listingUrl",
+           listing_agent_name as "listingAgentName",
+           listing_agent_first_name as "listingAgentFirstName",
+           listing_agent_last_name as "listingAgentLastName",
+           listing_agent_email as "listingAgentEmail",
+           listing_agent_phone as "listingAgentPhone",
+           listing_brokerage as "listingBrokerage",
+           agent_contact_confidence as "agentContactConfidence",
+           creative_finance_score as "creativeFinanceScore",
+           creative_finance_status as "creativeFinanceStatus",
+           creative_finance_terms as "creativeFinanceTerms",
+           creative_finance_negative_terms as "creativeFinanceNegativeTerms",
+           creative_finance_rate_text as "creativeFinanceRateText",
+           null::numeric as "crimeScore",
+           null::numeric as "nearestBusMiles",
+           last_seen_at as "lastSeenAt"
+         from active
+         order by coalesce(creative_finance_score, -1) desc, coalesce(mls_list_price, 0) desc, address
+         limit ${limit} offset ${offset}
+       ) r) as results;
+  `);
+
+  return c.json({
+    market: 'indianapolis',
+    geography: { scope: scope.key, scope_label: scope.label },
+    filters: { asset: requestedAsset, zip: zip ?? null, min_price: minPrice, max_price: maxPrice, min_units: minUnits, max_units: maxUnits },
+    page,
+    limit,
+    total: numberOrNull(result?.total) ?? 0,
+    by_zip: result?.by_zip ?? [],
+    results: result?.results ?? [],
+    data_gaps: {
+      crime: 'not_ingested_yet',
+      transit_proximity: 'not_ingested_yet',
+      neighborhood_names: 'zip_fallback_until_neighborhood_layer_is_ingested',
+    },
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/v1/markets/:market/assets', async (c) => {
   const market = c.req.param('market').toLowerCase();
   if (!['indianapolis', 'indy'].includes(market)) {
@@ -1941,6 +2114,90 @@ setInterval(load, 60000); // auto-refresh every 60s
 });
 
 app.get('/preview/market-dashboard', async (c) => {
+  return c.html(renderAnalystMarketDashboard());
+});
+
+function renderAnalystMarketDashboard(): string {
+  const apiKey = process.env.MXRE_API_KEY ?? '';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MXRE Indianapolis Analyst Dashboard</title>
+<style>
+  :root{color-scheme:dark;--bg:#101312;--panel:#181c1b;--panel2:#202624;--line:#303735;--text:#edf4ef;--muted:#9aa7a1;--green:#35c677;--blue:#55a8ff;--amber:#f1b84b;--red:#ef6b62}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid var(--line);background:#131715;position:sticky;top:0;z-index:3}
+  .brand{font-size:18px;font-weight:800;letter-spacing:.08em}.muted{color:var(--muted)}.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#141817;color:var(--muted);border-radius:999px;padding:6px 10px;font-size:12px}
+  main{padding:18px 24px 36px;max-width:1520px;margin:0 auto}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tab{border:1px solid var(--line);background:#141817;color:var(--muted);border-radius:7px;padding:9px 13px;font-weight:700;cursor:pointer}.tab.active{background:#1d3228;color:#d9ffe9;border-color:#2b8050}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}.card h2,.card h3{margin:0 0 10px;font-size:14px}.metric{font-size:27px;font-weight:850}.sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .filters{display:grid;grid-template-columns:1.5fr repeat(5,minmax(110px,1fr)) auto;gap:8px;margin:14px 0}.filters input,.filters select{width:100%;background:#0f1312;border:1px solid var(--line);border-radius:6px;color:var(--text);padding:10px}.btn{background:#275f41;border:1px solid #347c56;color:#ecfff3;border-radius:6px;padding:10px 13px;font-weight:800;cursor:pointer}.btn.secondary{background:#141817;border-color:var(--line);color:var(--muted)}
+  table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;font-size:13px;vertical-align:top}th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}a{color:#8cc8ff;text-decoration:none}
+  .bar-row{display:grid;grid-template-columns:72px 1fr 76px;gap:8px;align-items:center;margin:8px 0}.bar-track{height:9px;background:#0f1312;border:1px solid var(--line);border-radius:999px;overflow:hidden}.bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue))}.tag{display:inline-block;border-radius:999px;padding:3px 7px;font-size:11px;border:1px solid var(--line);color:var(--muted)}.good{color:#76e0a0}.warn{color:var(--amber)}.bad{color:var(--red)}
+  @media(max-width:980px){.grid{grid-template-columns:1fr 1fr}.filters{grid-template-columns:1fr 1fr}.topbar{align-items:flex-start;flex-direction:column}} @media(max-width:640px){.grid,.filters{grid-template-columns:1fr}main{padding:14px}}
+</style>
+</head>
+<body>
+<div class="topbar"><div><div class="brand">MXRE Indianapolis Analyst Dashboard</div><div class="muted" style="font-size:12px;margin-top:3px">Overall market, asset-class tabs, zip rollups, opportunity filters, address lookup</div></div><div><span class="pill" id="status">Loading</span></div></div>
+<main>
+  <div class="tabs">
+    <button class="tab active" data-asset="all">Overall</button>
+    <button class="tab" data-asset="single_family">Single-family</button>
+    <button class="tab" data-asset="multifamily">Multi-family</button>
+  </div>
+  <section class="grid">
+    <div class="card"><h3>Active Listings</h3><div class="metric" id="m-active">-</div><div class="sub">Current filtered on-market rows</div></div>
+    <div class="card"><h3>Zip Coverage</h3><div class="metric" id="m-zips">-</div><div class="sub">Zips represented by active listings</div></div>
+    <div class="card"><h3>Creative Finance</h3><div class="metric" id="m-creative">-</div><div class="sub">Positive language detected</div></div>
+    <div class="card"><h3>Data Gaps</h3><div class="metric" style="font-size:17px">Crime + Transit</div><div class="sub">Not ingested yet; UI fields reserved</div></div>
+  </section>
+
+  <section class="card" style="margin-top:12px">
+    <h2>Filters</h2>
+    <div class="filters">
+      <input id="address" placeholder="Search address: 429 N Tibbs Ave, Indianapolis, IN 46222">
+      <input id="zip" placeholder="Zip">
+      <input id="minPrice" placeholder="Min price">
+      <input id="maxPrice" placeholder="Max price">
+      <input id="minUnits" placeholder="Min units">
+      <input id="maxUnits" placeholder="Max units">
+      <button class="btn" onclick="loadDashboard(1)">Apply</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary" onclick="setUnitBand(2,4)">2-4 doors</button><button class="btn secondary" onclick="setUnitBand(5,10)">5-10</button><button class="btn secondary" onclick="setUnitBand(11,20)">11-20</button><button class="btn secondary" onclick="setUnitBand(21,'')">21+</button><button class="btn secondary" onclick="clearFilters()">Clear</button><button class="btn secondary" onclick="addressLookup()">Address lookup</button></div>
+    <div id="lookup" class="sub" style="margin-top:10px"></div>
+  </section>
+
+  <section class="grid" style="grid-template-columns:1fr 2fr;margin-top:12px">
+    <div class="card"><h2>Zip Rollup</h2><div id="zip-rollup"></div></div>
+    <div class="card">
+      <h2>Opportunity List</h2>
+      <table><thead><tr><th>Property</th><th>Price</th><th>Units</th><th>Beds/Baths</th><th>DOM</th><th>Creative</th><th>Contact</th><th>Risk/Transit</th></tr></thead><tbody id="deals"></tbody></table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><button class="btn secondary" onclick="prevPage()">Prev</button><span class="muted" id="page-label"></span><button class="btn secondary" onclick="nextPage()">Next</button></div>
+    </div>
+  </section>
+</main>
+<script>
+const apiKey=${JSON.stringify(apiKey)};
+let asset='all'; let page=1; let lastTotal=0; const limit=25;
+const fmt=n=>Number(n||0).toLocaleString(); const money=n=>n?('$'+Number(n).toLocaleString()):'-';
+document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');asset=btn.dataset.asset;page=1;loadDashboard(1)}));
+function qs(){const p=new URLSearchParams({asset,page:String(page),limit:String(limit),scope:'city'}); for (const [id,key] of [['zip','zip'],['minPrice','min_price'],['maxPrice','max_price'],['minUnits','min_units'],['maxUnits','max_units']]) { const v=document.getElementById(id).value.trim(); if(v)p.set(key,v); } return p.toString();}
+async function loadDashboard(next){page=next||page; document.getElementById('status').textContent='Loading'; const data=await fetch('/v1/markets/indianapolis/opportunities?'+qs(),{headers:{'x-api-key':apiKey}}).then(r=>r.json()); if(data.error){document.getElementById('status').textContent=data.error;return;} lastTotal=data.total||0; render(data); document.getElementById('status').textContent='Updated '+new Date().toLocaleTimeString();}
+function render(data){document.getElementById('m-active').textContent=fmt(data.total); document.getElementById('m-zips').textContent=fmt((data.by_zip||[]).length); document.getElementById('m-creative').textContent=fmt((data.by_zip||[]).reduce((a,z)=>a+Number(z.creativePositive||0),0)); const max=Math.max(1,...(data.by_zip||[]).map(z=>Number(z.listings)||0)); document.getElementById('zip-rollup').innerHTML=(data.by_zip||[]).map(z=>'<div class="bar-row"><div>'+z.zip+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(4,Number(z.listings)/max*100)+'%"></div></div><div>'+fmt(z.listings)+'</div><div class="sub" style="grid-column:2/4;margin-top:-6px">median '+money(z.medianPrice)+' · creative '+fmt(z.creativePositive)+' · contact '+fmt(z.withContact)+'</div></div>').join('')||'<div class="muted">No zip data.</div>'; document.getElementById('deals').innerHTML=(data.results||[]).map(row=>'<tr><td><a href="'+(row.listingUrl||'#')+'" target="_blank">'+(row.address||'No address')+'</a><div class="sub">'+(row.zip||'')+' · '+(row.assetGroup||'')+' · '+(row.propertyUse||'')+'</div></td><td>'+money(row.listPrice)+'</td><td>'+((row.unitCount&&row.unitCount>0)?fmt(row.unitCount):'-')+'</td><td>'+[row.bedrooms,row.bathrooms].filter(Boolean).join(' / ')+'</td><td>'+(row.daysOnMarket??'-')+'</td><td>'+creative(row)+'</td><td>'+contact(row)+'</td><td><span class="tag">crime n/a</span><br><span class="tag" style="margin-top:4px">bus n/a</span></td></tr>').join('')||'<tr><td colspan="8" class="muted">No active listings match these filters.</td></tr>'; document.getElementById('page-label').textContent='Page '+page+' · '+fmt(data.total)+' results';}
+function creative(r){if(r.creativeFinanceStatus==='negative')return '<span class="tag bad">No creative</span>'; if(r.creativeFinanceScore)return '<span class="tag good">'+r.creativeFinanceScore+'</span><div class="sub">'+(r.creativeFinanceTerms||[]).join(', ')+'</div>'; return '<span class="tag">n/a</span>'}
+function contact(r){const name=r.listingAgentName||[r.listingAgentFirstName,r.listingAgentLastName].filter(Boolean).join(' '); return '<div>'+(name||'-')+'</div><div class="sub">'+(r.listingAgentEmail||r.listingAgentPhone||r.listingBrokerage||'contact gap')+'</div>'}
+function setUnitBand(min,max){document.getElementById('minUnits').value=min;document.getElementById('maxUnits').value=max;asset='multifamily';document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.asset==='multifamily'));loadDashboard(1)}
+function clearFilters(){['zip','minPrice','maxPrice','minUnits','maxUnits','address'].forEach(id=>document.getElementById(id).value='');loadDashboard(1)}
+function prevPage(){if(page>1)loadDashboard(page-1)} function nextPage(){if(page*limit<lastTotal)loadDashboard(page+1)}
+async function addressLookup(){const q=document.getElementById('address').value.trim(); const box=document.getElementById('lookup'); if(!q){box.textContent='Type an address first.';return;} box.textContent='Searching...'; const parts=q.split(',').map(x=>x.trim()); const address=parts[0]; const state=(q.match(/\\b[A-Z]{2}\\b/)||['IN'])[0]; const zip=(q.match(/\\b\\d{5}\\b/)||[''])[0]; const city=parts.find(p=>!/\\d/.test(p)&&!/^IN$/i.test(p))||'Indianapolis'; const url='/v1/property?address='+encodeURIComponent(address)+'&city='+encodeURIComponent(city)+'&state='+state+(zip?'&zip='+zip:''); const data=await fetch(url,{headers:{'x-api-key':apiKey}}).then(r=>r.json()); box.innerHTML=data.error?'<span class="bad">'+data.error+'</span>':'Found: <strong>'+data.property.address+'</strong> · '+(data.property.property_type||'-')+' · '+money(data.property.market_value||data.property.assessed_value);}
+loadDashboard(1);
+</script>
+</body>
+</html>`;
+}
+
+app.get('/preview/market-dashboard-old', async (c) => {
   const dashboardScope = getIndianapolisScope('city');
   let activeNow: Record<string, unknown> = {
     parcel_count: 547490,
