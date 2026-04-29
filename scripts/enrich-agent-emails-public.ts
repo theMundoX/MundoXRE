@@ -290,6 +290,60 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   };
 }
 
+function matchingAgentWhere(row: ListingRow): string {
+  const clauses: string[] = [];
+  const phone = normalizePhone(row.listing_agent_phone);
+  const name = splitName(row);
+
+  if (phone) {
+    clauses.push(`regexp_replace(coalesce(listing_agent_phone,''), '\\D', '', 'g') in (${sql(phone)}, ${sql(`1${phone}`)})`);
+  }
+
+  if (name?.first && name.last && row.listing_brokerage) {
+    clauses.push(`(
+      lower(coalesce(listing_agent_first_name, split_part(listing_agent_name, ' ', 1))) = lower(${sql(name.first)})
+      and lower(coalesce(listing_agent_last_name, regexp_replace(listing_agent_name, '^\\S+\\s+', ''))) = lower(${sql(name.last)})
+      and lower(coalesce(listing_brokerage,'')) = lower(${sql(row.listing_brokerage)})
+    )`);
+  }
+
+  if (name?.full && row.listing_brokerage) {
+    clauses.push(`(
+      lower(coalesce(listing_agent_name,'')) = lower(${sql(name.full)})
+      and lower(coalesce(listing_brokerage,'')) = lower(${sql(row.listing_brokerage)})
+    )`);
+  }
+
+  return clauses.length > 0 ? `(${clauses.join(" or ")})` : `id = ${row.id}`;
+}
+
+async function saveVerifiedEmail(row: ListingRow, candidate: Candidate): Promise<number> {
+  const updated = await pg(`
+    with updated as (
+      update listing_signals
+         set listing_agent_email = coalesce(listing_agent_email, ${sql(candidate.email)}),
+             agent_contact_source = 'public_agent_profile',
+             agent_contact_confidence = ${sql(candidate.confidence)},
+             raw = coalesce(raw, '{}'::jsonb) || ${sql(JSON.stringify({
+               publicAgentEmail: {
+                 email: candidate.email,
+                 sourceUrl: candidate.url,
+                 confidence: candidate.confidence,
+                 observedAt: new Date().toISOString(),
+                 propagation: "matched_active_agent_rows",
+               },
+             }))}::jsonb,
+             updated_at = now()
+       where is_on_market = true
+         and listing_agent_email is null
+         and ${matchingAgentWhere(row)}
+       returning id
+    )
+    select count(*)::int as updated from updated;
+  `);
+  return Number(updated?.[0]?.updated ?? 0);
+}
+
 async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
   const profileUrls = directProfileUrls(row);
   if (profileUrls.length === 0) {
@@ -395,23 +449,7 @@ async function main() {
     console.log(`  email found: ${row.listing_agent_name || row.listing_agent_first_name} -> ${candidate.email} (${candidate.confidence})`);
 
     if (!DRY_RUN) {
-      await pg(`
-        update listing_signals
-           set listing_agent_email = coalesce(listing_agent_email, ${sql(candidate.email)}),
-               agent_contact_source = 'public_agent_profile',
-               agent_contact_confidence = ${sql(candidate.confidence)},
-               raw = coalesce(raw, '{}'::jsonb) || ${sql(JSON.stringify({
-                 publicAgentEmail: {
-                   email: candidate.email,
-                   sourceUrl: candidate.url,
-                   confidence: candidate.confidence,
-                   observedAt: new Date().toISOString(),
-                 },
-               }))}::jsonb,
-               updated_at = now()
-         where id = ${row.id};
-      `);
-      updated++;
+      updated += await saveVerifiedEmail(row, candidate);
     }
   }
 
