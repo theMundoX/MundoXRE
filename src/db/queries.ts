@@ -642,17 +642,21 @@ export async function upsertListingSignals(signals: ListingSignal[]) {
   const db = getWriteDb();
   const existingRows = new Map<string, ListingSignal>();
 
-  for (const signal of signals) {
+  const stateCodes = [...new Set(signals.map((s) => s.state_code).filter(Boolean))];
+  const cities = [...new Set(signals.map((s) => s.city).filter(Boolean))];
+  const sources = [...new Set(signals.map((s) => s.listing_source).filter(Boolean))];
+
+  if (stateCodes.length > 0 && cities.length > 0 && sources.length > 0) {
     const { data } = await db
       .from("listing_signals")
       .select("*")
-      .eq("address", signal.address)
-      .eq("city", signal.city)
-      .eq("state_code", signal.state_code)
-      .eq("listing_source", signal.listing_source)
-      .maybeSingle();
+      .in("state_code", stateCodes)
+      .in("city", cities)
+      .in("listing_source", sources);
 
-    if (data) existingRows.set(listingSignalKey(signal), data as ListingSignal);
+    for (const row of (data ?? []) as ListingSignal[]) {
+      existingRows.set(listingSignalKey(row), row);
+    }
   }
 
   const rows = signals.map((s) => ({
@@ -662,13 +666,13 @@ export async function upsertListingSignals(signals: ListingSignal[]) {
   const { data, error } = await db
     .from("listing_signals")
     .upsert(rows, { onConflict: "address,city,state_code,listing_source" })
-      .select();
-    if (error) throw new Error(`Failed to bulk upsert listing signals: ${error.message}`);
-    const upserted = data ?? [];
-    const events = buildListingEvents(upserted as ListingSignal[], existingRows);
-    if (events.length > 0) await insertListingSignalEvents(events);
-    return upserted;
-  }
+    .select();
+  if (error) throw new Error(`Failed to bulk upsert listing signals: ${error.message}`);
+  const upserted = data ?? [];
+  const events = buildListingEvents(upserted as ListingSignal[], existingRows);
+  if (events.length > 0) await insertListingSignalEvents(events);
+  return upserted;
+}
 
 export async function getListingSignals(propertyId: number) {
   const db = getDb();
