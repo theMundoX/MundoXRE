@@ -53,7 +53,7 @@ async function main() {
   const ids = mfIds.map(row => Number(row.id)).filter(Number.isFinite);
   const total = Number(summary.mf_parcels ?? ids.length);
   const chunks: number[][] = [];
-  for (let i = 0; i < ids.length; i += 1000) chunks.push(ids.slice(i, i + 1000));
+  for (let i = 0; i < ids.length; i += 250) chunks.push(ids.slice(i, i + 250));
 
   const metrics = {
     active_linked_mf_parcels: 0,
@@ -71,7 +71,8 @@ async function main() {
     latest_rent_observed: null as unknown,
   };
 
-  for (const chunk of chunks) {
+  for (let index = 0; index < chunks.length; index++) {
+    const chunk = chunks[index];
     const idList = chunk.join(",");
     const [listings] = await pg(`
       select count(distinct property_id)::int as parcels, count(*)::int as rows
@@ -117,6 +118,9 @@ async function main() {
     metrics.parcels_with_3br_rent += Number(rents.three_bed ?? 0);
     if (rents.latest && (!metrics.latest_rent_observed || String(rents.latest) > String(metrics.latest_rent_observed))) {
       metrics.latest_rent_observed = rents.latest;
+    }
+    if ((index + 1) % 10 === 0) {
+      console.log(`  audited ${index + 1}/${chunks.length} multifamily chunks`);
     }
   }
 
