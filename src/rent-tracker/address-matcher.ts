@@ -134,9 +134,10 @@ export async function matchListingsToProperties(
     if (!listings || listings.length === 0) break;
 
     const unmatchedListings = listings as UnmatchedListing[];
+    const propertyByKey = await getExactPropertyMap(db, unmatchedListings);
 
     for (const listing of unmatchedListings) {
-      const propertyId = await findMatchingProperty(db, listing);
+      const propertyId = propertyByKey.get(matchKey(listing)) ?? null;
 
       if (propertyId) {
         // Update listing_signals with the matched property_id
@@ -162,6 +163,34 @@ export async function matchListingsToProperties(
   }
 
   return { matched, unmatched };
+}
+
+function matchKey(row: Pick<UnmatchedListing, "address" | "city" | "state_code">): string {
+  return `${row.address.toUpperCase().trim()}|${row.city.toUpperCase().trim()}|${row.state_code.toUpperCase().trim()}`;
+}
+
+async function getExactPropertyMap(
+  db: ReturnType<typeof getDb>,
+  listings: UnmatchedListing[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const state = [...new Set(listings.map((l) => l.state_code.toUpperCase()))];
+  const cities = [...new Set(listings.map((l) => l.city.toUpperCase()))];
+  const addresses = [...new Set(listings.map((l) => l.address.toUpperCase().trim()))];
+  if (state.length === 0 || cities.length === 0 || addresses.length === 0) return out;
+
+  const { data, error } = await db
+    .from("properties")
+    .select("id, address, city, state_code")
+    .in("state_code", state)
+    .in("city", cities)
+    .in("address", addresses);
+
+  if (error || !data) return out;
+  for (const candidate of data as PropertyCandidate[]) {
+    out.set(matchKey(candidate), candidate.id);
+  }
+  return out;
 }
 
 /**
