@@ -7,6 +7,7 @@
  *
  * Usage:
  *   npx tsx scripts/ingest-pa-statewide.ts
+ *   npx tsx scripts/ingest-pa-statewide.ts --county=Chester
  *   npx tsx scripts/ingest-pa-statewide.ts --offset=100000   # resume from offset
  */
 import "dotenv/config";
@@ -21,6 +22,7 @@ const OUT_FIELDS = "PARCEL_ID,OWNER_NAME,OWNER_LAST_NAME,OWNER_FIRST_NAME,PROPER
 const PAGE_SIZE = 1000;
 const BATCH_SIZE = 500;
 const MAX_RETRIES = 5;
+const COUNTY_FILTER = process.argv.find(a => a.startsWith("--county="))?.split("=")[1]?.trim();
 
 // Pennsylvania county FIPS codes (state FIPS = 42)
 const PA_COUNTY_FIPS: Record<string, string> = {
@@ -65,8 +67,13 @@ function titleCase(s: string): string {
   return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function whereClause(): string {
+  if (!COUNTY_FILTER) return "1=1";
+  return `UPPER(COUNTY_NAME)='${COUNTY_FILTER.replace(/'/g, "''").toUpperCase()}'`;
+}
+
 async function fetchPage(offset: number): Promise<any[]> {
-  const url = `${SERVICE_URL}/query?where=1%3D1&outFields=${OUT_FIELDS}&returnGeometry=false&resultOffset=${offset}&resultRecordCount=${PAGE_SIZE}&f=json`;
+  const url = `${SERVICE_URL}/query?where=${encodeURIComponent(whereClause())}&outFields=${OUT_FIELDS}&returnGeometry=false&resultOffset=${offset}&resultRecordCount=${PAGE_SIZE}&f=json`;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -88,9 +95,10 @@ async function fetchPage(offset: number): Promise<any[]> {
 async function main() {
   console.log("MXRE — Ingest Pennsylvania Statewide Parcels (PA DEP)");
   console.log("Source:", SERVICE_URL);
+  if (COUNTY_FILTER) console.log("County filter:", COUNTY_FILTER);
   console.log();
 
-  const countResp = await fetch(`${SERVICE_URL}/query?where=1%3D1&returnCountOnly=true&f=json`);
+  const countResp = await fetch(`${SERVICE_URL}/query?where=${encodeURIComponent(whereClause())}&returnCountOnly=true&f=json`);
   const { count: totalCount } = await countResp.json();
   console.log(`Total parcels: ${totalCount.toLocaleString()}\n`);
 
