@@ -218,6 +218,7 @@ async function saveScrapedData(
   db: SupabaseClient,
   propertyId: number,
   websiteId: number,
+  sourceUrl: string,
   scraperEntry: ReturnType<typeof getScraperForUrl>,
   data: NonNullable<Awaited<ReturnType<NonNullable<typeof scraperEntry>["scrape"]>>>,
 ) {
@@ -232,6 +233,35 @@ async function saveScrapedData(
   if (Object.keys(propUpdate).length > 1) {
     const { error } = await db.from("properties").update(propUpdate).eq("id", propertyId);
     if (error) throw new Error(`Failed to update property ${propertyId}: ${error.message}`);
+  }
+
+  // Keep the parcel-linked apartment profile current. The dashboard treats
+  // multifamily coverage as incomplete unless the rent source is tied back to
+  // a named complex/profile, not just anonymous floorplan rows.
+  const profilePayload: Record<string, unknown> = {
+    property_id: propertyId,
+    website: sourceUrl,
+    source: scraperEntry?.platform || "rental_website",
+    source_url: sourceUrl,
+    confidence: "high",
+    last_seen_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    raw: {
+      property_name: data.property_name || null,
+      platform: scraperEntry?.platform || "unknown",
+      scrape_date: today,
+    },
+  };
+  if (data.property_name) profilePayload.complex_name = data.property_name;
+  if (data.total_units > 0) profilePayload.unit_count = data.total_units;
+  if (data.year_built > 1800) profilePayload.year_built = data.year_built;
+  if (data.amenities.length > 0) profilePayload.amenities = data.amenities;
+
+  const { error: profileError } = await db
+    .from("property_complex_profiles")
+    .upsert(profilePayload, { onConflict: "property_id" });
+  if (profileError) {
+    throw new Error(`Failed to upsert complex profile for property ${propertyId}: ${profileError.message}`);
   }
 
   // Save floorplans + rent snapshots
@@ -473,7 +503,7 @@ async function main() {
       const data = await scraperEntry.scrape(web.url, scraperEntry.platform === "direct" ? undefined : browser);
 
       if (data && data.floorplans.length > 0) {
-        await saveScrapedData(db, web.property_id, web.id, scraperEntry, data);
+        await saveScrapedData(db, web.property_id, web.id, web.url, scraperEntry, data);
         stats.scraped++;
         stats.floorplans += data.floorplans.length;
         stats.snapshots += data.floorplans.filter((fp) => fp.rent_min > 0).length;

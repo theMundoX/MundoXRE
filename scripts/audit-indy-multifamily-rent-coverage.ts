@@ -53,7 +53,7 @@ async function main() {
   const ids = mfIds.map(row => Number(row.id)).filter(Number.isFinite);
   const total = Number(summary.mf_parcels ?? ids.length);
   const chunks: number[][] = [];
-  for (let i = 0; i < ids.length; i += 250) chunks.push(ids.slice(i, i + 250));
+  for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
 
   const metrics = {
     active_linked_mf_parcels: 0,
