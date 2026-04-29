@@ -36,6 +36,7 @@
     "market:indy:transit": "tsx scripts/ingest-indygo-transit.ts",
     "market:indy:crime": "tsx scripts/ingest-impd-crime.ts",
     "market:indy:location-scores": "tsx scripts/update-indy-location-scores.ts",
+    "market:indy:redfin-details": "tsx scripts/enrich-redfin-detail-pages.ts",
     "market:indy:enrich:hamilton": "tsx scripts/enrich-hamilton-in-assessor.ts",
     "market:indy:enrich:hendricks": "tsx scripts/enrich-hendricks-in-assessor.ts",
     "market:indy:enrich:madison": "tsx scripts/enrich-madison-in-parcels.ts",

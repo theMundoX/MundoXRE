@@ -27,14 +27,6 @@ const pct = (value: unknown, total: unknown) => {
 
 async function main() {
   const [summary] = await pg(`
-    with active as (
-      select l.*
-      from listing_signals l
-      join properties p on p.id = l.property_id
-      where l.is_on_market = true
-        and p.county_id = 797583
-        and upper(coalesce(p.city,'')) like '%INDIANAPOLIS%'
-    )
     select
       count(*)::int as active_listing_rows,
       count(distinct property_id)::int as active_properties,
@@ -53,7 +45,10 @@ async function main() {
       count(*) filter (where creative_finance_status = 'negative')::int as creative_negative,
       count(*) filter (where creative_finance_status is null)::int as creative_missing,
       count(*) filter (where creative_finance_score is not null)::int as creative_scored
-    from active;
+    from listing_signals
+    where is_on_market = true
+      and state_code = 'IN'
+      and upper(city) = 'INDIANAPOLIS';
   `);
 
   const total = Number(summary.active_listing_rows ?? 0);

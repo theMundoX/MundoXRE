@@ -73,7 +73,7 @@ function splitName(name: string | null): { first: string | null; last: string | 
 
 function extractContact(raw: Record<string, unknown> | null) {
   const emailText = valuesByKey(raw, /(^|\.)(email|agentEmail|contactEmail|brokerEmail|mail)$/i);
-  const phoneText = valuesByKey(raw, /(^|\.)(phone|agentPhone|contactPhone|brokerPhone|officePhone|mobile|cell|tel|telephone)$/i);
+  const phoneText = valuesByKey(raw, /(^|\.)(phone|number|agentPhone|agentNumber|listingAgentNumber|contactPhone|brokerPhone|brokerNumber|listingBrokerNumber|officePhone|mobile|cell|tel|telephone)$/i);
   const email = emailText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]?.toLowerCase() ?? null;
   const phone = phoneText.match(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/)?.[0] ?? null;
   return { email, phone: phone?.replace(/[^\d+]/g, "").replace(/^1(?=\d{10}$)/, "") ?? null };
