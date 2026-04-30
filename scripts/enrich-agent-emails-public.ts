@@ -6,6 +6,10 @@ const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "100", 10));
 const DELAY_MS = Math.max(750, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? "2500", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
+const arg = (name: string) =>
+  process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
+const STATE = arg("state")?.toUpperCase();
+const CITY = arg("city")?.toUpperCase();
 
 type ListingRow = {
   id: number;
@@ -425,6 +429,12 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
 async function main() {
   console.log("MXRE - Public agent email enrichment");
   console.log(`Limit: ${LIMIT}; delay ${DELAY_MS}ms; dry run ${DRY_RUN}`);
+  if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
+
+  const filters = [
+    STATE ? `state_code = ${sql(STATE)}` : null,
+    CITY ? `upper(coalesce(city,'')) = ${sql(CITY)}` : null,
+  ].filter(Boolean).join("\n      and ");
 
   const rows = await pg(`
     select id, listing_agent_name, listing_agent_first_name, listing_agent_last_name,
@@ -434,6 +444,7 @@ async function main() {
       and listing_agent_email is null
       and listing_agent_phone is not null
       and coalesce(listing_agent_first_name, listing_agent_name) is not null
+      ${filters ? `and ${filters}` : ""}
     order by last_seen_at desc nulls last
     limit ${LIMIT};
   `) as ListingRow[];
