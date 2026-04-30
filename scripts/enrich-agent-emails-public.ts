@@ -380,33 +380,38 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
 
   const name = splitName(row);
   if (!name) return null;
-  const queryParts = [
-    `"${name.full}"`,
-    row.listing_brokerage ? `"${row.listing_brokerage}"` : "",
-    row.listing_agent_phone ? `"${row.listing_agent_phone}"` : "",
-    "email realtor agent",
-  ].filter(Boolean);
-  const query = queryParts.join(" ");
-  const duckUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-  const searchHtml = await fetchText(duckUrl);
-  let links: string[] = [];
-  if (searchHtml) {
-    stats.search_pages++;
-    links = extractLinksFromDuckDuckGo(searchHtml);
-  }
-  if (links.length === 0) {
+  const phone = row.listing_agent_phone?.replace(/[^\d]/g, "");
+  const phoneText = row.listing_agent_phone ?? "";
+  const queries = [
+    [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, phone ? `"${phone}"` : "", "realtor email"].filter(Boolean).join(" "),
+    [phoneText ? `"${phoneText}"` : "", "realtor email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "email realtor agent"].filter(Boolean).join(" "),
+  ].filter((query, index, all) => query && all.indexOf(query) === index);
+
+  const links: string[] = [];
+  for (const query of queries) {
+    const duckUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    const searchHtml = await fetchText(duckUrl);
+    if (searchHtml) {
+      stats.search_pages++;
+      links.push(...extractLinksFromDuckDuckGo(searchHtml));
+    }
+    if (links.length > 0) break;
     await sleep(DELAY_MS);
     const bingUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
     const bingHtml = await fetchText(bingUrl);
     if (bingHtml) {
       stats.search_pages++;
-      links = extractLinksFromBing(bingHtml);
+      links.push(...extractLinksFromBing(bingHtml));
     }
+    if (links.length > 0) break;
   }
-  stats.search_links += links.length;
-  if (links.length === 0) return null;
+  const uniqueLinks = [...new Set(links)].slice(0, 12);
+  stats.search_links += uniqueLinks.length;
+  if (uniqueLinks.length === 0) return null;
 
-  for (const link of links) {
+  for (const link of uniqueLinks) {
     await sleep(DELAY_MS);
     const html = await fetchText(link);
     if (!html) continue;
