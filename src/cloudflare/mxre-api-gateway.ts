@@ -2,6 +2,7 @@ export interface Env {
   MXRE_ORIGIN_URL: string;
   MXRE_UPSTREAM_API_KEY: string;
   MXRE_CLIENT_API_KEYS: string;
+  MXRE_BUY_BOX_CLUB_KEY?: string;
   CACHE_SECONDS?: string;
 }
 
@@ -38,6 +39,11 @@ function authenticate(request: Request, env: Env): ApiClient | null {
   const apiKey = request.headers.get('x-api-key');
   const clientId = request.headers.get('x-client-id');
   if (!apiKey) return null;
+
+  if (env.MXRE_BUY_BOX_CLUB_KEY && apiKey === env.MXRE_BUY_BOX_CLUB_KEY) {
+    if (clientId && clientId !== 'buy_box_club_prod') return null;
+    return { id: 'buy_box_club_prod', key: apiKey, environment: 'production' };
+  }
 
   const matches = loadClients(env).filter((client) => client.key === apiKey);
   if (matches.length === 0) return null;

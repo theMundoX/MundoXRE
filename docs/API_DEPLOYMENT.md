@@ -98,6 +98,7 @@ npx wrangler login
 npx wrangler secret put MXRE_ORIGIN_URL
 npx wrangler secret put MXRE_UPSTREAM_API_KEY
 npx wrangler secret put MXRE_CLIENT_API_KEYS
+npx wrangler secret put MXRE_BUY_BOX_CLUB_KEY
 npx wrangler deploy
 ```
 
@@ -107,6 +108,7 @@ Secrets:
 MXRE_ORIGIN_URL=https://<node-api-host>
 MXRE_UPSTREAM_API_KEY=<same value as the Node service MXRE_API_KEY>
 MXRE_CLIENT_API_KEYS=[{"id":"buy_box_club_prod","key":"<buy-box-club-facing-key>","environment":"production","monthlyQuota":10000000}]
+MXRE_BUY_BOX_CLUB_KEY=<buy-box-club-facing-key>
 ```
 
 Create DNS routes after the Worker and host are live.

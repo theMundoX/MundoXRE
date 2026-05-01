@@ -2,6 +2,9 @@ name = "mxre-api-gateway"
 main = "src/cloudflare/mxre-api-gateway.ts"
 compatibility_date = "2026-05-01"
 workers_dev = true
+routes = [
+  { pattern = "api.mxre.mundox.ai", custom_domain = true }
+]
 
 [vars]
 CACHE_SECONDS = "60"
@@ -10,3 +13,4 @@ CACHE_SECONDS = "60"
 # npx wrangler secret put MXRE_ORIGIN_URL
 # npx wrangler secret put MXRE_UPSTREAM_API_KEY
 # npx wrangler secret put MXRE_CLIENT_API_KEYS
+# npx wrangler secret put MXRE_BUY_BOX_CLUB_KEY
