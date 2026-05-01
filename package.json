@@ -11,7 +11,8 @@
     "dist/"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --outDir dist",
+    "build": "tsup src/index.ts src/api/server.ts --format esm --dts --outDir dist",
+    "start": "node dist/api/server.js",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed-oklahoma.ts",
@@ -33,6 +34,8 @@
     "reingest:shapefile": "tsx scripts/reingest-fairfield-shapefile.ts",
     "market:indy:refresh": "tsx scripts/refresh-indianapolis-market.ts",
     "market:indy:refresh:dry": "tsx scripts/refresh-indianapolis-market.ts --dry-run",
+    "market:west-chester:refresh": "tsx scripts/refresh-west-chester-market.ts",
+    "market:west-chester:refresh:dry": "tsx scripts/refresh-west-chester-market.ts --dry-run",
     "market:indy:transit": "tsx scripts/ingest-indygo-transit.ts",
     "market:indy:crime": "tsx scripts/ingest-impd-crime.ts",
     "market:indy:location-scores": "tsx scripts/update-indy-location-scores.ts",

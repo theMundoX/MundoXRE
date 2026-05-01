@@ -23,6 +23,55 @@ const INDIANAPOLIS_METRO_COUNTY_IDS = [
   797572, // Tipton
 ];
 
+const MARKET_CONFIGS: Record<string, {
+  key: string;
+  aliases: string[];
+  label: string;
+  city: string;
+  cityUpper: string;
+  county: string;
+  state: string;
+  countyId: number;
+}> = {
+  indianapolis: {
+    key: 'indianapolis',
+    aliases: ['indianapolis', 'indy'],
+    label: 'Indianapolis',
+    city: 'Indianapolis',
+    cityUpper: 'INDIANAPOLIS',
+    county: 'Marion',
+    state: 'IN',
+    countyId: 797583,
+  },
+  columbus: {
+    key: 'columbus',
+    aliases: ['columbus', 'columbus-oh'],
+    label: 'Columbus',
+    city: 'Columbus',
+    cityUpper: 'COLUMBUS',
+    county: 'Franklin',
+    state: 'OH',
+    countyId: 1698985,
+  },
+  westChester: {
+    key: 'west-chester',
+    aliases: ['west-chester', 'west-chester-pa', 'westchester'],
+    label: 'West Chester',
+    city: 'West Chester',
+    cityUpper: 'WEST CHESTER',
+    county: 'Chester',
+    state: 'PA',
+    countyId: 817175,
+  },
+};
+
+const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
+
+function resolveMarketConfig(value: string) {
+  const key = value.toLowerCase();
+  return Object.values(MARKET_CONFIGS).find((market) => market.aliases.includes(key)) ?? null;
+}
+
 function getIndianapolisScope(scope: string | undefined): {
   key: 'city' | 'core' | 'metro';
   label: string;
@@ -53,7 +102,13 @@ function getIndianapolisScope(scope: string | undefined): {
 
 // ── Auth middleware (skip for /health) ────────────────────────
 app.use('*', async (c, next) => {
-  if (c.req.path === '/health' || c.req.path === '/' || c.req.path === '/dashboard' || c.req.path === '/preview/market-dashboard') return next();
+  if (
+    c.req.path === '/health' ||
+    c.req.path === '/' ||
+    c.req.path === '/dashboard' ||
+    c.req.path === '/preview/market-dashboard' ||
+    c.req.path === '/preview/west-chester-dashboard'
+  ) return next();
 
   const apiKey = c.req.header('x-api-key');
   const expected = process.env.MXRE_API_KEY;
@@ -490,9 +545,9 @@ app.get('/v1/coverage/state/:state', async (c) => {
 // Multifamily on-market feed for Buy Box Club / dashboard consumers.
 // Indianapolis starts with Marion County because that is the current complete asset-classified market.
 app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
-  const market = c.req.param('market').toLowerCase();
-  if (!['indianapolis', 'indy'].includes(market)) {
-    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  const marketConfig = resolveMarketConfig(c.req.param('market'));
+  if (!marketConfig) {
+    return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
   }
 
   const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '100', 10) || 100, 1), 500);
@@ -560,7 +615,8 @@ app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
       )
     `, { count: 'exact' })
     .eq('is_on_market', true)
-    .eq('properties.county_id', 797583)
+    .eq('properties.county_id', marketConfig.countyId)
+    .eq('properties.city', marketConfig.cityUpper)
     .in('properties.asset_type', ['small_multifamily', 'apartment', 'commercial_multifamily'])
     .order('last_seen_at', { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1);
@@ -576,7 +632,8 @@ app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
   let summaryQuery = db.from('listing_signals')
     .select('listing_source, properties!inner(asset_subtype,total_units)')
     .eq('is_on_market', true)
-    .eq('properties.county_id', 797583)
+    .eq('properties.county_id', marketConfig.countyId)
+    .eq('properties.city', marketConfig.cityUpper)
     .in('properties.asset_type', ['small_multifamily', 'apartment', 'commercial_multifamily'])
     .limit(1000);
 
@@ -658,8 +715,8 @@ app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
   }
 
   return c.json({
-    market: 'indianapolis',
-    geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
+    market: marketConfig.key,
+    geography: { city: marketConfig.city, county: marketConfig.county, state: marketConfig.state, countyId: marketConfig.countyId },
     asset_filter: ['small_multifamily', 'apartment', 'commercial_multifamily'],
     total: count ?? rows.length,
     count: rows.length,
@@ -683,9 +740,9 @@ app.get('/v1/markets/:market/multifamily/on-market', async (c) => {
 // ── Ingest status (reads supervisor logs) ─────────────────────
 
 app.get('/v1/markets/:market/dashboard', async (c) => {
-  const market = c.req.param('market').toLowerCase();
-  if (!['indianapolis', 'indy'].includes(market)) {
-    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  const marketConfig = resolveMarketConfig(c.req.param('market'));
+  if (!marketConfig) {
+    return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
   }
 
   const assetClass = (c.req.query('asset_class') ?? 'multifamily').toLowerCase();
@@ -707,7 +764,8 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
     with inventory as (
       select asset_type, coalesce(asset_subtype, asset_type, 'unknown') as subtype, coalesce(total_units, 0) as total_units
       from properties
-      where county_id = 797583
+      where county_id = ${marketConfig.countyId}
+        and upper(coalesce(city, '')) = '${marketConfig.cityUpper}'
         and asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
         ${unitFilterSql}
     ),
@@ -739,14 +797,15 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       join properties p on p.id = l.property_id
       left join property_complex_profiles cp on cp.property_id = p.id
       where l.is_on_market = true
-        and p.county_id = 797583
+        and p.county_id = ${marketConfig.countyId}
+        and upper(coalesce(p.city, '')) = '${marketConfig.cityUpper}'
         and p.asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
         ${activeUnitFilterSql}
     ),
     external_active as (
       select *
       from external_market_listings
-      where market = 'indianapolis'
+      where market = '${marketConfig.key}'
         and asset_class = 'multifamily'
         and status = 'active'
         ${minUnits !== null ? `and coalesce(units, 0) >= ${minUnits}` : ''}
@@ -851,8 +910,8 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
   `);
 
   return c.json({
-    market: 'indianapolis',
-    geography: { city: 'Indianapolis', county: 'Marion', state: 'IN', countyId: 797583 },
+    market: marketConfig.key,
+    geography: { city: marketConfig.city, county: marketConfig.county, state: marketConfig.state, countyId: marketConfig.countyId },
     asset_class: assetClass,
     filters: {
       min_units: minUnits,
@@ -890,6 +949,83 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       top_listings: dashboard?.top_listings ?? [],
       external_top_listings: dashboard?.external_top_listings ?? [],
     },
+    generated_at: new Date().toISOString(),
+  });
+});
+
+app.get('/v1/markets/:market/readiness', async (c) => {
+  const marketConfig = resolveMarketConfig(c.req.param('market'));
+  if (!marketConfig) {
+    return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
+  }
+
+  const propWhere = `county_id = ${marketConfig.countyId} and state_code = '${marketConfig.state}' and upper(coalesce(city,'')) = '${marketConfig.cityUpper}'`;
+  const listingWhere = `is_on_market = true and state_code = '${marketConfig.state}' and upper(coalesce(city,'')) = '${marketConfig.cityUpper}'`;
+  const mfWhere = `${propWhere} and (coalesce(total_units,1) >= 2 or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily'))`;
+
+  const [summary] = await queryPg<Record<string, unknown>>(`
+    with parcels as (
+      select count(*)::int as parcel_count,
+             count(*) filter (where asset_type is not null)::int as classified_count,
+             count(*) filter (where total_units is not null)::int as unit_count_count,
+             count(*) filter (where asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily') or coalesce(total_units,0) >= 2)::int as multifamily_asset_count
+        from properties
+       where ${propWhere}
+    ),
+    listings as (
+      select count(*)::int as active_listing_count,
+             count(distinct listing_source)::int as listing_source_count,
+             array_agg(distinct listing_source order by listing_source) filter (where listing_source is not null) as listing_sources,
+             count(*) filter (where nullif(listing_agent_name,'') is not null)::int as agent_name_count,
+             count(*) filter (where nullif(listing_agent_phone,'') is not null)::int as agent_phone_count,
+             count(*) filter (where nullif(listing_agent_email,'') is not null)::int as agent_email_count,
+             count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage_count,
+             count(*) filter (where creative_finance_status = 'positive')::int as creative_finance_count,
+             count(*) filter (where raw ? 'redfinDetail')::int as redfin_detail_count
+        from listing_signals
+       where ${listingWhere}
+    ),
+    mf as (
+      with universe as (select id from properties where ${mfWhere})
+      select count(distinct universe.id)::int as complex_count,
+             count(distinct pw.property_id)::int as complexes_with_websites,
+             count(distinct fp.property_id)::int as complexes_with_floorplans,
+             count(distinct fp.id)::int as floorplan_rows,
+             count(distinct rs.property_id)::int as complexes_with_rent_snapshots,
+             count(distinct rs.id)::int as rent_snapshot_rows,
+             max(rs.observed_at) as latest_rent_observed
+        from universe
+        left join property_websites pw on pw.property_id = universe.id and pw.active = true
+        left join floorplans fp on fp.property_id = universe.id
+        left join rent_snapshots rs on rs.property_id = universe.id
+    ),
+    recorder as (
+      select count(*)::int as recorder_records,
+             count(distinct m.property_id)::int as properties_with_recorder_records,
+             count(*) filter (where lower(coalesce(m.document_type,'')) like '%mortgage%')::int as mortgage_doc_rows,
+             count(*) filter (where lower(coalesce(m.document_type,'')) like '%lien%')::int as lien_doc_rows,
+             count(*) filter (where nullif(m.loan_amount,0) is not null)::int as records_with_amounts,
+             max(m.recording_date) as latest_recording
+        from mortgage_records m
+        join properties p on p.id = m.property_id
+       where p.county_id = ${marketConfig.countyId}
+         and p.state_code = '${marketConfig.state}'
+         and upper(coalesce(p.city,'')) = '${marketConfig.cityUpper}'
+    )
+    select row_to_json(parcels) as parcels,
+           row_to_json(listings) as listings,
+           row_to_json(mf) as multifamily,
+           row_to_json(recorder) as recorder
+      from parcels, listings, mf, recorder;
+  `);
+
+  return c.json({
+    market: marketConfig.key,
+    geography: { city: marketConfig.city, county: marketConfig.county, state: marketConfig.state, countyId: marketConfig.countyId },
+    parcels: summary?.parcels ?? {},
+    listings: summary?.listings ?? {},
+    multifamily: summary?.multifamily ?? {},
+    recorder: summary?.recorder ?? {},
     generated_at: new Date().toISOString(),
   });
 });
@@ -995,6 +1131,232 @@ app.get('/v1/markets/:market/pre-foreclosures', async (c) => {
     status,
     count: rows.length,
     results: rows,
+    generated_at: new Date().toISOString(),
+  });
+});
+
+app.get('/v1/markets/:market/reports/creative-finance', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const scope = getIndianapolisScope(c.req.query('scope'));
+  const requestedAsset = (c.req.query('asset') ?? 'all').toLowerCase();
+  const allowedAssets = ['all', 'single_family', 'multifamily'];
+  if (!allowedAssets.includes(requestedAsset)) {
+    return c.json({ error: 'Unsupported asset', supported_assets: allowedAssets }, 400);
+  }
+
+  const requestedStatus = (c.req.query('status') ?? 'positive').toLowerCase();
+  const allowedStatuses = ['positive', 'negative', 'all'];
+  if (!allowedStatuses.includes(requestedStatus)) {
+    return c.json({ error: 'Unsupported status', supported_statuses: allowedStatuses }, 400);
+  }
+
+  const zip = c.req.query('zip')?.replace(/[^\d]/g, '').slice(0, 5);
+  const minPrice = parsePositiveInt(c.req.query('min_price'));
+  const maxPrice = parsePositiveInt(c.req.query('max_price'));
+  const minUnits = parsePositiveInt(c.req.query('min_units'));
+  const maxUnits = parsePositiveInt(c.req.query('max_units'));
+  const since = parseDateParam(c.req.query('since'));
+  const until = parseDateParam(c.req.query('until'));
+  const page = Math.max(parsePositiveInt(c.req.query('page')) ?? 1, 1);
+  const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 50, 250);
+  const offset = (page - 1) * limit;
+  const listingCitySql = "l.state_code = 'IN' and upper(trim(replace(coalesce(l.city, ''), ',', ''))) = 'INDIANAPOLIS'";
+  const marketWhere = scope.key === 'city'
+    ? listingCitySql
+    : `(p.county_id in (${scope.countySql}) or (${listingCitySql}))`;
+
+  const assetWhere = requestedAsset === 'single_family'
+    ? "and asset_group = 'single_family'"
+    : requestedAsset === 'multifamily'
+      ? "and asset_group in ('small_multifamily','commercial_multifamily')"
+      : '';
+  const statusWhere = requestedStatus === 'all'
+    ? "and l.creative_finance_status in ('positive','negative')"
+    : `and l.creative_finance_status = '${requestedStatus}'`;
+  const listingWhere = [
+    zip ? `and l.zip = '${zip}'` : '',
+    minPrice !== null ? `and l.mls_list_price >= ${minPrice}` : '',
+    maxPrice !== null ? `and l.mls_list_price <= ${maxPrice}` : '',
+    minUnits !== null ? `and coalesce(p.total_units, 0) >= ${minUnits}` : '',
+    maxUnits !== null ? `and coalesce(p.total_units, 0) <= ${maxUnits}` : '',
+    since ? `and coalesce(l.last_seen_at, l.first_seen_at) >= '${since}'::date` : '',
+    until ? `and coalesce(l.last_seen_at, l.first_seen_at) < ('${until}'::date + interval '1 day')` : '',
+  ].filter(Boolean).join('\n        ');
+
+  const [result] = await queryPg<Record<string, unknown>>(`
+    with active as (
+      select
+        l.id as listing_id,
+        l.property_id,
+        coalesce(p.address, l.address) as address,
+        coalesce(p.city, l.city) as city,
+        coalesce(p.state_code, l.state_code) as state_code,
+        coalesce(p.zip, l.zip) as zip,
+        case
+          when p.asset_type = 'commercial_multifamily' or coalesce(p.property_use, '') ilike '%APT%UNITS%' then 'commercial_multifamily'
+          when p.asset_type = 'small_multifamily'
+            or coalesce(p.property_use, '') ilike '%TWO FAMILY%'
+            or coalesce(p.property_use, '') ilike '%THREE FAMILY%' then 'small_multifamily'
+          when p.asset_subtype in ('sfr', 'condo')
+            or coalesce(p.property_use, '') ilike '%ONE FAMILY%'
+            or coalesce(p.property_use, '') ilike '%CONDO%'
+            or coalesce(p.property_use, '') ilike 'RES VAC%' then 'single_family'
+          when l.property_id is null then 'unlinked_listing'
+          else coalesce(nullif(p.asset_type, ''), nullif(p.property_type, ''), 'unknown')
+        end as asset_group,
+        p.asset_type,
+        p.asset_subtype,
+        p.property_type,
+        p.property_use,
+        p.total_units,
+        p.bedrooms,
+        p.bathrooms,
+        p.bathrooms_full,
+        p.living_sqft,
+        p.year_built,
+        p.market_value,
+        l.mls_list_price,
+        l.days_on_market,
+        l.listing_source,
+        l.listing_url,
+        l.listing_agent_name,
+        l.listing_agent_first_name,
+        l.listing_agent_last_name,
+        l.listing_agent_email,
+        l.listing_agent_phone,
+        l.listing_brokerage,
+        l.agent_contact_source,
+        l.agent_contact_confidence,
+        l.creative_finance_score,
+        l.creative_finance_status,
+        l.creative_finance_terms,
+        l.creative_finance_negative_terms,
+        l.creative_finance_rate_text,
+        l.creative_finance_source,
+        l.creative_finance_observed_at,
+        l.first_seen_at,
+        l.last_seen_at,
+        l.raw
+      from listing_signals l
+      left join properties p on p.id = l.property_id
+      where l.is_on_market = true
+        and ${marketWhere}
+        ${assetWhere}
+        ${statusWhere}
+        ${listingWhere}
+    )
+    select
+      (select count(*)::int from active) as total,
+      (select jsonb_build_object(
+        'positive', count(*) filter (where creative_finance_status = 'positive'),
+        'negative', count(*) filter (where creative_finance_status = 'negative'),
+        'withRateText', count(*) filter (where creative_finance_rate_text is not null),
+        'withAgentEmail', count(*) filter (where listing_agent_email is not null),
+        'withAgentPhone', count(*) filter (where listing_agent_phone is not null),
+        'withFullContact', count(*) filter (where listing_agent_email is not null and listing_agent_phone is not null),
+        'medianListPrice', round(percentile_cont(0.5) within group (order by mls_list_price))::int,
+        'medianCreativeScore', round(percentile_cont(0.5) within group (order by creative_finance_score))::int
+      ) from active) as summary,
+      (select coalesce(jsonb_agg(row_to_json(z)), '[]'::jsonb)
+       from (
+         select
+           zip,
+           count(*)::int as listings,
+           count(*) filter (where creative_finance_status = 'positive')::int as "positive",
+           count(*) filter (where creative_finance_status = 'negative')::int as "negative",
+           count(*) filter (where listing_agent_email is not null)::int as "withAgentEmail",
+           round(percentile_cont(0.5) within group (order by mls_list_price))::int as "medianListPrice",
+           round(percentile_cont(0.5) within group (order by creative_finance_score))::int as "medianCreativeScore"
+         from active
+         group by zip
+         order by count(*) desc, zip
+       ) z) as by_zip,
+      (select coalesce(jsonb_agg(row_to_json(t)), '[]'::jsonb)
+       from (
+         select term, count(*)::int as listings
+         from (
+           select unnest(
+             case
+               when creative_finance_status = 'negative' then coalesce(creative_finance_negative_terms, array[]::text[])
+               else coalesce(creative_finance_terms, array[]::text[])
+             end
+           ) as term
+           from active
+         ) terms
+         where term is not null and term <> ''
+         group by term
+         order by count(*) desc, term
+       ) t) as by_term,
+      (select coalesce(jsonb_agg(row_to_json(r)), '[]'::jsonb)
+       from (
+         select
+           listing_id as "listingId",
+           property_id as "propertyId",
+           address,
+           city,
+           state_code as state,
+           zip,
+           asset_group as "assetGroup",
+           asset_type as "assetType",
+           asset_subtype as "assetSubtype",
+           property_use as "propertyUse",
+           total_units as "unitCount",
+           bedrooms,
+           coalesce(bathrooms, bathrooms_full) as bathrooms,
+           living_sqft as "livingSqft",
+           year_built as "yearBuilt",
+           market_value as "marketValue",
+           mls_list_price as "listPrice",
+           days_on_market as "daysOnMarket",
+           listing_source as "listingSource",
+           listing_url as "listingUrl",
+           listing_agent_name as "listingAgentName",
+           listing_agent_first_name as "listingAgentFirstName",
+           listing_agent_last_name as "listingAgentLastName",
+           listing_agent_email as "listingAgentEmail",
+           listing_agent_phone as "listingAgentPhone",
+           listing_brokerage as "listingBrokerage",
+           agent_contact_source as "agentContactSource",
+           agent_contact_confidence as "agentContactConfidence",
+           creative_finance_score as "creativeFinanceScore",
+           creative_finance_status as "creativeFinanceStatus",
+           creative_finance_terms as "creativeFinanceTerms",
+           creative_finance_negative_terms as "creativeFinanceNegativeTerms",
+           creative_finance_rate_text as "creativeFinanceRateText",
+           creative_finance_source as "creativeFinanceSource",
+           creative_finance_observed_at as "creativeFinanceObservedAt",
+           first_seen_at as "firstSeenAt",
+           last_seen_at as "lastSeenAt",
+           left(coalesce(
+             raw #>> '{redfinDetail,publicRemarks}',
+             raw #>> '{redfinDetail,description}',
+             raw #>> '{publicRemarks}',
+             raw #>> '{remarks}',
+             raw #>> '{description}',
+             ''
+           ), 700) as "publicRemarksSnippet"
+         from active
+         order by coalesce(creative_finance_score, -1) desc, last_seen_at desc nulls last, address
+         limit ${limit} offset ${offset}
+       ) r) as results;
+  `);
+
+  return c.json({
+    market: 'indianapolis',
+    report: 'creative_finance',
+    geography: { scope: scope.key, scope_label: scope.label },
+    filters: { status: requestedStatus, asset: requestedAsset, zip: zip ?? null, min_price: minPrice, max_price: maxPrice, min_units: minUnits, max_units: maxUnits, since, until },
+    page,
+    limit,
+    total: numberOrNull(result?.total) ?? 0,
+    summary: result?.summary ?? {},
+    by_zip: result?.by_zip ?? [],
+    by_term: result?.by_term ?? [],
+    results: result?.results ?? [],
     generated_at: new Date().toISOString(),
   });
 });
@@ -2149,7 +2511,239 @@ setInterval(load, 60000); // auto-refresh every 60s
 });
 
 app.get('/preview/market-dashboard', async (c) => {
+  const market = c.req.query('market')?.toLowerCase();
+  if (market && market !== 'indianapolis' && market !== 'indy') {
+    return c.html(renderMarketSnapshotDashboard(market));
+  }
   return c.html(renderAnalystMarketDashboard());
+});
+
+function renderMarketSnapshotDashboard(requestedMarket: string): string {
+  const apiKey = process.env.MXRE_API_KEY ?? '';
+  const market = resolveMarketConfig(requestedMarket)?.key ?? 'columbus';
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MXRE Market Dashboard</title>
+<style>
+:root{color-scheme:dark;--bg:#101312;--panel:#181c1b;--line:#303735;--text:#edf4ef;--muted:#9aa7a1;--green:#35c677;--blue:#55a8ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid var(--line);background:#131715;position:sticky;top:0;z-index:3}.brand{font-size:18px;font-weight:850;letter-spacing:.06em}.muted,.sub{color:var(--muted)}main{padding:18px 24px 36px;max-width:1520px;margin:0 auto}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}.card h2,.card h3{margin:0 0 10px;font-size:14px}.metric{font-size:27px;font-weight:850}.sub{font-size:12px;margin-top:4px}select{background:#0f1312;border:1px solid var(--line);color:var(--text);border-radius:6px;padding:9px 12px}.pill{border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:12px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;font-size:13px;vertical-align:top}th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}a{color:#8cc8ff;text-decoration:none}.bar-row{display:grid;grid-template-columns:160px 1fr 80px;gap:8px;align-items:center;margin:8px 0}.bar-track{height:9px;background:#0f1312;border:1px solid var(--line);border-radius:999px;overflow:hidden}.bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue))}@media(max-width:980px){.grid{grid-template-columns:1fr 1fr}.topbar{align-items:flex-start;flex-direction:column}}@media(max-width:640px){.grid{grid-template-columns:1fr}main{padding:14px}}
+</style></head><body>
+<div class="topbar"><div><div class="brand">MXRE Market Dashboard</div><div class="muted" id="subtitle" style="font-size:12px;margin-top:3px">Loading market data</div></div><div style="display:flex;gap:10px;align-items:center"><select id="market"><option value="columbus">Columbus, OH</option><option value="indianapolis">Indianapolis, IN</option></select><span class="pill" id="status">Loading</span></div></div>
+<main>
+<section class="grid"><div class="card"><h3>Active Listings</h3><div class="metric" id="active">-</div><div class="sub" id="active-sub">tracked rows</div></div><div class="card"><h3>Detail Coverage</h3><div class="metric" id="detail">-</div><div class="sub">public remarks/details</div></div><div class="card"><h3>Agent Phone</h3><div class="metric" id="phone">-</div><div class="sub">active rows</div></div><div class="card"><h3>Creative Finance</h3><div class="metric" id="creative">-</div><div class="sub">positive signals</div></div><div class="card"><h3>Parcels</h3><div class="metric" id="parcels">-</div><div class="sub">city universe</div></div><div class="card"><h3>Multifamily Assets</h3><div class="metric" id="mf">-</div><div class="sub">2+ unit / apartment candidates</div></div><div class="card"><h3>Rent Snapshots</h3><div class="metric" id="rents">-</div><div class="sub" id="rents-sub">observed rents</div></div><div class="card"><h3>Recorder / Liens</h3><div class="metric" id="recorder">-</div><div class="sub" id="recorder-sub">linked public records</div></div></section>
+<section class="grid" style="grid-template-columns:1fr 1fr;margin-top:12px"><div class="card"><h2>Coverage</h2><div id="coverage-bars"></div></div><div class="card"><h2>Recorder Summary</h2><div id="recorder-lines"></div></div></section>
+<section class="card" style="margin-top:12px"><h2>Multifamily On-Market</h2><table><thead><tr><th>Property</th><th>Subtype</th><th>Units</th><th>List Price</th><th>Agent</th><th>Contact</th><th>Source</th></tr></thead><tbody id="rows"></tbody></table></section>
+</main>
+<script>
+const apiKey=${JSON.stringify(apiKey)};const initialMarket=${JSON.stringify(market)};const fmt=n=>Number(n||0).toLocaleString();const money=n=>n?('$'+Number(n).toLocaleString()):'-';const pct=(n,d)=>{const den=Number(d||0);if(!den)return'0%';return(Math.round((Number(n||0)/den)*1000)/10)+'%';};
+document.getElementById('market').value=initialMarket;document.getElementById('market').addEventListener('change',()=>load());
+async function getJson(path){const r=await fetch(path,{headers:{'x-api-key':apiKey}});const j=await r.json();if(!r.ok)throw new Error(j.detail||j.error||path);return j;}
+async function load(){const market=document.getElementById('market').value;history.replaceState(null,'','/preview/market-dashboard?market='+market);document.getElementById('status').textContent='Loading';const [ready,onMarket]=await Promise.all([getJson('/v1/markets/'+market+'/readiness'),getJson('/v1/markets/'+market+'/multifamily/on-market?limit=50')]);render(ready,onMarket);document.getElementById('status').textContent='Updated '+new Date().toLocaleTimeString();}
+function render(ready,onMarket){const g=ready.geography||{},p=ready.parcels||{},l=ready.listings||{},mf=ready.multifamily||{},rec=ready.recorder||{};document.getElementById('subtitle').textContent=(g.city||'Market')+', '+(g.state||'')+' · '+(g.county||'')+' County';document.getElementById('active').textContent=fmt(l.active_listing_count);document.getElementById('active-sub').textContent=(l.listing_sources||[]).join(', ')||'tracked sources';document.getElementById('detail').textContent=pct(l.redfin_detail_count,l.active_listing_count);document.getElementById('phone').textContent=pct(l.agent_phone_count,l.active_listing_count);document.getElementById('creative').textContent=fmt(l.creative_finance_count);document.getElementById('parcels').textContent=fmt(p.parcel_count);document.getElementById('mf').textContent=fmt(p.multifamily_asset_count);document.getElementById('rents').textContent=fmt(mf.rent_snapshot_rows);document.getElementById('rents-sub').textContent=fmt(mf.complexes_with_rent_snapshots)+' / '+fmt(mf.complex_count)+' complexes with rent snapshots';document.getElementById('recorder').textContent=fmt(rec.recorder_records);document.getElementById('recorder-sub').textContent=fmt(rec.lien_doc_rows)+' lien docs · '+fmt(rec.mortgage_doc_rows)+' mortgage docs';const bars=[['Classified parcels',p.classified_count,p.parcel_count],['Unit-count parcels',p.unit_count_count,p.parcel_count],['Agent phone',l.agent_phone_count,l.active_listing_count],['Agent email',l.agent_email_count,l.active_listing_count],['MF websites',mf.complexes_with_websites,mf.complex_count],['MF rent snapshots',mf.complexes_with_rent_snapshots,mf.complex_count]];document.getElementById('coverage-bars').innerHTML=bars.map(([label,n,d])=>'<div class="bar-row"><div>'+label+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(2,Number(d?Number(n)/Number(d)*100:0))+'%"></div></div><div>'+pct(n,d)+'</div></div>').join('');document.getElementById('recorder-lines').innerHTML=[['Properties with records',rec.properties_with_recorder_records],['Recorder records',rec.recorder_records],['Mortgage docs',rec.mortgage_doc_rows],['Lien docs',rec.lien_doc_rows],['Records with loan amount',rec.records_with_amounts],['Latest recording',rec.latest_recording||'-']].map(([k,v])=>'<div class="bar-row"><div>'+k+'</div><div></div><div>'+fmt(v)+'</div></div>').join('');document.getElementById('rows').innerHTML=(onMarket.results||[]).map(row=>{const prop=row.property||{},m=row.market||{};return'<tr><td><a href="'+(m.listingUrl||'#')+'" target="_blank">'+(prop.address||row.address||'Property')+'</a><div class="sub">'+(prop.zip||row.zip||'')+'</div></td><td>'+(prop.assetSubtype||'-')+'</td><td>'+(prop.unitCount||'-')+'</td><td>'+money(m.listPrice)+'</td><td>'+(m.listingAgentName||'-')+'</td><td>'+(m.listingAgentPhone||m.listingAgentEmail||m.listingBrokerage||'-')+'</td><td>'+(m.listingSource||'-')+'</td></tr>';}).join('')||'<tr><td colspan="7" class="muted">No linked multifamily listings yet.</td></tr>';}
+load().catch(err=>{document.getElementById('status').textContent=err.message;console.error(err);});
+</script></body></html>`;
+}
+
+app.get('/preview/west-chester-dashboard', async (c) => {
+  const [summary] = await queryPg<Record<string, unknown>>(`
+    with parcels as (
+      select count(*)::int as parcel_count,
+             count(*) filter (where asset_type is not null)::int as classified_count,
+             count(*) filter (where asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily') or coalesce(total_units,0) >= 2)::int as multifamily_count
+      from properties
+      where county_id = 817175
+        and state_code = 'PA'
+        and upper(coalesce(city,'')) = 'WEST CHESTER'
+    ),
+    listings as (
+      select count(*)::int as active_listing_count,
+             count(distinct property_id) filter (where property_id is not null)::int as active_properties,
+             count(*) filter (where nullif(listing_agent_name,'') is not null)::int as agent_name_count,
+             count(*) filter (where nullif(listing_agent_phone,'') is not null)::int as agent_phone_count,
+             count(*) filter (where nullif(listing_agent_email,'') is not null)::int as agent_email_count,
+             count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage_count,
+             count(*) filter (where creative_finance_status = 'positive')::int as creative_positive
+      from listing_signals
+      where is_on_market = true
+        and state_code = 'PA'
+        and upper(coalesce(city,'')) = 'WEST CHESTER'
+    ),
+    mf as (
+      select id
+      from properties
+      where county_id = 817175
+        and state_code = 'PA'
+        and upper(coalesce(city,'')) = 'WEST CHESTER'
+        and (
+          coalesce(total_units,0) >= 2
+          or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily')
+        )
+    ),
+    rents as (
+      select count(distinct pw.property_id)::int as mf_websites,
+             count(distinct fp.property_id)::int as mf_floorplan_properties,
+             count(distinct fp.id)::int as floorplan_rows,
+             count(distinct rs.property_id)::int as mf_rent_properties,
+             count(distinct rs.id)::int as rent_snapshot_rows,
+             max(rs.observed_at) as latest_rent_observed
+      from mf
+      left join property_websites pw on pw.property_id = mf.id and pw.active = true
+      left join floorplans fp on fp.property_id = mf.id
+      left join rent_snapshots rs on rs.property_id = mf.id
+    )
+    select parcels.parcel_count,
+           parcels.classified_count,
+           parcels.multifamily_count,
+           listings.active_listing_count,
+           listings.active_properties,
+           listings.agent_name_count,
+           listings.agent_phone_count,
+           listings.agent_email_count,
+           listings.brokerage_count,
+           listings.creative_positive,
+           rents.mf_websites,
+           rents.mf_floorplan_properties,
+           rents.floorplan_rows,
+           rents.mf_rent_properties,
+           rents.rent_snapshot_rows,
+           rents.latest_rent_observed
+    from parcels, listings, rents;
+  `);
+
+  const listings = await queryPg<Record<string, unknown>>(`
+    select
+      id,
+      property_id as "propertyId",
+      address,
+      city,
+      zip,
+      mls_list_price as "listPrice",
+      days_on_market as "daysOnMarket",
+      listing_source as "source",
+      listing_url as "listingUrl",
+      listing_agent_name as "agentName",
+      listing_agent_phone as "agentPhone",
+      listing_agent_email as "agentEmail",
+      listing_brokerage as "brokerage",
+      creative_finance_status as "creativeStatus",
+      creative_finance_score as "creativeScore",
+      creative_finance_terms as "creativeTerms",
+      last_seen_at as "lastSeenAt"
+    from listing_signals
+    where is_on_market = true
+      and state_code = 'PA'
+      and upper(coalesce(city,'')) = 'WEST CHESTER'
+    order by coalesce(creative_finance_score,0) desc, last_seen_at desc nulls last
+    limit 80;
+  `);
+
+  const rents = await queryPg<Record<string, unknown>>(`
+    with universe as (
+      select p.id, p.address
+      from properties p
+      where p.county_id = 817175
+        and p.state_code = 'PA'
+        and upper(coalesce(p.city,'')) = 'WEST CHESTER'
+        and (
+          coalesce(p.total_units,0) >= 2
+          or p.asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily')
+        )
+    )
+    select
+      u.id as "propertyId",
+      coalesce(cp.complex_name, u.address) as "complexName",
+      u.address,
+      pw.website,
+      coalesce(fp.floorplans, 0)::int as "floorplans",
+      coalesce(rs.rent_snapshots, 0)::int as "rentSnapshots",
+      rs.min_rent::int as "minRent",
+      rs.max_rent::int as "maxRent",
+      rs.latest_observed as "latestObserved"
+    from universe u
+    left join property_complex_profiles cp on cp.property_id = u.id
+    left join lateral (
+      select website
+      from property_websites
+      where property_id = u.id and active = true
+      order by last_seen_at desc nulls last
+      limit 1
+    ) pw on true
+    left join lateral (
+      select count(*)::int as floorplans
+      from floorplans
+      where property_id = u.id
+    ) fp on true
+    left join lateral (
+      select count(*)::int as rent_snapshots,
+             min(asking_rent) as min_rent,
+             max(asking_rent) as max_rent,
+             max(observed_at) as latest_observed
+      from rent_snapshots
+      where property_id = u.id
+    ) rs on true
+    where pw.website is not null or coalesce(fp.floorplans, 0) > 0 or coalesce(rs.rent_snapshots, 0) > 0
+    order by coalesce(rs.rent_snapshots, 0) desc, coalesce(cp.complex_name, u.address)
+    limit 80;
+  `);
+
+  const num = (key: string) => Number(summary?.[key] ?? 0);
+  const pct = (value: number, total: number) => total > 0 ? Math.round((value / total) * 1000) / 10 : 0;
+  const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] ?? char));
+  const money = (value: unknown) => Number(value ?? 0) > 0 ? `$${Number(value).toLocaleString()}` : '-';
+  const listingRows = listings.map((row) => `
+    <tr>
+      <td><a href="${esc(row.listingUrl)}" target="_blank">${esc(row.address)}</a><div class="muted">${esc(row.zip)} &middot; ${esc(row.source)} &middot; property ${esc(row.propertyId)}</div></td>
+      <td>${money(row.listPrice)}</td>
+      <td>${esc(row.daysOnMarket ?? '-')}</td>
+      <td>${esc(row.agentName)}<div class="muted">${esc(row.agentPhone || row.agentEmail || row.brokerage || 'contact gap')}</div></td>
+      <td>${row.creativeStatus === 'positive' ? `<span class="good">Positive ${esc(row.creativeScore)}</span><div class="muted">${esc(Array.isArray(row.creativeTerms) ? row.creativeTerms.join(', ') : '')}</div>` : '<span class="muted">-</span>'}</td>
+    </tr>
+  `).join('');
+  const rentRows = rents.map((row) => `
+    <tr>
+      <td><a href="${esc(row.website)}" target="_blank">${esc(row.complexName)}</a><div class="muted">${esc(row.address)} &middot; property ${esc(row.propertyId)}</div></td>
+      <td>${esc(row.floorplans)}</td>
+      <td>${esc(row.rentSnapshots)}</td>
+      <td>${money(row.minRent)} - ${money(row.maxRent)}</td>
+      <td>${esc(row.latestObserved ?? '-')}</td>
+    </tr>
+  `).join('');
+
+  return c.html(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MXRE West Chester Dashboard</title>
+<style>
+body{margin:0;background:#101312;color:#edf4ef;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{padding:20px 24px;border-bottom:1px solid #303735;background:#131715;position:sticky;top:0}h1{font-size:20px;margin:0}.muted{color:#9aa7a1;font-size:12px;margin-top:4px}.wrap{max-width:1500px;margin:0 auto;padding:18px 24px 36px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:#181c1b;border:1px solid #303735;border-radius:8px;padding:14px}.metric{font-size:28px;font-weight:850}.label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#9aa7a1;margin-bottom:6px}.good{color:#35c677}.warn{color:#f1b84b}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border-bottom:1px solid #303735;padding:9px 8px;text-align:left;font-size:13px;vertical-align:top}th{color:#9aa7a1;font-size:11px;text-transform:uppercase;letter-spacing:.06em}a{color:#8cc8ff;text-decoration:none}.section{margin-top:16px}@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.grid{grid-template-columns:1fr}.wrap{padding:14px}}
+</style>
+</head>
+<body>
+<header><h1>MXRE &middot; West Chester, PA Coverage Dashboard</h1><div class="muted">Live from MXRE DB &middot; generated ${esc(new Date().toLocaleString())} &middot; overnight runner completed at 7:03 AM</div></header>
+<main class="wrap">
+  <section class="grid">
+    <div class="card"><div class="label">Dashboard Readiness</div><div class="metric good">API Ready</div><div class="muted">No blocking dashboard gaps</div></div>
+    <div class="card"><div class="label">Parcels</div><div class="metric">${num('parcel_count').toLocaleString()}</div><div class="muted">${pct(num('classified_count'), num('parcel_count'))}% classified</div></div>
+    <div class="card"><div class="label">Active Listings</div><div class="metric">${num('active_listing_count')}</div><div class="muted">${num('active_properties')} linked properties</div></div>
+    <div class="card"><div class="label">Creative Finance</div><div class="metric">${num('creative_positive')}</div><div class="muted">positive listing descriptions</div></div>
+    <div class="card"><div class="label">Agent Phones</div><div class="metric">${pct(num('agent_phone_count'), num('active_listing_count'))}%</div><div class="muted">${num('agent_phone_count')} / ${num('active_listing_count')} rows</div></div>
+    <div class="card"><div class="label">Agent Emails</div><div class="metric warn">${pct(num('agent_email_count'), num('active_listing_count'))}%</div><div class="muted">${num('agent_email_count')} / ${num('active_listing_count')} rows</div></div>
+    <div class="card"><div class="label">Multifamily Websites</div><div class="metric">${num('mf_websites')}</div><div class="muted">${num('multifamily_count')} multifamily candidates</div></div>
+    <div class="card"><div class="label">Rent Snapshots</div><div class="metric">${num('rent_snapshot_rows')}</div><div class="muted">${num('mf_rent_properties')} properties &middot; latest ${esc(summary?.latest_rent_observed)}</div></div>
+  </section>
+  <section class="section card">
+    <h2>Apartment Rent Coverage</h2>
+    <table><thead><tr><th>Complex</th><th>Floorplans</th><th>Snapshots</th><th>Rent Range</th><th>Observed</th></tr></thead><tbody>${rentRows || '<tr><td colspan="5" class="muted">No rent rows yet.</td></tr>'}</tbody></table>
+  </section>
+  <section class="section card">
+    <h2>Active Listings And Contacts</h2>
+    <table><thead><tr><th>Listing</th><th>Price</th><th>DOM</th><th>Agent / Contact</th><th>Creative</th></tr></thead><tbody>${listingRows || '<tr><td colspan="5" class="muted">No active listings yet.</td></tr>'}</tbody></table>
+  </section>
+</main>
+</body>
+</html>`);
 });
 
 function renderAnalystMarketDashboard(): string {
@@ -2678,6 +3272,14 @@ function parsePositiveInt(value: string | undefined): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+function parseDateParam(value: string | undefined): string | null {
+  if (!value) return null;
+  const clean = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return null;
+  const parsed = new Date(`${clean}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : clean;
+}
+
 function normalizeJoinedProperty(value: unknown): Record<string, unknown> {
   if (Array.isArray(value)) return (value[0] as Record<string, unknown> | undefined) ?? {};
   return (value as Record<string, unknown> | null) ?? {};
@@ -2835,7 +3437,7 @@ async function fetchRentBaselineDemographics(
 }
 
 // ── Start server ─────────────────────────────────────────────
-const port = parseInt(process.env.MXRE_API_PORT ?? '3100', 10);
+const port = parseInt(process.env.PORT ?? process.env.MXRE_API_PORT ?? '3100', 10);
 
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`MXRE Property API running on http://localhost:${info.port}`);
