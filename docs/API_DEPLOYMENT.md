@@ -93,6 +93,19 @@ curl -H "x-api-key: $MXRE_API_KEY" \
 
 Use the Worker gateway as the public API front door. The Worker validates Buy Box Club's MXRE client key, forwards to the private Node API with the upstream key, and adds short caching for protected GET endpoints.
 
+## Temporary Local Origin
+
+Until the Node API is on Render/Railway/VPS, the Worker can be pointed at a local Cloudflare Tunnel from this machine:
+
+```powershell
+$env:MXRE_BUY_BOX_CLUB_KEY='<buy-box-club-facing-key>'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start-api-gateway-local.ps1
+```
+
+This starts the production Node API locally, opens a fresh Cloudflare quick tunnel, updates the Worker origin secret, deploys the Worker, and smoke-tests the creative finance endpoint.
+
+This is not the permanent production origin. It depends on this computer staying awake and connected.
+
 ```bash
 npx wrangler login
 npx wrangler secret put MXRE_ORIGIN_URL
