@@ -1,0 +1,12 @@
+name = "mxre-api-gateway"
+main = "src/cloudflare/mxre-api-gateway.ts"
+compatibility_date = "2026-05-01"
+workers_dev = true
+
+[vars]
+CACHE_SECONDS = "60"
+
+# Set these as Cloudflare Worker secrets:
+# npx wrangler secret put MXRE_ORIGIN_URL
+# npx wrangler secret put MXRE_UPSTREAM_API_KEY
+# npx wrangler secret put MXRE_CLIENT_API_KEYS

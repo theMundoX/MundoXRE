@@ -8,6 +8,13 @@ import type { PropertySummary } from './types.js';
 const app = new Hono();
 const db = getDb();
 
+type ApiClient = {
+  id: string;
+  key: string;
+  environment?: string;
+  monthlyQuota?: number;
+};
+
 const INDIANAPOLIS_CORE_COUNTY_IDS = [797583];
 const INDIANAPOLIS_METRO_COUNTY_IDS = [
   797471, // Boone
@@ -72,6 +79,40 @@ function resolveMarketConfig(value: string) {
   return Object.values(MARKET_CONFIGS).find((market) => market.aliases.includes(key)) ?? null;
 }
 
+function loadApiClients(): ApiClient[] {
+  const rawJson = process.env.MXRE_CLIENT_API_KEYS;
+  if (rawJson) {
+    try {
+      const parsed = JSON.parse(rawJson) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((client) => client as Partial<ApiClient>)
+          .filter((client): client is ApiClient => Boolean(client.id && client.key));
+      }
+    } catch (error) {
+      console.error('[MXRE API] Failed to parse MXRE_CLIENT_API_KEYS:', error);
+    }
+  }
+
+  const legacyKey = process.env.MXRE_API_KEY;
+  return legacyKey ? [{ id: 'legacy', key: legacyKey, environment: process.env.NODE_ENV }] : [];
+}
+
+function authenticateApiClient(apiKey: string | undefined, clientId: string | undefined): ApiClient | null {
+  if (!apiKey) return null;
+  const clients = loadApiClients();
+  const matches = clients.filter((client) => client.key === apiKey);
+  if (matches.length === 0) return null;
+  if (clientId) {
+    return matches.find((client) => client.id === clientId) ?? null;
+  }
+  return matches[0] ?? null;
+}
+
+function getBrowserApiKey(): string {
+  return process.env.MXRE_API_KEY ?? loadApiClients()[0]?.key ?? '';
+}
+
 function getIndianapolisScope(scope: string | undefined): {
   key: 'city' | 'core' | 'metro';
   label: string;
@@ -102,6 +143,7 @@ function getIndianapolisScope(scope: string | undefined): {
 
 // ── Auth middleware (skip for /health) ────────────────────────
 app.use('*', async (c, next) => {
+  const startedAt = Date.now();
   if (
     c.req.path === '/health' ||
     c.req.path === '/' ||
@@ -111,16 +153,32 @@ app.use('*', async (c, next) => {
   ) return next();
 
   const apiKey = c.req.header('x-api-key');
-  const expected = process.env.MXRE_API_KEY;
+  const requestedClientId = c.req.header('x-client-id');
+  const client = authenticateApiClient(apiKey, requestedClientId);
 
-  if (!expected) {
-    return c.json({ error: 'Server misconfigured: MXRE_API_KEY not set' }, 500);
+  if (loadApiClients().length === 0) {
+    return c.json({ error: 'Server misconfigured: no API clients configured' }, 500);
   }
-  if (!apiKey || apiKey !== expected) {
+  if (!client) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  return next();
+  c.header('x-mxre-client-id', client.id);
+  await next();
+
+  const requestId = c.req.header('x-request-id') ?? crypto.randomUUID();
+  c.header('x-request-id', requestId);
+  console.log(JSON.stringify({
+    event: 'mxre_api_request',
+    request_id: requestId,
+    client_id: client.id,
+    environment: client.environment ?? null,
+    method: c.req.method,
+    path: c.req.path,
+    status: c.res.status,
+    latency_ms: Date.now() - startedAt,
+    user_agent: c.req.header('user-agent') ?? null,
+  }));
 });
 
 // ── Landing page (no auth) ────────────────────────────────────
@@ -2320,15 +2378,16 @@ app.get('/dashboard', async (c) => {
 </div>
 
 <script>
-function fmt(n) { return n?.toLocaleString('en-US') ?? '—'; }
+function fmt(n) { return n?.toLocaleString('en-US') ?? '-'; }
+const apiKey = ${JSON.stringify(getBrowserApiKey())};
 
 async function load() {
   document.getElementById('last-updated').textContent = 'Loading...';
   try {
     const [cov, ing, mf] = await Promise.all([
-      fetch('/v1/coverage', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
-      fetch('/v1/ingest-status', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
-      fetch('/v1/markets/indianapolis/multifamily/on-market?limit=25', { headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' } }).then(r => r.json()),
+      fetch('/v1/coverage', { headers: { 'x-api-key': apiKey } }).then(r => r.json()),
+      fetch('/v1/ingest-status', { headers: { 'x-api-key': apiKey } }).then(r => r.json()),
+      fetch('/v1/markets/indianapolis/multifamily/on-market?limit=25', { headers: { 'x-api-key': apiKey } }).then(r => r.json()),
     ]);
 
     const allStates = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
@@ -2447,7 +2506,7 @@ async function loadState(state) {
 
   try {
     const data = await fetch('/v1/coverage/state/' + encodeURIComponent(state), {
-      headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' },
+      headers: { 'x-api-key': apiKey },
     }).then(r => r.json());
     if (data.error) throw new Error(data.detail || data.error);
 
@@ -2494,7 +2553,7 @@ async function lookupAddress() {
   result.textContent = 'Looking up property...';
   try {
     const resp = await fetch('/v1/property?' + params.toString(), {
-      headers: { 'x-api-key': '${process.env.MXRE_API_KEY ?? ''}' },
+      headers: { 'x-api-key': apiKey },
     });
     const data = await resp.json();
     result.textContent = JSON.stringify(data, null, 2);
@@ -2519,7 +2578,7 @@ app.get('/preview/market-dashboard', async (c) => {
 });
 
 function renderMarketSnapshotDashboard(requestedMarket: string): string {
-  const apiKey = process.env.MXRE_API_KEY ?? '';
+  const apiKey = getBrowserApiKey();
   const market = resolveMarketConfig(requestedMarket)?.key ?? 'columbus';
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2747,7 +2806,7 @@ header{padding:20px 24px;border-bottom:1px solid #303735;background:#131715;posi
 });
 
 function renderAnalystMarketDashboard(): string {
-  const apiKey = process.env.MXRE_API_KEY ?? '';
+  const apiKey = getBrowserApiKey();
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3037,7 +3096,7 @@ app.get('/preview/market-dashboard-old', async (c) => {
   </div>
 </main>
 <script>
-const apiKey = '${process.env.MXRE_API_KEY ?? ''}';
+const apiKey = ${JSON.stringify(getBrowserApiKey())};
 const fmt = (n) => n == null ? '-' : Number(n).toLocaleString('en-US');
 const money = (n) => n == null ? '-' : '$' + fmt(n);
 const compactMoney = (n) => {
@@ -3444,3 +3503,5 @@ serve({ fetch: app.fetch, port }, (info) => {
 });
 
 export { app };
+
+

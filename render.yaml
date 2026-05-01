@@ -14,6 +14,8 @@ services:
         value: 22
       - key: MXRE_API_KEY
         sync: false
+      - key: MXRE_CLIENT_API_KEYS
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
