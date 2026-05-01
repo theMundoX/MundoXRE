@@ -145,6 +145,42 @@ Recommended Cloudflare rules:
 - Let the Worker set short private cache headers for `/v1/*`
 - Cache bypass for `/health`
 
+## DDoS And Brute Force Controls
+
+Cloudflare absorbs network-layer DDoS before traffic reaches MXRE. The Worker and Node API also enforce application-layer limits:
+
+```text
+Worker pre-auth IP limit: 60 requests/minute
+Worker failed-auth IP limit: 10 failed auth attempts/10 minutes
+Worker client+IP limit: 600 authenticated requests/minute
+Node pre-auth IP limit: 120 requests/minute
+Node failed-auth IP limit: 10 failed auth attempts/10 minutes
+Node client+IP limit: 1200 authenticated requests/minute
+```
+
+429 responses include:
+
+```text
+retry-after: <seconds>
+```
+
+Successful protected responses include:
+
+```text
+x-mxre-client-id
+x-request-id
+x-ratelimit-remaining
+```
+
+For Cloudflare dashboard hardening, add a WAF custom rule:
+
+```text
+if URI Path starts_with "/v1/" and http.request.headers["x-api-key"][0] eq ""
+then Block
+```
+
+Then add a Cloudflare Rate Limiting rule for `/v1/*` above normal expected Buy Box Club traffic.
+
 ## Current API Report Needed By Buy Box Club
 
 Creative finance report:

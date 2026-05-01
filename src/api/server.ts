@@ -15,6 +15,13 @@ type ApiClient = {
   monthlyQuota?: number;
 };
 
+type RateBucket = {
+  resetAt: number;
+  count: number;
+};
+
+const nodeRateBuckets = new Map<string, RateBucket>();
+
 const INDIANAPOLIS_CORE_COUNTY_IDS = [797583];
 const INDIANAPOLIS_METRO_COUNTY_IDS = [
   797471, // Boone
@@ -110,7 +117,38 @@ function authenticateApiClient(apiKey: string | undefined, clientId: string | un
 }
 
 function getBrowserApiKey(): string {
+  if (process.env.NODE_ENV === 'production' && process.env.MXRE_ENABLE_PREVIEWS !== 'true') return '';
   return process.env.MXRE_API_KEY ?? loadApiClients()[0]?.key ?? '';
+}
+
+function previewsEnabled(): boolean {
+  return process.env.NODE_ENV !== 'production' || process.env.MXRE_ENABLE_PREVIEWS === 'true';
+}
+
+function rateLimit(key: string, limit: number, windowMs: number): { allowed: boolean; retryAfter: number; remaining: number } {
+  const now = Date.now();
+  const existing = nodeRateBuckets.get(key);
+  const bucket = !existing || existing.resetAt <= now ? { resetAt: now + windowMs, count: 0 } : existing;
+  bucket.count += 1;
+  nodeRateBuckets.set(key, bucket);
+
+  if (nodeRateBuckets.size > 10000) {
+    for (const [bucketKey, value] of nodeRateBuckets.entries()) {
+      if (value.resetAt <= now) nodeRateBuckets.delete(bucketKey);
+    }
+  }
+
+  return {
+    allowed: bucket.count <= limit,
+    retryAfter: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+    remaining: Math.max(0, limit - bucket.count),
+  };
+}
+
+function getRequestIp(c: Context): string {
+  return c.req.header('cf-connecting-ip')
+    ?? c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? 'unknown';
 }
 
 function getIndianapolisScope(scope: string | undefined): {
@@ -147,23 +185,44 @@ app.use('*', async (c, next) => {
   if (
     c.req.path === '/health' ||
     c.req.path === '/' ||
-    c.req.path === '/dashboard' ||
-    c.req.path === '/preview/market-dashboard' ||
-    c.req.path === '/preview/west-chester-dashboard'
+    (previewsEnabled() && (
+      c.req.path === '/dashboard' ||
+      c.req.path === '/preview/market-dashboard' ||
+      c.req.path === '/preview/west-chester-dashboard'
+    ))
   ) return next();
 
   const apiKey = c.req.header('x-api-key');
   const requestedClientId = c.req.header('x-client-id');
   const client = authenticateApiClient(apiKey, requestedClientId);
+  const ip = getRequestIp(c);
+
+  const preAuthLimit = rateLimit(`preauth:${ip}`, 120, 60_000);
+  if (!preAuthLimit.allowed) {
+    c.header('retry-after', String(preAuthLimit.retryAfter));
+    return c.json({ error: 'Rate limit exceeded', retry_after_seconds: preAuthLimit.retryAfter }, 429);
+  }
 
   if (loadApiClients().length === 0) {
     return c.json({ error: 'Server misconfigured: no API clients configured' }, 500);
   }
   if (!client) {
+    const failedAuthLimit = rateLimit(`authfail:${ip}`, 10, 10 * 60_000);
+    if (!failedAuthLimit.allowed) {
+      c.header('retry-after', String(failedAuthLimit.retryAfter));
+      return c.json({ error: 'Rate limit exceeded', retry_after_seconds: failedAuthLimit.retryAfter }, 429);
+    }
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
+  const clientLimit = rateLimit(`client:${client.id}:${ip}`, 1200, 60_000);
+  if (!clientLimit.allowed) {
+    c.header('retry-after', String(clientLimit.retryAfter));
+    return c.json({ error: 'Rate limit exceeded', retry_after_seconds: clientLimit.retryAfter }, 429);
+  }
+
   c.header('x-mxre-client-id', client.id);
+  c.header('x-ratelimit-remaining', String(clientLimit.remaining));
   await next();
 
   const requestId = c.req.header('x-request-id') ?? crypto.randomUUID();

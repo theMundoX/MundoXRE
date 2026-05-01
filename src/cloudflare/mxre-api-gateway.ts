@@ -15,6 +15,13 @@ type ApiClient = {
   monthlyQuota?: number;
 };
 
+type RateBucket = {
+  resetAt: number;
+  count: number;
+};
+
+const rateBuckets = new Map<string, RateBucket>();
+
 function json(body: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -23,6 +30,44 @@ function json(body: unknown, status = 200, headers: HeadersInit = {}) {
       ...headers,
     },
   });
+}
+
+function securityHeaders(): HeadersInit {
+  return {
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'no-referrer',
+    'x-frame-options': 'DENY',
+    'permissions-policy': 'geolocation=(), microphone=(), camera=()',
+  };
+}
+
+function rateLimit(key: string, limit: number, windowMs: number): { allowed: boolean; retryAfter: number; remaining: number } {
+  const now = Date.now();
+  const existing = rateBuckets.get(key);
+  const bucket = !existing || existing.resetAt <= now
+    ? { resetAt: now + windowMs, count: 0 }
+    : existing;
+
+  bucket.count += 1;
+  rateBuckets.set(key, bucket);
+
+  if (rateBuckets.size > 10000) {
+    for (const [bucketKey, value] of rateBuckets.entries()) {
+      if (value.resetAt <= now) rateBuckets.delete(bucketKey);
+    }
+  }
+
+  return {
+    allowed: bucket.count <= limit,
+    retryAfter: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+    remaining: Math.max(0, limit - bucket.count),
+  };
+}
+
+function getIp(request: Request): string {
+  return request.headers.get('cf-connecting-ip')
+    ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? 'unknown';
 }
 
 function loadClients(env: Env): ApiClient[] {
@@ -51,6 +96,14 @@ function authenticate(request: Request, env: Env): ApiClient | null {
   if (matches.length === 0) return null;
   if (clientId) return matches.find((client) => client.id === clientId) ?? null;
   return matches[0] ?? null;
+}
+
+function rateLimitResponse(retryAfter: number) {
+  return json(
+    { error: 'Rate limit exceeded', retry_after_seconds: retryAfter },
+    429,
+    { ...securityHeaders(), 'retry-after': String(retryAfter) },
+  );
 }
 
 function shouldCache(request: Request, url: URL): boolean {
@@ -323,36 +376,55 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/health') {
-      return json({ status: 'ok', edge: 'cloudflare', timestamp: new Date().toISOString() });
+      return json({ status: 'ok', edge: 'cloudflare', timestamp: new Date().toISOString() }, 200, securityHeaders());
     }
 
     if (!url.pathname.startsWith('/v1/')) {
-      return json({ error: 'Not found' }, 404);
+      return json({ error: 'Not found' }, 404, securityHeaders());
     }
+
+    const ip = getIp(request);
+    const preAuthLimit = rateLimit(`preauth:${ip}`, 60, 60_000);
+    if (!preAuthLimit.allowed) return rateLimitResponse(preAuthLimit.retryAfter);
 
     const client = authenticate(request, env);
     if (!client) {
-      return json({ error: 'Unauthorized' }, 401);
+      const failedAuthLimit = rateLimit(`authfail:${ip}`, 10, 10 * 60_000);
+      if (!failedAuthLimit.allowed) return rateLimitResponse(failedAuthLimit.retryAfter);
+      return json({ error: 'Unauthorized' }, 401, securityHeaders());
     }
 
+    const clientLimit = rateLimit(`client:${client.id}:${ip}`, 600, 60_000);
+    if (!clientLimit.allowed) return rateLimitResponse(clientLimit.retryAfter);
+
     if (/^\/v1\/markets\/[^/]+\/reports\/creative-finance$/.test(url.pathname)) {
+      if (env.SUPABASE_URL?.startsWith('https://')) {
       try {
         const response = await creativeFinanceReport(request, env);
         response.headers.set('x-mxre-client-id', client.id);
         response.headers.set('x-request-id', request.headers.get('x-request-id') ?? crypto.randomUUID());
+        for (const [name, value] of Object.entries(securityHeaders())) response.headers.set(name, value);
+        response.headers.set('x-ratelimit-remaining', String(clientLimit.remaining));
         return response;
       } catch (error) {
         if (env.MXRE_ORIGIN_URL && env.MXRE_UPSTREAM_API_KEY) {
-          return proxyToOrigin(request, env, client);
+          const response = await proxyToOrigin(request, env, client);
+          for (const [name, value] of Object.entries(securityHeaders())) response.headers.set(name, value);
+          response.headers.set('x-ratelimit-remaining', String(clientLimit.remaining));
+          return response;
         }
-        return json({ error: 'Failed to build creative finance report', detail: error instanceof Error ? error.message : String(error) }, 500);
+        return json({ error: 'Failed to build creative finance report', detail: error instanceof Error ? error.message : String(error) }, 500, securityHeaders());
+      }
       }
     }
 
     if (!env.MXRE_ORIGIN_URL || !env.MXRE_UPSTREAM_API_KEY) {
-      return json({ error: 'Gateway origin not configured for this endpoint' }, 503);
+      return json({ error: 'Gateway origin not configured for this endpoint' }, 503, securityHeaders());
     }
 
-    return proxyToOrigin(request, env, client);
+    const response = await proxyToOrigin(request, env, client);
+    for (const [name, value] of Object.entries(securityHeaders())) response.headers.set(name, value);
+    response.headers.set('x-ratelimit-remaining', String(clientLimit.remaining));
+    return response;
   },
 };
