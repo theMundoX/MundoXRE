@@ -12,6 +12,7 @@ Thumbs.db
 *.dmp
 worker.err
 logs/
+.mxre-locks/
 
 # Large data files — all source data lives in Supabase, not git
 data/

@@ -7,6 +7,8 @@ const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit=
 const DELAY_MS = Math.max(750, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? "2500", 10));
 const MAX_SEARCH_QUERIES = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-queries="))?.split("=")[1] ?? "8", 10));
 const MAX_SEARCH_LINKS = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-links="))?.split("=")[1] ?? "12", 10));
+const FETCH_TIMEOUT_MS = Math.max(2_500, parseInt(process.argv.find(a => a.startsWith("--fetch-timeout-ms="))?.split("=")[1] ?? "8000", 10));
+const ROW_TIMEOUT_MS = Math.max(5_000, parseInt(process.argv.find(a => a.startsWith("--row-timeout-ms="))?.split("=")[1] ?? "45000", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
 const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
@@ -40,6 +42,8 @@ const stats = {
   pages_with_email: 0,
   rejected_identity: 0,
   no_direct_brokerage_hint: 0,
+  row_timeouts: 0,
+  row_errors: 0,
 };
 const brokerageSamples = new Set<string>();
 
@@ -61,6 +65,22 @@ function sql(value: unknown): string {
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 function cleanText(value: string): string {
@@ -343,7 +363,7 @@ async function fetchText(url: string): Promise<string | null> {
         "accept": "text/html,application/xhtml+xml,text/plain",
         "accept-language": "en-US,en;q=0.9",
       },
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!response.ok) return null;
     return response.text();
@@ -572,6 +592,7 @@ async function main() {
   console.log("MXRE - Public agent email enrichment");
   console.log(`Limit: ${LIMIT}; delay ${DELAY_MS}ms; dry run ${DRY_RUN}`);
   console.log(`Search caps: ${MAX_SEARCH_QUERIES} queries, ${MAX_SEARCH_LINKS} links`);
+  console.log(`Timeouts: fetch ${FETCH_TIMEOUT_MS}ms, row ${ROW_TIMEOUT_MS}ms`);
   if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
   if (BROKERAGE_PATTERN) console.log(`Brokerage filter: ${BROKERAGE_PATTERN}`);
 
@@ -601,14 +622,26 @@ async function main() {
 
   for (const row of rows) {
     scanned++;
+    const label = row.listing_agent_name || [row.listing_agent_first_name, row.listing_agent_last_name].filter(Boolean).join(" ") || `listing ${row.id}`;
+    const started = Date.now();
+    console.log(`  [${scanned}/${rows.length}] checking ${label} (${row.listing_brokerage ?? "unknown brokerage"})`);
     await sleep(DELAY_MS);
-    const candidate = await findPublicEmail(row);
+    let candidate: Candidate | null = null;
+    try {
+      candidate = await withTimeout(findPublicEmail(row), ROW_TIMEOUT_MS, `row ${row.id}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("timed out")) stats.row_timeouts++;
+      else stats.row_errors++;
+      console.log(`    skipped: ${message}`);
+      continue;
+    }
     if (!candidate) {
-      if (scanned % 10 === 0) console.log(`  scanned ${scanned}/${rows.length}, found ${found}`);
+      console.log(`    no verified email (${Date.now() - started}ms)`);
       continue;
     }
     found++;
-    console.log(`  email found: ${row.listing_agent_name || row.listing_agent_first_name} -> ${candidate.email} (${candidate.confidence})`);
+    console.log(`    email found: ${label} -> ${candidate.email} (${candidate.confidence}, ${Date.now() - started}ms)`);
 
     if (!DRY_RUN) {
       updated += await saveVerifiedEmail(row, candidate);
