@@ -116,6 +116,27 @@ function authenticateApiClient(apiKey: string | undefined, clientId: string | un
   return matches[0] ?? null;
 }
 
+function getApiCredentials(c: Context): { apiKey?: string; clientId?: string } {
+  const headerApiKey = c.req.header('x-api-key');
+  const headerClientId = c.req.header('x-client-id');
+  if (headerApiKey) return { apiKey: headerApiKey, clientId: headerClientId };
+
+  const auth = c.req.header('authorization');
+  if (!auth?.toLowerCase().startsWith('basic ')) return {};
+
+  try {
+    const decoded = Buffer.from(auth.slice(6).trim(), 'base64').toString('utf8');
+    const separator = decoded.indexOf(':');
+    if (separator < 0) return {};
+    return {
+      clientId: decoded.slice(0, separator),
+      apiKey: decoded.slice(separator + 1),
+    };
+  } catch {
+    return {};
+  }
+}
+
 function getBrowserApiKey(): string {
   if (process.env.NODE_ENV === 'production') return '';
   return process.env.MXRE_API_KEY ?? loadApiClients()[0]?.key ?? '';
@@ -192,8 +213,7 @@ app.use('*', async (c, next) => {
     ))
   ) return next();
 
-  const apiKey = c.req.header('x-api-key');
-  const requestedClientId = c.req.header('x-client-id');
+  const { apiKey, clientId: requestedClientId } = getApiCredentials(c);
   const client = authenticateApiClient(apiKey, requestedClientId);
   const ip = getRequestIp(c);
 
@@ -211,6 +231,9 @@ app.use('*', async (c, next) => {
     if (!failedAuthLimit.allowed) {
       c.header('retry-after', String(failedAuthLimit.retryAfter));
       return c.json({ error: 'Rate limit exceeded', retry_after_seconds: failedAuthLimit.retryAfter }, 429);
+    }
+    if (c.req.path === '/docs' || c.req.path === '/v1/docs/openapi.json') {
+      c.header('www-authenticate', 'Basic realm="MXRE Private API Docs", charset="UTF-8"');
     }
     return c.json({ error: 'Unauthorized' }, 401);
   }
@@ -263,6 +286,19 @@ app.get('/health', (c) => {
 });
 
 // ── Property lookup by address query params ──────────────────
+// Private API docs. This route is intentionally protected by the normal API-key middleware.
+app.get('/docs', (c) => {
+  const clientId = c.req.header('x-mxre-external-client-id')
+    ?? c.req.header('x-client-id')
+    ?? c.res.headers.get('x-mxre-client-id')
+    ?? 'authenticated_client';
+  return c.html(renderPrivateDocsHtml(clientId));
+});
+
+app.get('/v1/docs/openapi.json', (c) => {
+  return c.json(buildOpenApiSpec());
+});
+
 app.get('/v1/property', async (c) => {
   const address = c.req.query('address');
   const city = c.req.query('city');
@@ -3435,6 +3471,301 @@ function percentile(values: number[], p: number): number | null {
   if (sorted.length === 0) return null;
   const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)));
   return Math.round(sorted[index]);
+}
+
+function renderPrivateDocsHtml(clientId: string): string {
+  const escapedClientId = escapeHtml(clientId);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MXRE Private API Docs</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1020;--panel:#111827;--line:#263244;--text:#e5edf8;--muted:#93a4ba;--accent:#3dd6b3;--blue:#60a5fa;--warn:#fbbf24}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+    header{position:sticky;top:0;background:rgba(11,16,32,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:18px 28px;z-index:2}
+    main{max-width:1180px;margin:0 auto;padding:28px}.eyebrow{color:var(--accent);font-weight:700;text-transform:uppercase;font-size:12px;letter-spacing:.08em}
+    h1{margin:4px 0 6px;font-size:28px}h2{margin:28px 0 10px;font-size:20px}h3{margin:18px 0 8px;font-size:15px;color:#cbd5e1}
+    p{color:var(--muted);margin:6px 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px}
+    code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}code{background:#1f2937;border:1px solid #334155;border-radius:5px;padding:2px 5px}
+    pre{background:#050814;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;color:#dbeafe}
+    input,button{font:inherit}input{width:100%;background:#050814;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px}label{display:block;color:#cbd5e1;font-weight:650;margin-bottom:5px}
+    button{background:var(--accent);color:#032018;border:0;border-radius:7px;padding:10px 14px;font-weight:800;cursor:pointer}button.secondary{background:#1f2937;color:var(--text);border:1px solid var(--line)}
+    .form-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px}.actions{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+    .result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.mini{background:#0b1221;border:1px solid var(--line);border-radius:7px;padding:10px}.mini b{display:block;font-size:12px;color:var(--muted)}.mini span{font-size:18px;font-weight:800}
+    table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}th{color:#cbd5e1;background:#172033}
+    .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:#cbd5e1;background:#121b2d}.good{color:var(--accent)}.warn{color:var(--warn)}
+    a{color:var(--blue)}ul{padding-left:20px}.small{font-size:12px;color:var(--muted)}@media(max-width:900px){.grid,.form-grid,.result-grid{grid-template-columns:1fr}main{padding:18px}header{padding:16px}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Private Docs</div>
+  <h1>MXRE API for Buy Box Club</h1>
+  <p>Authenticated as <span class="pill">${escapedClientId}</span>. Base URL: <code>https://api.mxre.mundox.ai</code></p>
+</header>
+<main>
+  <section class="grid">
+    <div class="card">
+      <h2>Authentication</h2>
+      <p>Use these headers from Buy Box Club backend functions. Never expose the MXRE key in the BBC frontend.</p>
+      <pre>GET /v1/property?... HTTP/1.1
+x-client-id: buy_box_club_sandbox
+x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
+      <p class="small">For browser access to this docs page, use HTTP Basic Auth with username = client id and password = API key.</p>
+    </div>
+    <div class="card">
+      <h2>Integration Pattern</h2>
+      <p>BBC user key validates inside Buy Box Club. BBC backend then calls MXRE with the MXRE client id and key. Keep RealEstateAPI as fallback while MXRE coverage expands.</p>
+      <ul>
+        <li>Primary: MXRE exact property lookup.</li>
+        <li>Fallback: RealEstateAPI when MXRE returns 404, timeout, or low required-field coverage.</li>
+        <li>Diagnostics: save <code>dataSource = "mxre"</code> or <code>"realestateapi_fallback"</code>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Try It Now</h2>
+    <p>Test the exact address endpoint from this page. If you opened docs with Basic Auth, leave API key blank and the browser should reuse your authenticated session. If that fails, paste the sandbox key below.</p>
+    <div class="form-grid">
+      <div><label for="try-address">Address</label><input id="try-address" value="429 N Tibbs Ave"></div>
+      <div><label for="try-city">City</label><input id="try-city" value="Indianapolis"></div>
+      <div><label for="try-state">State</label><input id="try-state" value="IN" maxlength="2"></div>
+      <div><label for="try-zip">ZIP</label><input id="try-zip" value="46222"></div>
+    </div>
+    <div class="form-grid" style="grid-template-columns:1fr 2fr;margin-top:12px">
+      <div><label for="try-client">Client ID</label><input id="try-client" value="${escapedClientId}"></div>
+      <div><label for="try-key">API Key, optional if already logged in</label><input id="try-key" type="password" autocomplete="off" placeholder="Paste sandbox key only if needed"></div>
+    </div>
+    <div class="actions">
+      <button type="button" onclick="tryPropertyLookup()">Run Property Lookup</button>
+      <button type="button" class="secondary" onclick="copyCurl()">Copy curl</button>
+      <span id="try-status" class="small">Ready.</span>
+    </div>
+    <div id="try-summary" class="result-grid" style="display:none"></div>
+    <pre id="try-output">Results will appear here.</pre>
+  </section>
+
+  <h2>Property Detail Endpoint</h2>
+  <p>This is the main endpoint for underwriting replacement.</p>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Required</th><th>Recommended</th></tr>
+    <tr><td><code>GET</code></td><td><code>/v1/property</code></td><td><code>address</code>, <code>state</code></td><td><code>city</code>, <code>zip</code></td></tr>
+    <tr><td><code>GET</code></td><td><code>/v1/property/{id}</code></td><td><code>id</code></td><td>Use after address lookup returns an MXRE id.</td></tr>
+  </table>
+  <h3>Example</h3>
+  <pre>curl "https://api.mxre.mundox.ai/v1/property?address=429%20N%20Tibbs%20Ave&amp;city=Indianapolis&amp;state=IN&amp;zip=46222" \
+  -H "x-client-id: buy_box_club_sandbox" \
+  -H "x-api-key: YOUR_SANDBOX_KEY"</pre>
+  <h3>Response Shape</h3>
+  <pre>{
+  "id": 50913586,
+  "property": { "address": "...", "assetType": "...", "unitCount": 2, "bedrooms": 2, "livingSqft": 1276 },
+  "ownership": { "owner1": {}, "absenteeOwner": true, "corporateOwned": true },
+  "valuation": { "marketValue": 174000, "assessedValue": 174000, "annualTax": 3618 },
+  "liens": { "summary": {}, "current": [], "history": [] },
+  "sales": [],
+  "rent": { "currentRent": 2440, "rentSource": "estimated_fmr", "rentPerDoor": 1220, "totalMonthlyRent": 2440 },
+  "market": { "onMarket": false, "listPrice": null, "agent": null, "history": [] },
+  "publicSignals": [],
+  "signals": {},
+  "meta": { "completeness": 76, "dataSources": [], "dataQuality": [] }
+}</pre>
+
+  <h2>Market and Report Endpoints</h2>
+  <table>
+    <tr><th>Endpoint</th><th>Purpose</th><th>Key Query Params</th></tr>
+    <tr><td><code>GET /v1/markets/{market}/readiness</code></td><td>Market readiness and coverage status.</td><td><code>market=indianapolis</code>, <code>columbus</code>, <code>west-chester</code></td></tr>
+    <tr><td><code>GET /v1/markets/{market}/completion</code></td><td>Completion metrics for parcels, underwriting fields, rents, listings.</td><td><code>scope=city|core|metro</code></td></tr>
+    <tr><td><code>GET /v1/markets/{market}/opportunities</code></td><td>Filterable active listing/opportunity table.</td><td><code>asset</code>, <code>zip</code>, <code>min_price</code>, <code>max_price</code>, <code>creative=positive</code>, <code>page</code>, <code>limit</code></td></tr>
+    <tr><td><code>GET /v1/markets/{market}/reports/creative-finance</code></td><td>Creative finance listings detected from public remarks.</td><td><code>limit</code>, <code>offset</code></td></tr>
+    <tr><td><code>GET /v1/markets/{market}/price-changes</code></td><td>Recent listing price-change events.</td><td><code>limit</code>, <code>offset</code></td></tr>
+    <tr><td><code>GET /v1/markets/{market}/pre-foreclosures</code></td><td>Public pre-foreclosure signals where available.</td><td><code>status</code>, <code>limit</code>, <code>offset</code></td></tr>
+    <tr><td><code>GET /v1/coverage</code></td><td>National/state coverage overview.</td><td>None</td></tr>
+  </table>
+
+  <h2>Recommended BBC Wiring</h2>
+  <ul>
+    <li>Exact address underwriting: call <code>/v1/property</code> with address, city, state, zip.</li>
+    <li>Club match score: consume <code>property</code>, <code>ownership</code>, <code>valuation</code>, <code>liens</code>, <code>rent</code>, <code>signals</code>, and <code>meta.completeness</code>.</li>
+    <li>Deal chat underwriting: show <code>meta.dataSources</code> and <code>meta.dataQuality</code> so users know actual vs estimated fields.</li>
+    <li>Bulk LOI fallback: use <code>market.agent</code> when present; fall back to BBC/other provider when MXRE has contact gaps.</li>
+    <li>Admin diagnostics: store endpoint, MXRE id, HTTP status, latency, <code>meta.completeness</code>, and fallback reason.</li>
+  </ul>
+
+  <h2>Machine-Readable Spec</h2>
+  <p>OpenAPI JSON is available at <a href="/v1/docs/openapi.json">/v1/docs/openapi.json</a> with the same authentication.</p>
+</main>
+<script>
+function $(id){return document.getElementById(id)}
+function money(value){return value == null ? '-' : '$' + Number(value).toLocaleString()}
+function html(value){return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+function endpointUrl(){
+  const params = new URLSearchParams({
+    address: $('try-address').value.trim(),
+    city: $('try-city').value.trim(),
+    state: $('try-state').value.trim().toUpperCase(),
+  });
+  const zip = $('try-zip').value.trim();
+  if (zip) params.set('zip', zip);
+  return '/v1/property?' + params.toString();
+}
+function authHeaders(){
+  const key = $('try-key').value.trim();
+  if (!key) return {};
+  return { 'x-client-id': $('try-client').value.trim(), 'x-api-key': key };
+}
+async function tryPropertyLookup(){
+  $('try-status').textContent = 'Calling MXRE...';
+  $('try-output').textContent = 'Loading...';
+  $('try-summary').style.display = 'none';
+  try {
+    const response = await fetch(endpointUrl(), { headers: authHeaders(), credentials: 'same-origin' });
+    const data = await response.json();
+    $('try-output').textContent = JSON.stringify(data, null, 2);
+    $('try-status').textContent = response.ok ? 'Success: ' + response.status : 'Error: ' + response.status;
+    if (response.ok) {
+      $('try-summary').style.display = 'grid';
+      $('try-summary').innerHTML = [
+        ['MXRE ID', data.id],
+        ['Value', money(data.valuation?.marketValue)],
+        ['Rent', money(data.rent?.currentRent)],
+        ['Completeness', (data.meta?.completeness ?? '-') + '%'],
+      ].map(([label, value]) => '<div class="mini"><b>' + html(label) + '</b><span>' + html(value) + '</span></div>').join('');
+    }
+  } catch (error) {
+    $('try-status').textContent = 'Request failed';
+    $('try-output').textContent = error instanceof Error ? error.message : String(error);
+  }
+}
+async function copyCurl(){
+  const absoluteUrl = location.origin + endpointUrl();
+  const client = $('try-client').value.trim() || 'buy_box_club_sandbox';
+  const key = $('try-key').value.trim() || 'YOUR_SANDBOX_KEY';
+  const command = 'curl "' + absoluteUrl + '" \\\\\\n  -H "x-client-id: ' + client + '" \\\\\\n  -H "x-api-key: ' + key + '"';
+  await navigator.clipboard.writeText(command);
+  $('try-status').textContent = 'curl copied.';
+}
+</script>
+</body>
+</html>`;
+}
+
+function buildOpenApiSpec() {
+  return {
+    openapi: '3.1.0',
+    info: {
+      title: 'MXRE Private API',
+      version: '1.0.0',
+      description: 'Private MXRE property, market, and coverage API for Buy Box Club backend integration.',
+    },
+    servers: [{ url: 'https://api.mxre.mundox.ai' }],
+    security: [{ ApiKeyAuth: [], ClientId: [] }],
+    components: {
+      securitySchemes: {
+        ApiKeyAuth: { type: 'apiKey', in: 'header', name: 'x-api-key' },
+        ClientId: { type: 'apiKey', in: 'header', name: 'x-client-id' },
+      },
+    },
+    paths: {
+      '/v1/property': {
+        get: {
+          summary: 'Lookup one property by address',
+          description: 'Primary endpoint for underwriting. Address and state are required; city and zip are strongly recommended.',
+          parameters: [
+            { name: 'address', in: 'query', required: true, schema: { type: 'string' }, example: '429 N Tibbs Ave' },
+            { name: 'city', in: 'query', required: false, schema: { type: 'string' }, example: 'Indianapolis' },
+            { name: 'state', in: 'query', required: true, schema: { type: 'string', minLength: 2, maxLength: 2 }, example: 'IN' },
+            { name: 'zip', in: 'query', required: false, schema: { type: 'string' }, example: '46222' },
+          ],
+          responses: {
+            '200': { description: 'Full MXRE property detail object with property, ownership, valuation, liens, sales, rent, market, signals, and meta.' },
+            '400': { description: 'Missing required params.' },
+            '401': { description: 'Invalid client id or API key.' },
+            '404': { description: 'Property not found.' },
+            '429': { description: 'Rate limit exceeded.' },
+          },
+        },
+      },
+      '/v1/property/{id}': {
+        get: {
+          summary: 'Lookup one property by MXRE property id',
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+          responses: { '200': { description: 'Full MXRE property detail object.' }, '404': { description: 'Property not found.' } },
+        },
+      },
+      '/v1/property/search': {
+        get: {
+          summary: 'Search properties',
+          parameters: [
+            { name: 'state', in: 'query', schema: { type: 'string' } },
+            { name: 'county', in: 'query', schema: { type: 'string' } },
+            { name: 'city', in: 'query', schema: { type: 'string' } },
+            { name: 'zip', in: 'query', schema: { type: 'string' } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+            { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          ],
+          responses: { '200': { description: 'Search results and pagination.' } },
+        },
+      },
+      '/v1/markets/{market}/opportunities': {
+        get: {
+          summary: 'Filterable market opportunities',
+          parameters: [
+            { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
+            { name: 'asset', in: 'query', schema: { type: 'string', example: 'multifamily' } },
+            { name: 'creative', in: 'query', schema: { type: 'string', example: 'positive' } },
+            { name: 'zip', in: 'query', schema: { type: 'string' } },
+            { name: 'min_price', in: 'query', schema: { type: 'number' } },
+            { name: 'max_price', in: 'query', schema: { type: 'number' } },
+            { name: 'min_units', in: 'query', schema: { type: 'integer' } },
+            { name: 'max_units', in: 'query', schema: { type: 'integer' } },
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+          ],
+          responses: { '200': { description: 'Opportunity rows, zip rollups, and summary metrics.' } },
+        },
+      },
+      '/v1/markets/{market}/reports/creative-finance': {
+        get: {
+          summary: 'Creative finance listing report',
+          parameters: [
+            { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 100 } },
+            { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          ],
+          responses: { '200': { description: 'Listings with positive or negative creative finance language and provenance.' } },
+        },
+      },
+      '/v1/markets/{market}/completion': {
+        get: {
+          summary: 'Market data completion metrics',
+          parameters: [
+            { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
+            { name: 'scope', in: 'query', schema: { type: 'string', enum: ['city', 'core', 'metro'] } },
+          ],
+          responses: { '200': { description: 'Completion metrics for parcel identity, underwriting, rents, and market data.' } },
+        },
+      },
+      '/v1/coverage': {
+        get: {
+          summary: 'Coverage overview',
+          responses: { '200': { description: 'Current MXRE coverage summary.' } },
+        },
+      },
+    },
+  };
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function fetchAndRespond(c: Context, id: number) {

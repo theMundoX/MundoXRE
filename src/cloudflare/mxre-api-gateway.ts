@@ -83,8 +83,9 @@ function loadClients(env: Env): ApiClient[] {
 }
 
 function authenticate(request: Request, env: Env): ApiClient | null {
-  const apiKey = request.headers.get('x-api-key');
-  const clientId = request.headers.get('x-client-id');
+  const credentials = getCredentials(request);
+  const apiKey = credentials.apiKey;
+  const clientId = credentials.clientId;
   if (!apiKey) return null;
 
   if (env.MXRE_BUY_BOX_CLUB_KEY?.trim() && apiKey === env.MXRE_BUY_BOX_CLUB_KEY.trim()) {
@@ -101,6 +102,26 @@ function authenticate(request: Request, env: Env): ApiClient | null {
   if (matches.length === 0) return null;
   if (clientId) return matches.find((client) => client.id === clientId) ?? null;
   return matches[0] ?? null;
+}
+
+function getCredentials(request: Request): { apiKey?: string; clientId?: string } {
+  const headerApiKey = request.headers.get('x-api-key')?.trim();
+  const headerClientId = request.headers.get('x-client-id')?.trim();
+  if (headerApiKey) return { apiKey: headerApiKey, clientId: headerClientId };
+
+  const auth = request.headers.get('authorization');
+  if (!auth?.toLowerCase().startsWith('basic ')) return {};
+  try {
+    const decoded = atob(auth.slice(6).trim());
+    const separator = decoded.indexOf(':');
+    if (separator < 0) return {};
+    return {
+      clientId: decoded.slice(0, separator),
+      apiKey: decoded.slice(separator + 1),
+    };
+  } catch {
+    return {};
+  }
 }
 
 function rateLimitResponse(retryAfter: number) {
@@ -168,7 +189,8 @@ export default {
       return json({ status: 'ok', edge: 'cloudflare', timestamp: new Date().toISOString() }, 200, securityHeaders());
     }
 
-    if (!url.pathname.startsWith('/v1/')) {
+    const isDocs = url.pathname === '/docs';
+    if (!url.pathname.startsWith('/v1/') && !isDocs) {
       return json({ error: 'Not found' }, 404, securityHeaders());
     }
 
@@ -180,7 +202,13 @@ export default {
     if (!client) {
       const failedAuthLimit = rateLimit(`authfail:${ip}`, 10, 10 * 60_000);
       if (!failedAuthLimit.allowed) return rateLimitResponse(failedAuthLimit.retryAfter);
-      return json({ error: 'Unauthorized' }, 401, securityHeaders());
+      return json(
+        { error: 'Unauthorized' },
+        401,
+        isDocs
+          ? { ...securityHeaders(), 'www-authenticate': 'Basic realm="MXRE Private API Docs", charset="UTF-8"' }
+          : securityHeaders(),
+      );
     }
 
     const clientLimit = rateLimit(`client:${client.id}:${ip}`, 600, 60_000);
