@@ -3,6 +3,7 @@ import { Hono, type Context } from 'hono';
 import { serve } from '@hono/node-server';
 import { getDb } from '../db/client.js';
 import { buildPropertyResponse } from './transforms/build-response.js';
+import { getSourceRegistry } from '../config/source-registry.js';
 import type { PropertySummary } from './types.js';
 
 const app = new Hono();
@@ -297,6 +298,10 @@ app.get('/docs', (c) => {
 
 app.get('/v1/docs/openapi.json', (c) => {
   return c.json(buildOpenApiSpec());
+});
+
+app.get('/v1/platform/source-registry', (c) => {
+  return c.json(getSourceRegistry());
 });
 
 app.get('/v1/property', async (c) => {
