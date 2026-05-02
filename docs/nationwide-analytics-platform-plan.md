@@ -65,6 +65,73 @@ Initial stack:
 - Debezium/Postgres CDC: later-stage change stream once event tables are stable.
 - RealEstateAPI: paid fallback and validation.
 
+## Open-Source Implementation Order
+
+Do not install every platform tool at once. The order should match the bottleneck we are solving.
+
+### 1. PostGIS
+
+First priority because MXRE is becoming an analytical platform. PostGIS unlocks:
+
+- parcel geometry,
+- market boundaries,
+- zip/tract/neighborhood rollups,
+- distance to transit/crime/schools/jobs,
+- parcel-to-listing spatial matching,
+- apartment complex clustering.
+
+### 2. OpenAddresses
+
+Second priority because BBC needs address autocomplete/search parity without depending on RealEstateAPI. OpenAddresses helps:
+
+- validate address universe coverage,
+- normalize addresses,
+- detect missing parcel addresses,
+- power autocomplete/search fallback,
+- QA county coverage.
+
+### 3. Census TIGER/Line + ACS + HUD Formal Layer
+
+Third priority because market analytics need official boundaries and context:
+
+- tract/block/zip/county geometry,
+- demographics,
+- income,
+- rent baselines,
+- affordability metrics.
+
+### 4. DuckDB Bulk Processing
+
+Fourth priority for local processing of large county/state files before loading Postgres:
+
+- shapefiles,
+- CSV,
+- parquet,
+- dedupe,
+- transform,
+- fast QA counts.
+
+### 5. Dagster
+
+Fifth priority after the event/snapshot model is stable. Use it for:
+
+- market/source partitions,
+- refresh observability,
+- data quality checks,
+- materialized market metrics.
+
+### 6. Pelias or Photon/Nominatim
+
+Sixth priority when internal property autocomplete plus Geoapify is not enough. Prefer self-hosting once volume or cost justifies it.
+
+### 7. Temporal
+
+Seventh priority when long-running source workflows need durable retries/resume. Add it only after we know which workflows actually need it.
+
+### 8. Debezium/Postgres CDC
+
+Last priority. Start with explicit `property_events` first. CDC becomes valuable once event volume and downstream consumers justify it.
+
 ## Data Model Foundation
 
 Nationwide daily refresh requires these core concepts:
@@ -176,8 +243,23 @@ Evaluate Dagster vs Temporal after the source/event model is stable:
 ## Immediate Next Build Items
 
 1. Implement `/v1/bbc/property`.
-2. Implement `/v1/platform/source-registry`.
-3. Add `property_events` migration.
-4. Add `source_refresh_runs` migration.
-5. Modify daily runners to write refresh run summaries.
-6. Add `/v1/updates/properties?market=...&since=...`.
+2. Implement `/v1/bbc/markets/{market}/changes`.
+3. Implement `/v1/bbc/search-runs`.
+4. Add `property_events` migration.
+5. Add `source_refresh_runs` migration.
+6. Modify daily runners to write refresh run summaries.
+7. Add PostGIS planning migration.
+8. Add OpenAddresses ingest prototype for one market.
+
+## Buy Box Club Daily Search Flow
+
+BBC owns user underwriting rules and exclusions. MXRE owns market truth and change detection.
+
+1. BBC user defines a market search.
+2. BBC sends filters and excluded MXRE ids to `/v1/bbc/search-runs`.
+3. MXRE returns new or changed listing candidates only.
+4. BBC underwrites returned candidates.
+5. BBC stores pass/fail/user override state.
+6. If a failed deal later has a price/status/rent/agent/creative-finance change, MXRE returns it again with a new `recordVersion`.
+
+This avoids re-underwriting unchanged deals while still allowing previously failed deals to become eligible after a meaningful market change.

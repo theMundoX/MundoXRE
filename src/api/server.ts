@@ -304,6 +304,357 @@ app.get('/v1/platform/source-registry', (c) => {
   return c.json(getSourceRegistry());
 });
 
+app.get('/v1/bbc/property/:id', async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json({ error: 'Invalid property ID' }, 400);
+  return fetchAndRespond(c, id, buildBuyBoxClubPropertyResponse);
+});
+
+app.get('/v1/bbc/property', async (c) => {
+  const address = c.req.query('address');
+  const city = c.req.query('city');
+  const state = c.req.query('state');
+  const zip = c.req.query('zip');
+
+  if (!address || !state) {
+    return c.json({ error: 'Missing required params: address and state (city and zip recommended)' }, 400);
+  }
+
+  const addressNorm = address.toUpperCase().replace(/[%*]+$/, '');
+  const stateNorm = state.toUpperCase();
+
+  let query = db.from('properties')
+    .select('*, counties(county_name, state_code, county_fips, state_fips)')
+    .eq('state_code', stateNorm)
+    .like('address', `${addressNorm}%`)
+    .limit(5);
+
+  if (city) query = query.eq('city', city.toUpperCase());
+  if (zip) query = query.eq('zip', zip);
+
+  const { data, error } = await query;
+  if (error) return c.json({ error: 'Database error', detail: error.message }, 500);
+  if (!data || data.length === 0) {
+    return c.json({
+      error: 'Property not found',
+      fallbackRecommended: true,
+      fallbackProvider: 'realestateapi',
+      fallbackReason: 'mxre_no_property_match',
+    }, 404);
+  }
+
+  return fetchAndRespond(c, data[0].id as number, buildBuyBoxClubPropertyResponse);
+});
+
+app.get('/v1/bbc/markets/:market/changes', async (c) => {
+  const marketConfig = resolveMarketConfig(c.req.param('market'));
+  if (!marketConfig) return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
+
+  const since = parseDateTimeParam(c.req.query('since')) ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 100, 1000);
+  const eventTypes = (c.req.query('event_types') ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const eventFilterSql = eventTypes.length > 0
+    ? `and event_type in (${eventTypes.map((type) => `'${sqlString(type)}'`).join(',')})`
+    : '';
+
+  const rows = await queryPg<Record<string, unknown>>(`
+    with listing_events as (
+      select
+        coalesce(property_id::bigint, 0) as property_id,
+        listing_signal_id,
+        address,
+        city,
+        state_code,
+        zip,
+        event_type,
+        event_at,
+        list_price,
+        previous_list_price,
+        mls_status,
+        previous_mls_status,
+        listing_url,
+        listing_source,
+        listing_agent_name,
+        listing_brokerage,
+        raw
+      from listing_signal_events
+      where state_code = '${marketConfig.state}'
+        and upper(coalesce(city,'')) = '${marketConfig.cityUpper}'
+        and event_at >= '${sqlString(since)}'::timestamptz
+        ${eventFilterSql}
+    ),
+    active_listing_versions as (
+      select
+        l.property_id::bigint as property_id,
+        l.id as listing_signal_id,
+        l.address,
+        l.city,
+        l.state_code,
+        l.zip,
+        case
+          when l.first_seen_at >= '${sqlString(since)}'::timestamptz then 'listing_created'
+          when l.last_seen_at >= '${sqlString(since)}'::timestamptz then 'listing_refreshed'
+          else null
+        end as event_type,
+        coalesce(l.last_seen_at, l.first_seen_at, now()) as event_at,
+        l.mls_list_price as list_price,
+        null::numeric as previous_list_price,
+        case when l.is_on_market then 'active' else 'off_market' end as mls_status,
+        null::text as previous_mls_status,
+        l.listing_url,
+        l.listing_source,
+        l.listing_agent_name,
+        l.listing_brokerage,
+        l.raw
+      from listing_signals l
+      where l.state_code = '${marketConfig.state}'
+        and upper(coalesce(l.city,'')) = '${marketConfig.cityUpper}'
+        and coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
+    ),
+    combined as (
+      select * from listing_events
+      union all
+      select * from active_listing_versions where event_type is not null
+    )
+    select
+      property_id as "mxreId",
+      nullif(listing_signal_id, 0) as "listingSignalId",
+      address,
+      city,
+      state_code as state,
+      zip,
+      event_type as "eventType",
+      event_at as "eventAt",
+      md5(coalesce(property_id::text,'') || '|' || coalesce(listing_signal_id::text,'') || '|' || event_type || '|' || event_at::text) as "recordVersion",
+      case
+        when event_type in ('price_changed', 'listing_price_changed') then array['market.listPrice']
+        when event_type in ('status_changed', 'listing_status_changed') then array['market.status']
+        when event_type in ('listing_created', 'listing_refreshed') then array['market']
+        else array[event_type]
+      end as "changedFields",
+      list_price as "listPrice",
+      previous_list_price as "previousListPrice",
+      case
+        when previous_list_price is not null and list_price is not null then list_price - previous_list_price
+        else null
+      end as "priceChange",
+      mls_status as "status",
+      previous_mls_status as "previousStatus",
+      listing_source as "listingSource",
+      listing_url as "listingUrl",
+      listing_agent_name as "listingAgentName",
+      listing_brokerage as "listingBrokerage",
+      true as "underwritingRelevant"
+    from combined
+    order by event_at desc
+    limit ${limit};
+  `);
+
+  return c.json({
+    schemaVersion: 'mxre.bbc.changes.v1',
+    market: marketConfig.key,
+    since,
+    limit,
+    count: rows.length,
+    nextSince: new Date().toISOString(),
+    results: rows,
+    fallbackPolicy: {
+      provider: 'realestateapi',
+      useWhen: ['mxre_no_property_match', 'mxre_missing_required_underwriting_fields', 'client_requested_validation'],
+    },
+    generatedAt: new Date().toISOString(),
+  });
+});
+
+app.post('/v1/bbc/search-runs', async (c) => {
+  let input: Record<string, unknown>;
+  try {
+    input = await c.req.json<Record<string, unknown>>();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const marketValue = typeof input.market === 'string' ? input.market : '';
+  const marketConfig = resolveMarketConfig(marketValue);
+  if (!marketConfig) return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
+
+  const filters = normalizeBbcSearchFilters(input);
+  const excludedIds = Array.isArray(input.excludeMxreIds)
+    ? input.excludeMxreIds.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0).slice(0, 5000)
+    : [];
+  const since = parseDateTimeParam(typeof input.onlyChangedSince === 'string' ? input.onlyChangedSince : undefined)
+    ?? parseDateTimeParam(typeof input.since === 'string' ? input.since : undefined)
+    ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const limit = Math.min(Number(input.limit) > 0 ? Number(input.limit) : 100, 500);
+  const excludeSql = excludedIds.length > 0 ? `and p.id not in (${excludedIds.join(',')})` : '';
+  const assetSql = filters.assetTypes.length > 0 ? `and asset_group in (${filters.assetTypes.map((asset) => `'${sqlString(asset)}'`).join(',')})` : '';
+  const statusSql = filters.statuses.length > 0
+    ? `and (case when l.is_on_market then 'active' else 'off_market' end) in (${filters.statuses.map((status) => `'${sqlString(status)}'`).join(',')})`
+    : '';
+  const priceSql = [
+    filters.minPrice !== null ? `and l.mls_list_price >= ${filters.minPrice}` : '',
+    filters.maxPrice !== null ? `and l.mls_list_price <= ${filters.maxPrice}` : '',
+    filters.minUnits !== null ? `and coalesce(p.total_units, 0) >= ${filters.minUnits}` : '',
+    filters.maxUnits !== null ? `and coalesce(p.total_units, 0) <= ${filters.maxUnits}` : '',
+  ].filter(Boolean).join('\n        ');
+  const creativeSql = filters.creativeOnly ? `and l.creative_finance_status = 'positive'` : '';
+
+  const [result] = await queryPg<Record<string, unknown>>(`
+    with normalized as (
+      select
+        p.*,
+        case
+          when p.asset_type = 'commercial_multifamily' or coalesce(p.property_use, '') ilike '%APT%UNITS%' then 'commercial_multifamily'
+          when p.asset_type = 'small_multifamily'
+            or coalesce(p.property_use, '') ilike '%TWO FAMILY%'
+            or coalesce(p.property_use, '') ilike '%THREE FAMILY%' then 'small_multifamily'
+          when p.asset_subtype in ('sfr', 'condo')
+            or coalesce(p.property_use, '') ilike '%ONE FAMILY%'
+            or coalesce(p.property_use, '') ilike '%CONDO%'
+            or coalesce(p.property_use, '') ilike 'RES VAC%' then 'single_family'
+          else coalesce(nullif(p.asset_type, ''), nullif(p.property_type, ''), 'unknown')
+        end as asset_group
+      from properties p
+      where p.state_code = '${marketConfig.state}'
+        and upper(coalesce(p.city,'')) = '${marketConfig.cityUpper}'
+    ),
+    candidates as (
+      select
+        l.id as listing_id,
+        p.id as property_id,
+        p.address,
+        p.city,
+        p.state_code,
+        p.zip,
+        p.asset_group,
+        p.asset_type,
+        p.asset_subtype,
+        p.property_use,
+        p.total_units,
+        p.bedrooms,
+        p.bathrooms,
+        p.bathrooms_full,
+        p.living_sqft,
+        p.year_built,
+        p.market_value,
+        l.is_on_market,
+        l.mls_list_price,
+        l.days_on_market,
+        l.listing_source,
+        l.listing_url,
+        l.listing_agent_name,
+        l.listing_agent_first_name,
+        l.listing_agent_last_name,
+        l.listing_agent_email,
+        l.listing_agent_phone,
+        l.listing_brokerage,
+        l.creative_finance_score,
+        l.creative_finance_status,
+        l.creative_finance_terms,
+        l.first_seen_at,
+        l.last_seen_at,
+        greatest(coalesce(l.last_seen_at, '-infinity'::timestamptz), coalesce(l.first_seen_at, '-infinity'::timestamptz)) as changed_at
+      from listing_signals l
+      join normalized p on p.id = l.property_id
+      where coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
+        ${excludeSql}
+        ${assetSql}
+        ${statusSql}
+        ${priceSql}
+        ${creativeSql}
+    ),
+    totals as (
+      select
+        count(*)::int as matched,
+        ${excludedIds.length}::int as excluded_by_client,
+        count(*) filter (where first_seen_at >= '${sqlString(since)}'::timestamptz)::int as new_count,
+        count(*) filter (where first_seen_at < '${sqlString(since)}'::timestamptz and changed_at >= '${sqlString(since)}'::timestamptz)::int as changed_count
+      from candidates
+    )
+    select
+      (select row_to_json(totals) from totals) as summary,
+      (select coalesce(jsonb_agg(row_to_json(r) order by r."lastChangedAt" desc), '[]'::jsonb)
+       from (
+      select
+        property_id as "mxreId",
+        listing_id as "listingId",
+        case
+          when first_seen_at >= '${sqlString(since)}'::timestamptz then 'new_listing'
+          else 'listing_updated'
+        end as "eventReason",
+        changed_at as "lastChangedAt",
+        md5(property_id::text || '|' || listing_id::text || '|' || changed_at::text) as "recordVersion",
+        case
+          when first_seen_at >= '${sqlString(since)}'::timestamptz then array['market']
+          else array['market.lastSeenAt']
+        end as "changedFields",
+        address,
+        city,
+        state_code as state,
+        zip,
+        asset_group as "assetGroup",
+        asset_type as "assetType",
+        asset_subtype as "assetSubtype",
+        total_units as "unitCount",
+        bedrooms,
+        coalesce(bathrooms, bathrooms_full) as bathrooms,
+        living_sqft as "livingSqft",
+        year_built as "yearBuilt",
+        market_value as "marketValue",
+        is_on_market as "onMarket",
+        mls_list_price as "listPrice",
+        days_on_market as "daysOnMarket",
+        listing_source as "listingSource",
+        listing_url as "listingUrl",
+        listing_agent_name as "listingAgentName",
+        listing_agent_first_name as "listingAgentFirstName",
+        listing_agent_last_name as "listingAgentLastName",
+        listing_agent_email as "listingAgentEmail",
+        listing_agent_phone as "listingAgentPhone",
+        listing_brokerage as "listingBrokerage",
+        creative_finance_score as "creativeFinanceScore",
+        creative_finance_status as "creativeFinanceStatus",
+        creative_finance_terms as "creativeFinanceTerms"
+      from candidates
+      order by changed_at desc
+      limit ${limit}
+       ) r) as results;
+  `);
+
+  const summary = normalizeRecord(result?.summary);
+  const results = Array.isArray(result?.results) ? result.results : [];
+
+  return c.json({
+    schemaVersion: 'mxre.bbc.searchRun.v1',
+    searchRunId: `sr_${crypto.randomUUID()}`,
+    market: marketConfig.key,
+    asOf: new Date().toISOString(),
+    since,
+    nextCursor: new Date().toISOString(),
+    filters,
+    summary: {
+      matched: numberOrNull(summary.matched) ?? results.length,
+      new: numberOrNull(summary.new_count) ?? 0,
+      changed: numberOrNull(summary.changed_count) ?? 0,
+      unchangedSkipped: null,
+      excludedByClient: excludedIds.length,
+      returned: results.length,
+    },
+    results,
+    clientWorkflow: {
+      recommendedBehavior: 'Underwrite returned rows. Keep failed/passed status in Buy Box Club. Reconsider failed deals only when MXRE returns a later recordVersion or underwriting-relevant changedFields.',
+      excludeMxreIdsApplied: excludedIds.length,
+    },
+    fallbackPolicy: {
+      provider: 'realestateapi',
+      useWhen: ['mxre_no_property_match', 'mxre_missing_required_underwriting_fields', 'client_requested_validation'],
+    },
+  });
+});
+
 app.get('/v1/property', async (c) => {
   const address = c.req.query('address');
   const city = c.req.query('city');
@@ -3444,6 +3795,146 @@ function parseDateParam(value: string | undefined): string | null {
   return Number.isNaN(parsed.getTime()) ? null : clean;
 }
 
+function parseDateTimeParam(value: string | undefined): string | null {
+  if (!value) return null;
+  const clean = value.trim();
+  const parsed = new Date(clean);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function sqlString(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
+function normalizeRecord(value: unknown): Record<string, unknown> {
+  return (value && typeof value === 'object' && !Array.isArray(value)) ? value as Record<string, unknown> : {};
+}
+
+function normalizeBbcSearchFilters(input: Record<string, unknown>) {
+  const assetTypes = Array.isArray(input.assetTypes)
+    ? input.assetTypes.map((value) => String(value)).map(normalizeBbcAssetType).filter(Boolean)
+    : [];
+  const statuses = Array.isArray(input.status)
+    ? input.status.map((value) => String(value).toLowerCase()).filter((value) => ['active', 'pending', 'off_market'].includes(value))
+    : ['active'];
+
+  return {
+    assetTypes: [...new Set(assetTypes)],
+    statuses: [...new Set(statuses)],
+    minPrice: positiveNumberOrNull(input.minPrice),
+    maxPrice: positiveNumberOrNull(input.maxPrice),
+    minUnits: positiveNumberOrNull(input.minUnits),
+    maxUnits: positiveNumberOrNull(input.maxUnits),
+    creativeOnly: input.creativeOnly === true,
+  };
+}
+
+function normalizeBbcAssetType(value: string): string {
+  const normalized = value.toLowerCase().replace(/-/g, '_');
+  if (['single_family', 'sfr', 'residential'].includes(normalized)) return 'single_family';
+  if (['small_multifamily', 'multifamily', 'multi_family', 'duplex', 'triplex', 'fourplex'].includes(normalized)) return 'small_multifamily';
+  if (['commercial_multifamily', 'apartment', 'apartments'].includes(normalized)) return 'commercial_multifamily';
+  return '';
+}
+
+function positiveNumberOrNull(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+}
+
+function buildBuyBoxClubPropertyResponse(response: ReturnType<typeof buildPropertyResponse>) {
+  const owner = response.ownership.owner1;
+  return {
+    schemaVersion: 'mxre.bbc.property.v1',
+    mxreId: response.id,
+    request: {
+      matchedBy: 'mxre_property_id_or_address',
+      confidence: response.meta.completeness >= 70 ? 'high' : response.meta.completeness >= 45 ? 'medium' : 'low',
+    },
+    property: {
+      address: response.property.address,
+      city: response.property.city,
+      state: response.property.state,
+      zip: response.property.zip,
+      county: response.property.county,
+      parcelId: response.property.parcelId,
+      apn: response.property.apn,
+      lat: response.property.lat,
+      lng: response.property.lng,
+      assetType: response.property.assetType,
+      assetSubtype: response.property.assetSubtype,
+      propertyType: response.property.type,
+      propertyUse: response.property.use,
+      unitCount: response.property.unitCount,
+      unitCountSource: response.property.unitCountSource,
+      assetConfidence: response.property.assetConfidence,
+      beds: response.property.bedrooms,
+      baths: (response.property.bathroomsFull ?? 0) + ((response.property.bathroomsHalf ?? 0) * 0.5),
+      bedrooms: response.property.bedrooms,
+      bathroomsFull: response.property.bathroomsFull,
+      bathroomsHalf: response.property.bathroomsHalf,
+      livingSqft: response.property.livingSqft,
+      totalSqft: response.property.totalSqft,
+      lotSqft: response.property.lotSqft,
+      lotAcres: response.property.lotAcres,
+      yearBuilt: response.property.yearBuilt,
+      yearRemodeled: response.property.yearRemodeled,
+      stories: response.property.stories,
+      subdivision: response.property.subdivision,
+      floodZone: response.property.floodZone,
+      floodZoneType: response.property.floodZoneType,
+    },
+    ownership: {
+      ownerName: owner?.fullName ?? null,
+      ownerType: owner?.type ?? null,
+      mailingAddress: response.ownership.mailingAddress,
+      ownerOccupied: response.ownership.ownerOccupied,
+      absenteeOwner: response.ownership.absenteeOwner,
+      inStateAbsentee: response.ownership.inStateAbsentee,
+      outOfStateAbsentee: response.ownership.outOfStateAbsentee,
+      corporateOwned: response.ownership.corporateOwned,
+      ownershipStartDate: response.ownership.ownershipStartDate,
+      ownershipLengthMonths: response.ownership.ownershipLengthMonths,
+    },
+    valuation: {
+      marketValue: response.valuation.marketValue,
+      assessedValue: response.valuation.assessedValue,
+      appraisedLand: response.valuation.appraisedLand,
+      appraisedBuilding: response.valuation.appraisedBuilding,
+      annualTax: response.valuation.annualTax,
+      taxYear: response.valuation.taxYear,
+      estimatedValue: response.valuation.estimatedValue,
+    },
+    debtAndLiens: {
+      freeClear: response.liens.summary.freeClear,
+      openMortgageBalance: response.liens.summary.openMortgageBalance,
+      estimatedEquity: response.liens.summary.estimatedEquity,
+      equityPercent: response.liens.summary.equityPercent,
+      openLienCount: response.liens.summary.openLienCount,
+      lienCount: response.liens.summary.lienCount,
+      current: response.liens.current,
+      history: response.liens.history,
+    },
+    sales: response.sales,
+    rent: response.rent,
+    market: response.market,
+    publicSignals: response.publicSignals,
+    signals: {
+      ...response.signals,
+      creativeFinance: response.market.history.some((item) => item.listingType?.toLowerCase().includes('creative')) ? true : null,
+    },
+    meta: {
+      asOf: new Date().toISOString(),
+      lastUpdated: response.meta.lastUpdated,
+      completeness: response.meta.completeness,
+      dataSources: response.meta.dataSources,
+      dataQuality: response.meta.dataQuality,
+      fallbackRecommended: response.meta.completeness < 50,
+      fallbackProvider: response.meta.completeness < 50 ? 'realestateapi' : null,
+    },
+  };
+}
+
 function normalizeJoinedProperty(value: unknown): Record<string, unknown> {
   if (Array.isArray(value)) return (value[0] as Record<string, unknown> | undefined) ?? {};
   return (value as Record<string, unknown> | null) ?? {};
@@ -3591,6 +4082,31 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td><code>GET /v1/coverage</code></td><td>National/state coverage overview.</td><td>None</td></tr>
   </table>
 
+  <h2>Buy Box Club Endpoints</h2>
+  <table>
+    <tr><th>Endpoint</th><th>Purpose</th><th>Notes</th></tr>
+    <tr><td><code>GET /v1/bbc/property</code></td><td>BBC-normalized exact address lookup.</td><td>Use <code>address</code>, <code>city</code>, <code>state</code>, <code>zip</code>.</td></tr>
+    <tr><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>BBC-normalized lookup by MXRE id.</td><td>Use for safe re-sync after BBC stores <code>mxreId</code>.</td></tr>
+    <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Changed market records since a cursor/time.</td><td>Use for daily sync and reconsidering failed deals.</td></tr>
+    <tr><td><code>POST /v1/bbc/search-runs</code></td><td>Delta-based saved-search execution.</td><td>Send filters plus <code>excludeMxreIds</code>; MXRE returns new/changed candidates.</td></tr>
+  </table>
+  <h3>BBC Daily Search Example</h3>
+  <pre>curl "https://api.mxre.mundox.ai/v1/bbc/search-runs" \
+  -X POST \
+  -H "content-type: application/json" \
+  -H "x-client-id: buy_box_club_sandbox" \
+  -H "x-api-key: YOUR_SANDBOX_KEY" \
+  -d '{
+    "market": "indianapolis",
+    "assetTypes": ["single_family", "small_multifamily"],
+    "status": ["active"],
+    "minPrice": 50000,
+    "maxPrice": 250000,
+    "onlyChangedSince": "2026-05-02T00:00:00Z",
+    "excludeMxreIds": [50913586],
+    "limit": 100
+  }'</pre>
+
   <h2>Recommended BBC Wiring</h2>
   <ul>
     <li>Exact address underwriting: call <code>/v1/property</code> with address, city, state, zip.</li>
@@ -3675,6 +4191,61 @@ function buildOpenApiSpec() {
       },
     },
     paths: {
+      '/v1/bbc/property': {
+        get: {
+          summary: 'BBC-normalized property lookup by address',
+          parameters: [
+            { name: 'address', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'city', in: 'query', required: false, schema: { type: 'string' } },
+            { name: 'state', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'zip', in: 'query', required: false, schema: { type: 'string' } },
+          ],
+          responses: { '200': { description: 'Stable BBC property contract.' }, '404': { description: 'No MXRE match; RealEstateAPI fallback recommended.' } },
+        },
+      },
+      '/v1/bbc/property/{id}': {
+        get: {
+          summary: 'BBC-normalized property lookup by MXRE id',
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+          responses: { '200': { description: 'Stable BBC property contract.' } },
+        },
+      },
+      '/v1/bbc/markets/{market}/changes': {
+        get: {
+          summary: 'Market changes since a timestamp',
+          parameters: [
+            { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
+            { name: 'since', in: 'query', required: false, schema: { type: 'string', format: 'date-time' } },
+            { name: 'event_types', in: 'query', required: false, schema: { type: 'string' }, example: 'price_changed,listing_created' },
+            { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 100 } },
+          ],
+          responses: { '200': { description: 'Changed records for BBC daily sync.' } },
+        },
+      },
+      '/v1/bbc/search-runs': {
+        post: {
+          summary: 'Run a BBC saved search against fresh/changed market records',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+                example: {
+                  market: 'indianapolis',
+                  assetTypes: ['single_family', 'small_multifamily'],
+                  status: ['active'],
+                  minPrice: 50000,
+                  maxPrice: 250000,
+                  onlyChangedSince: '2026-05-02T00:00:00Z',
+                  excludeMxreIds: [50913586],
+                  limit: 100,
+                },
+              },
+            },
+          },
+          responses: { '200': { description: 'Search run summary and new/changed candidates.' } },
+        },
+      },
       '/v1/property': {
         get: {
           summary: 'Lookup one property by address',
@@ -3773,7 +4344,11 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
-async function fetchAndRespond(c: Context, id: number) {
+async function fetchAndRespond(
+  c: Context,
+  id: number,
+  responseMapper: (response: ReturnType<typeof buildPropertyResponse>) => unknown = (response) => response,
+) {
   const { data: props, error } = await db.from('properties')
     .select('*, counties(county_name, state_code, county_fips, state_fips)')
     .eq('id', id)
@@ -3786,10 +4361,14 @@ async function fetchAndRespond(c: Context, id: number) {
     return c.json({ error: 'Property not found' }, 404);
   }
 
-  return assembleResponse(c, props[0]);
+  return assembleResponse(c, props[0], responseMapper);
 }
 
-async function assembleResponse(c: Context, property: Record<string, unknown>) {
+async function assembleResponse(
+  c: Context,
+  property: Record<string, unknown>,
+  responseMapper: (response: ReturnType<typeof buildPropertyResponse>) => unknown = (response) => response,
+) {
   const id = property.id as number;
   // counties may be an array (when joined without !inner) or a single object
   const rawCounty = property.counties;
@@ -3840,7 +4419,7 @@ async function assembleResponse(c: Context, property: Record<string, unknown>) {
     (publicSignals.data ?? []) as Record<string, unknown>[],
   );
 
-  return c.json(response);
+  return c.json(responseMapper(response));
 }
 
 async function fetchRentBaselineDemographics(
