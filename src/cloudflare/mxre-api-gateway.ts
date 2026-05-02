@@ -88,20 +88,31 @@ function authenticate(request: Request, env: Env): ApiClient | null {
   const clientId = credentials.clientId;
   if (!apiKey) return null;
 
-  if (env.MXRE_BUY_BOX_CLUB_KEY?.trim() && apiKey === env.MXRE_BUY_BOX_CLUB_KEY.trim()) {
+  if (env.MXRE_BUY_BOX_CLUB_KEY?.trim() && constantTimeEqual(apiKey, env.MXRE_BUY_BOX_CLUB_KEY.trim())) {
     if (clientId && clientId !== 'buy_box_club_prod') return null;
     return { id: 'buy_box_club_prod', key: apiKey, environment: 'production' };
   }
 
-  if (env.MXRE_BUY_BOX_CLUB_SANDBOX_KEY?.trim() && apiKey === env.MXRE_BUY_BOX_CLUB_SANDBOX_KEY.trim()) {
+  if (env.MXRE_BUY_BOX_CLUB_SANDBOX_KEY?.trim() && constantTimeEqual(apiKey, env.MXRE_BUY_BOX_CLUB_SANDBOX_KEY.trim())) {
     if (clientId && clientId !== 'buy_box_club_sandbox') return null;
     return { id: 'buy_box_club_sandbox', key: apiKey, environment: 'sandbox' };
   }
 
-  const matches = loadClients(env).filter((client) => client.key === apiKey);
+  const matches = loadClients(env).filter((client) => constantTimeEqual(client.key, apiKey));
   if (matches.length === 0) return null;
   if (clientId) return matches.find((client) => client.id === clientId) ?? null;
   return matches[0] ?? null;
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  const left = new TextEncoder().encode(a);
+  const right = new TextEncoder().encode(b);
+  const length = Math.max(left.length, right.length);
+  let diff = left.length ^ right.length;
+  for (let i = 0; i < length; i++) {
+    diff |= (left[i] ?? 0) ^ (right[i] ?? 0);
+  }
+  return diff === 0;
 }
 
 function getCredentials(request: Request): { apiKey?: string; clientId?: string } {
@@ -135,8 +146,7 @@ function rateLimitResponse(retryAfter: number) {
 function shouldCache(request: Request, url: URL): boolean {
   if (request.method !== 'GET') return false;
   if (url.pathname === '/health') return false;
-  if (!url.pathname.startsWith('/v1/')) return false;
-  return true;
+  return url.pathname === '/v1/coverage' || url.pathname.startsWith('/v1/coverage/state/');
 }
 
 async function proxyToOrigin(request: Request, env: Env, client: ApiClient | null): Promise<Response> {
@@ -197,6 +207,11 @@ export default {
     const ip = getIp(request);
     const preAuthLimit = rateLimit(`preauth:${ip}`, 60, 60_000);
     if (!preAuthLimit.allowed) return rateLimitResponse(preAuthLimit.retryAfter);
+
+    const contentLength = Number(request.headers.get('content-length') || '0');
+    if (contentLength > 1_000_000) {
+      return json({ error: 'Request body too large' }, 413, securityHeaders());
+    }
 
     const client = authenticate(request, env);
     if (!client) {

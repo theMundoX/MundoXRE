@@ -83,6 +83,11 @@ try {
     throw "No API key found. Set MXRE_BUY_BOX_CLUB_KEY or MXRE_CLIENT_API_KEYS in the environment before running."
   }
 
+  $upstreamKey = Read-DotEnvValue "MXRE_API_KEY"
+  if (!$upstreamKey) {
+    throw "No internal MXRE_API_KEY found. The Worker must use an origin-only upstream key, not a BBC-facing client key."
+  }
+
   Write-Host "Starting MXRE gateway supervisor on local port $Port"
   Stop-Existing
 
@@ -94,7 +99,7 @@ try {
   Remove-Item $apiOut, $apiErr -ErrorAction SilentlyContinue
 
   $env:PORT = $Port
-  $env:MXRE_CLIENT_API_KEYS = "[{`"id`":`"$ClientId`",`"key`":`"$clientKey`",`"environment`":`"production`",`"monthlyQuota`":10000000}]"
+  $env:MXRE_CLIENT_API_KEYS = "[{`"id`":`"legacy`",`"key`":`"$upstreamKey`",`"environment`":`"origin`",`"monthlyQuota`":10000000},{`"id`":`"$ClientId`",`"key`":`"$clientKey`",`"environment`":`"production`",`"monthlyQuota`":10000000}]"
   Write-Host "Starting local Node API..."
   Start-Process -FilePath "node" -ArgumentList "dist/api/server.js" -WorkingDirectory (Get-Location) -WindowStyle Hidden -RedirectStandardOutput $apiOut -RedirectStandardError $apiErr
   Wait-For-Health
@@ -114,7 +119,7 @@ try {
   $originFile = "logs\mxre-origin.secret.txt"
   $keyFile = "logs\mxre-upstream.secret.txt"
   [System.IO.File]::WriteAllText((Join-Path (Get-Location) $originFile), $originUrl)
-  [System.IO.File]::WriteAllText((Join-Path (Get-Location) $keyFile), $clientKey)
+  [System.IO.File]::WriteAllText((Join-Path (Get-Location) $keyFile), $upstreamKey)
   Write-Host "Updating Worker origin secrets..."
   Get-Content $originFile -Raw | npx wrangler secret put MXRE_ORIGIN_URL
   Get-Content $keyFile -Raw | npx wrangler secret put MXRE_UPSTREAM_API_KEY

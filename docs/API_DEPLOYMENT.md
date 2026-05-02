@@ -93,6 +93,13 @@ curl -H "x-api-key: $MXRE_API_KEY" \
 
 Use the Worker gateway as the public API front door. The Worker validates Buy Box Club's MXRE client key, forwards to the private Node API with the upstream key, and adds short caching for protected GET endpoints.
 
+Keep these keys separate:
+
+- BBC-facing key: validates the external client at Cloudflare.
+- Origin upstream key: validates the Worker to the private Node API.
+
+Never set the Worker upstream key to the BBC-facing key. The Worker should authenticate BBC, then replace the request key with the origin-only upstream key before proxying.
+
 ## Temporary Local Origin
 
 Until the Node API is on Render/Railway/VPS, the Worker can be pointed at a local Cloudflare Tunnel from this machine:

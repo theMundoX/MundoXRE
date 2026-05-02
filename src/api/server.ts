@@ -109,12 +109,23 @@ function loadApiClients(): ApiClient[] {
 function authenticateApiClient(apiKey: string | undefined, clientId: string | undefined): ApiClient | null {
   if (!apiKey) return null;
   const clients = loadApiClients();
-  const matches = clients.filter((client) => client.key === apiKey);
+  const matches = clients.filter((client) => constantTimeEqual(client.key, apiKey));
   if (matches.length === 0) return null;
   if (clientId) {
     return matches.find((client) => client.id === clientId) ?? null;
   }
   return matches[0] ?? null;
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  const length = Math.max(left.length, right.length);
+  let diff = left.length ^ right.length;
+  for (let i = 0; i < length; i += 1) {
+    diff |= (left[i] ?? 0) ^ (right[i] ?? 0);
+  }
+  return diff === 0;
 }
 
 function getApiCredentials(c: Context): { apiKey?: string; clientId?: string } {
@@ -138,13 +149,19 @@ function getApiCredentials(c: Context): { apiKey?: string; clientId?: string } {
   }
 }
 
-function getBrowserApiKey(): string {
-  if (process.env.NODE_ENV === 'production') return '';
+function isLocalRequest(c: Context): boolean {
+  const host = c.req.header('host') ?? '';
+  const hostname = host.split(':')[0]?.toLowerCase();
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';
+}
+
+function getBrowserApiKey(c: Context): string {
+  if (!isLocalRequest(c)) return '';
   return process.env.MXRE_API_KEY ?? loadApiClients()[0]?.key ?? '';
 }
 
-function previewsEnabled(): boolean {
-  return process.env.NODE_ENV !== 'production' || process.env.MXRE_ENABLE_PREVIEWS === 'true';
+function previewsEnabled(c: Context): boolean {
+  return isLocalRequest(c) && (process.env.NODE_ENV !== 'production' || process.env.MXRE_ENABLE_PREVIEWS === 'true');
 }
 
 function rateLimit(key: string, limit: number, windowMs: number): { allowed: boolean; retryAfter: number; remaining: number } {
@@ -207,7 +224,7 @@ app.use('*', async (c, next) => {
   if (
     c.req.path === '/health' ||
     c.req.path === '/' ||
-    (previewsEnabled() && (
+    (previewsEnabled(c) && (
       c.req.path === '/dashboard' ||
       c.req.path === '/preview/market-dashboard' ||
       c.req.path === '/preview/west-chester-dashboard'
@@ -217,11 +234,15 @@ app.use('*', async (c, next) => {
   const { apiKey, clientId: requestedClientId } = getApiCredentials(c);
   const client = authenticateApiClient(apiKey, requestedClientId);
   const ip = getRequestIp(c);
+  const contentLength = Number(c.req.header('content-length') || '0');
 
   const preAuthLimit = rateLimit(`preauth:${ip}`, 120, 60_000);
   if (!preAuthLimit.allowed) {
     c.header('retry-after', String(preAuthLimit.retryAfter));
     return c.json({ error: 'Rate limit exceeded', retry_after_seconds: preAuthLimit.retryAfter }, 429);
+  }
+  if (contentLength > 1_000_000) {
+    return c.json({ error: 'Request body too large' }, 413);
   }
 
   if (loadApiClients().length === 0) {
@@ -247,6 +268,9 @@ app.use('*', async (c, next) => {
 
   c.header('x-mxre-client-id', client.id);
   c.header('x-ratelimit-remaining', String(clientLimit.remaining));
+  c.header('cache-control', 'no-store');
+  c.header('x-content-type-options', 'nosniff');
+  c.header('referrer-policy', 'no-referrer');
   await next();
 
   const requestId = c.req.header('x-request-id') ?? crypto.randomUUID();
@@ -360,8 +384,36 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
     ? `and event_type in (${eventTypes.map((type) => `'${sqlString(type)}'`).join(',')})`
     : '';
 
-  const rows = await queryPg<Record<string, unknown>>(`
-    with listing_events as (
+  let rows: Record<string, unknown>[];
+  let source = 'property_events';
+  try {
+    rows = await queryPg<Record<string, unknown>>(`
+      select
+        property_id as "mxreId",
+        listing_signal_id as "listingSignalId",
+        event_type as "eventType",
+        event_at as "eventAt",
+        record_version as "recordVersion",
+        changed_fields as "changedFields",
+        previous_values as "previousValues",
+        current_values as "currentValues",
+        source,
+        source_category as "sourceCategory",
+        confidence,
+        underwriting_relevant as "underwritingRelevant"
+      from property_events
+      where market_key = '${sqlString(marketConfig.key)}'
+        and event_at >= '${sqlString(since)}'::timestamptz
+        and underwriting_relevant = true
+        ${eventFilterSql}
+      order by event_at desc
+      limit ${limit};
+    `);
+  } catch (error) {
+    source = 'listing_signal_events_fallback';
+    console.warn('[MXRE BBC changes] property_events unavailable, falling back to listing_signal_events:', error);
+    rows = await queryPg<Record<string, unknown>>(`
+      with listing_events as (
       select
         coalesce(property_id::bigint, 0) as property_id,
         listing_signal_id,
@@ -451,11 +503,13 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
     from combined
     order by event_at desc
     limit ${limit};
-  `);
+    `);
+  }
 
   return c.json({
     schemaVersion: 'mxre.bbc.changes.v1',
     market: marketConfig.key,
+    source,
     since,
     limit,
     count: rows.length,
@@ -2835,7 +2889,7 @@ app.get('/dashboard', async (c) => {
 
 <script>
 function fmt(n) { return n?.toLocaleString('en-US') ?? '-'; }
-const apiKey = ${JSON.stringify(getBrowserApiKey())};
+const apiKey = ${JSON.stringify(getBrowserApiKey(c))};
 
 async function load() {
   document.getElementById('last-updated').textContent = 'Loading...';
@@ -3027,14 +3081,14 @@ setInterval(load, 60000); // auto-refresh every 60s
 
 app.get('/preview/market-dashboard', async (c) => {
   const market = c.req.query('market')?.toLowerCase();
+  const apiKey = getBrowserApiKey(c);
   if (market && market !== 'indianapolis' && market !== 'indy') {
-    return c.html(renderMarketSnapshotDashboard(market));
+    return c.html(renderMarketSnapshotDashboard(market, apiKey));
   }
-  return c.html(renderAnalystMarketDashboard());
+  return c.html(renderAnalystMarketDashboard(apiKey));
 });
 
-function renderMarketSnapshotDashboard(requestedMarket: string): string {
-  const apiKey = getBrowserApiKey();
+function renderMarketSnapshotDashboard(requestedMarket: string, apiKey: string): string {
   const market = resolveMarketConfig(requestedMarket)?.key ?? 'columbus';
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -3261,8 +3315,7 @@ header{padding:20px 24px;border-bottom:1px solid #303735;background:#131715;posi
 </html>`);
 });
 
-function renderAnalystMarketDashboard(): string {
-  const apiKey = getBrowserApiKey();
+function renderAnalystMarketDashboard(apiKey: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3552,7 +3605,7 @@ app.get('/preview/market-dashboard-old', async (c) => {
   </div>
 </main>
 <script>
-const apiKey = ${JSON.stringify(getBrowserApiKey())};
+const apiKey = ${JSON.stringify(getBrowserApiKey(c))};
 const fmt = (n) => n == null ? '-' : Number(n).toLocaleString('en-US');
 const money = (n) => n == null ? '-' : '$' + fmt(n);
 const compactMoney = (n) => {
