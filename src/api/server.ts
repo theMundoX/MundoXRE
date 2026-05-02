@@ -4093,7 +4093,7 @@ function renderPrivateDocsHtml(clientId: string): string {
     <div class="card">
       <h2>Authentication</h2>
       <p>Use these headers from Buy Box Club backend functions. Never expose the MXRE key in the BBC frontend.</p>
-      <pre>GET /v1/property?... HTTP/1.1
+      <pre>GET /v1/bbc/property?... HTTP/1.1
 x-client-id: buy_box_club_sandbox
 x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
       <p class="small">For browser access to this docs page, use HTTP Basic Auth with username = client id and password = API key.</p>
@@ -4131,30 +4131,105 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <pre id="try-output">Results will appear here.</pre>
   </section>
 
-  <h2>Property Detail Endpoint</h2>
-  <p>This is the main endpoint for underwriting replacement.</p>
+  <h2>How Buy Box Club Uses MXRE</h2>
+  <p>Buy Box Club should treat MXRE as the market data system of record. BBC owns user accounts, buy boxes, underwriting rules, pass/fail history, and user-specific exclusions. MXRE owns property facts, market status, listing/rent/deed changes, and data-quality scoring.</p>
+  <div class="callout">
+    <b>Simple rule:</b> BBC asks MXRE for fresh or changed market candidates, underwrites those candidates inside BBC, stores the BBC decision, then asks MXRE again tomorrow for only records that are new or changed.
+  </div>
+
+  <h3>End-to-End Flow</h3>
   <table>
-    <tr><th>Method</th><th>Path</th><th>Required</th><th>Recommended</th></tr>
-    <tr><td><code>GET</code></td><td><code>/v1/property</code></td><td><code>address</code>, <code>state</code></td><td><code>city</code>, <code>zip</code></td></tr>
-    <tr><td><code>GET</code></td><td><code>/v1/property/{id}</code></td><td><code>id</code></td><td>Use after address lookup returns an MXRE id.</td></tr>
+    <tr><th>Stage</th><th>What BBC Is Doing</th><th>MXRE Endpoint</th><th>What BBC Stores</th></tr>
+    <tr>
+      <td>1. Sandbox connection</td>
+      <td>Verify BBC backend can authenticate and reach MXRE.</td>
+      <td><code>GET /v1/bbc/property?address=429%20N%20Tibbs%20Ave&amp;city=Indianapolis&amp;state=IN&amp;zip=46222</code></td>
+      <td>Nothing permanent; this is a smoke test.</td>
+    </tr>
+    <tr>
+      <td>2. Exact address lookup</td>
+      <td>User or automation asks BBC to underwrite one address.</td>
+      <td><code>GET /v1/bbc/property</code></td>
+      <td><code>mxreId</code>, <code>sync.recordVersion</code>, full normalized response, <code>quality.completeness</code>, fallback decision.</td>
+    </tr>
+    <tr>
+      <td>3. Daily saved search</td>
+      <td>User has a saved buy box like "active Indianapolis small multifamily under $300k."</td>
+      <td><code>POST /v1/bbc/search-runs</code></td>
+      <td>Search run id, returned <code>mxreId</code>s, candidate <code>recordVersion</code>s, underwriting status per user.</td>
+    </tr>
+    <tr>
+      <td>4. Skip unchanged failures</td>
+      <td>BBC already underwrote and failed a property yesterday.</td>
+      <td><code>POST /v1/bbc/search-runs</code> with <code>excludeMxreIds</code> and <code>onlyChangedSince</code></td>
+      <td>BBC keeps user-specific fail/pass state. MXRE returns the property again only if market data changed enough to matter.</td>
+    </tr>
+    <tr>
+      <td>5. Re-score changed deals</td>
+      <td>A failed deal may become viable after price drop, rent update, status change, creative-finance signal, or agent contact update.</td>
+      <td><code>GET /v1/bbc/markets/{market}/changes</code></td>
+      <td>Last sync cursor/time, latest event <code>recordVersion</code>, changed fields used to trigger re-underwriting.</td>
+    </tr>
+    <tr>
+      <td>6. Report screens</td>
+      <td>BBC wants dashboards like creative finance opportunities or price drops.</td>
+      <td><code>GET /v1/markets/{market}/reports/creative-finance</code>, <code>GET /v1/markets/{market}/price-changes</code></td>
+      <td>Report filters and selected MXRE ids. Do not copy MXRE market stats as permanent truth unless BBC needs snapshot history.</td>
+    </tr>
+    <tr>
+      <td>7. Admin diagnostics</td>
+      <td>BBC admin wants to know whether MXRE coverage is ready in a market.</td>
+      <td><code>GET /v1/markets/{market}/readiness</code>, <code>GET /v1/markets/{market}/completion</code></td>
+      <td>Coverage snapshot for admin display, not underwriting truth.</td>
+    </tr>
+  </table>
+
+  <h3>BBC Saved Search Pattern</h3>
+  <ol>
+    <li>BBC stores the user's saved-search filters and underwriting criteria.</li>
+    <li>Each day, BBC calls <code>POST /v1/bbc/search-runs</code> with the market, filters, <code>onlyChangedSince</code>, and any <code>excludeMxreIds</code> that should be skipped unless changed.</li>
+    <li>MXRE returns only candidates that are new or changed according to MXRE market data.</li>
+    <li>BBC calls <code>GET /v1/bbc/property/{mxreId}</code> for any candidate that needs full underwriting details.</li>
+    <li>BBC runs its underwriting, stores pass/fail/user decision, and stores the candidate <code>recordVersion</code>.</li>
+    <li>Tomorrow, BBC uses the latest cursor/time and prior decisions so unchanged failed deals do not waste underwriting cycles.</li>
+  </ol>
+
+  <h3>Fallback Policy</h3>
+  <table>
+    <tr><th>Condition</th><th>BBC Behavior</th><th>Reason</th></tr>
+    <tr><td>MXRE returns <code>200</code> and <code>quality.fallbackRecommended=false</code></td><td>Use MXRE as primary.</td><td>MXRE has enough data for the requested task.</td></tr>
+    <tr><td>MXRE returns <code>404</code></td><td>Call RealEstateAPI fallback, then log <code>mxre_no_property_match</code>.</td><td>MXRE does not have the property matched yet.</td></tr>
+    <tr><td>MXRE returns low completeness or missing required underwriting fields</td><td>Use RealEstateAPI only to fill missing fields, and label source as fallback inside BBC.</td><td>Fallback should fill gaps, not replace MXRE's source of truth.</td></tr>
+    <tr><td>MXRE returns <code>429</code></td><td>Respect <code>retry-after</code> and retry later.</td><td>Protects MXRE and BBC from accidental brute-force style loops.</td></tr>
+    <tr><td>MXRE returns <code>5xx</code></td><td>Keep previous BBC snapshot if available; fallback only for user-facing urgent underwriting.</td><td>A temporary outage should not corrupt stored decisions.</td></tr>
+  </table>
+
+  <h2>Property Detail Endpoint</h2>
+  <p>Use the BBC-normalized endpoint for Buy Box Club underwriting. The raw MXRE endpoint remains available for admin/debug views.</p>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Use</th><th>Required</th></tr>
+    <tr><td><code>GET</code></td><td><code>/v1/bbc/property</code></td><td>BBC exact address underwriting contract.</td><td><code>address</code>, <code>state</code>; <code>city</code>/<code>zip</code> recommended</td></tr>
+    <tr><td><code>GET</code></td><td><code>/v1/bbc/property/{mxreId}</code></td><td>BBC re-sync after storing MXRE id.</td><td><code>mxreId</code></td></tr>
+    <tr><td><code>GET</code></td><td><code>/v1/property</code></td><td>Raw MXRE/admin detail.</td><td><code>address</code>, <code>state</code></td></tr>
   </table>
   <h3>Example</h3>
-  <pre>curl "https://api.mxre.mundox.ai/v1/property?address=429%20N%20Tibbs%20Ave&amp;city=Indianapolis&amp;state=IN&amp;zip=46222" \
+  <pre>curl "https://api.mxre.mundox.ai/v1/bbc/property?address=429%20N%20Tibbs%20Ave&amp;city=Indianapolis&amp;state=IN&amp;zip=46222" \
   -H "x-client-id: buy_box_club_sandbox" \
   -H "x-api-key: YOUR_SANDBOX_KEY"</pre>
   <h3>Response Shape</h3>
   <pre>{
-  "id": 50913586,
-  "property": { "address": "...", "assetType": "...", "unitCount": 2, "bedrooms": 2, "livingSqft": 1276 },
-  "ownership": { "owner1": {}, "absenteeOwner": true, "corporateOwned": true },
+  "schemaVersion": "mxre.bbc.property.v1",
+  "mxreId": 50913586,
+  "property": { "address": "...", "assetType": "small_multifamily", "unitCount": 2, "livingSqft": 1276 },
+  "ownership": { "owner": {}, "absenteeOwner": true, "corporateOwned": true },
   "valuation": { "marketValue": 174000, "assessedValue": 174000, "annualTax": 3618 },
-  "liens": { "summary": {}, "current": [], "history": [] },
   "sales": [],
-  "rent": { "currentRent": 2440, "rentSource": "estimated_fmr", "rentPerDoor": 1220, "totalMonthlyRent": 2440 },
-  "market": { "onMarket": false, "listPrice": null, "agent": null, "history": [] },
-  "publicSignals": [],
+  "debtAndLiens": { "summary": {}, "current": [], "history": [] },
+  "rent": { "rentEstimate": 2440, "rentPerDoor": 1220, "unitBasis": "per_unit" },
+  "market": { "onMarket": false, "listPrice": null, "agent": null },
   "signals": {},
-  "meta": { "completeness": 76, "dataSources": [], "dataQuality": [] }
+  "sync": { "recordVersion": "...", "lastUpdated": "..." },
+  "quality": { "completeness": 76, "fallbackRecommended": false }
 }</pre>
 
   <h2>Market and Report Endpoints</h2>
@@ -4171,11 +4246,23 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
 
   <h2>Buy Box Club Endpoints</h2>
   <table>
-    <tr><th>Endpoint</th><th>Purpose</th><th>Notes</th></tr>
-    <tr><td><code>GET /v1/bbc/property</code></td><td>BBC-normalized exact address lookup.</td><td>Use <code>address</code>, <code>city</code>, <code>state</code>, <code>zip</code>.</td></tr>
-    <tr><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>BBC-normalized lookup by MXRE id.</td><td>Use for safe re-sync after BBC stores <code>mxreId</code>.</td></tr>
-    <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Changed market records since a cursor/time.</td><td>Use for daily sync and reconsidering failed deals.</td></tr>
-    <tr><td><code>POST /v1/bbc/search-runs</code></td><td>Delta-based saved-search execution.</td><td>Send filters plus <code>excludeMxreIds</code>; MXRE returns new/changed candidates.</td></tr>
+    <tr><th>Endpoint</th><th>Status</th><th>Purpose</th><th>Notes</th></tr>
+    <tr><td><code>GET /v1/bbc/property</code></td><td>Required</td><td>BBC-normalized exact address lookup.</td><td>Use <code>address</code>, <code>city</code>, <code>state</code>, <code>zip</code>.</td></tr>
+    <tr><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Required</td><td>BBC-normalized lookup by MXRE id.</td><td>Use for safe re-sync after BBC stores <code>mxreId</code>.</td></tr>
+    <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Required</td><td>Changed market records since a cursor/time.</td><td>Use for daily sync and reconsidering failed deals.</td></tr>
+    <tr><td><code>POST /v1/bbc/search-runs</code></td><td>Required</td><td>Delta-based saved-search execution.</td><td>Send filters plus <code>excludeMxreIds</code>; MXRE returns new/changed candidates.</td></tr>
+    <tr><td><code>GET /v1/markets/{market}/reports/creative-finance</code></td><td>Optional report</td><td>Creative finance opportunity report.</td><td>Use for the dedicated BBC creative finance screen.</td></tr>
+    <tr><td><code>GET /v1/markets/{market}/price-changes</code></td><td>Optional report</td><td>MLS/listing price-change report.</td><td>Use for re-underwriting failed deals after price drops.</td></tr>
+    <tr><td><code>GET /v1/markets/{market}/readiness</code></td><td>Optional admin</td><td>Market readiness and coverage.</td><td>Use in BBC admin diagnostics.</td></tr>
+    <tr><td><code>GET /v1/markets/{market}/completion</code></td><td>Optional admin</td><td>Coverage/completion breakdown.</td><td>Use in MXRE/BBC admin dashboards.</td></tr>
+  </table>
+  <h3>Minimum BBC Integration</h3>
+  <table>
+    <tr><th>BBC Use Case</th><th>MXRE Endpoint</th><th>Fallback</th></tr>
+    <tr><td>Exact address underwriting</td><td><code>GET /v1/bbc/property</code></td><td>RealEstateAPI if <code>404</code> or <code>quality.fallbackRecommended=true</code></td></tr>
+    <tr><td>Stored property refresh</td><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Keep previous BBC snapshot if MXRE unavailable</td></tr>
+    <tr><td>Daily saved search</td><td><code>POST /v1/bbc/search-runs</code></td><td>Return no rows rather than re-underwrite unchanged deals</td></tr>
+    <tr><td>Reconsider failed deals</td><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Only re-score when <code>recordVersion</code> changes</td></tr>
   </table>
   <h3>BBC Daily Search Example</h3>
   <pre>curl "https://api.mxre.mundox.ai/v1/bbc/search-runs" \
@@ -4196,9 +4283,9 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
 
   <h2>Recommended BBC Wiring</h2>
   <ul>
-    <li>Exact address underwriting: call <code>/v1/property</code> with address, city, state, zip.</li>
-    <li>Club match score: consume <code>property</code>, <code>ownership</code>, <code>valuation</code>, <code>liens</code>, <code>rent</code>, <code>signals</code>, and <code>meta.completeness</code>.</li>
-    <li>Deal chat underwriting: show <code>meta.dataSources</code> and <code>meta.dataQuality</code> so users know actual vs estimated fields.</li>
+    <li>Exact address underwriting: call <code>/v1/bbc/property</code> with address, city, state, zip.</li>
+    <li>Club match score: consume <code>property</code>, <code>ownership</code>, <code>valuation</code>, <code>debtAndLiens</code>, <code>rent</code>, <code>signals</code>, and <code>quality.completeness</code>.</li>
+    <li>Deal chat underwriting: show <code>quality.dataSources</code> and <code>quality.dataQuality</code> so users know actual vs estimated fields.</li>
     <li>Bulk LOI fallback: use <code>market.agent</code> when present; fall back to BBC/other provider when MXRE has contact gaps.</li>
     <li>Admin diagnostics: store endpoint, MXRE id, HTTP status, latency, <code>meta.completeness</code>, and fallback reason.</li>
   </ul>
@@ -4218,7 +4305,7 @@ function endpointUrl(){
   });
   const zip = $('try-zip').value.trim();
   if (zip) params.set('zip', zip);
-  return '/v1/property?' + params.toString();
+  return '/v1/bbc/property?' + params.toString();
 }
 function authHeaders(){
   const key = $('try-key').value.trim();
@@ -4237,10 +4324,10 @@ async function tryPropertyLookup(){
     if (response.ok) {
       $('try-summary').style.display = 'grid';
       $('try-summary').innerHTML = [
-        ['MXRE ID', data.id],
+        ['MXRE ID', data.mxreId],
         ['Value', money(data.valuation?.marketValue)],
-        ['Rent', money(data.rent?.currentRent)],
-        ['Completeness', (data.meta?.completeness ?? '-') + '%'],
+        ['Rent', money(data.rent?.rentEstimate)],
+        ['Completeness', (data.quality?.completeness ?? '-') + '%'],
       ].map(([label, value]) => '<div class="mini"><b>' + html(label) + '</b><span>' + html(value) + '</span></div>').join('');
     }
   } catch (error) {
@@ -4400,6 +4487,29 @@ function buildOpenApiSpec() {
             { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
           ],
           responses: { '200': { description: 'Listings with positive or negative creative finance language and provenance.' } },
+        },
+      },
+      '/v1/markets/{market}/price-changes': {
+        get: {
+          summary: 'Listing price-change report',
+          description: 'Use this to decide whether previously failed BBC deals should be re-underwritten after a price drop or status movement.',
+          parameters: [
+            { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
+            { name: 'since', in: 'query', schema: { type: 'string', format: 'date-time' } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 100 } },
+            { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          ],
+          responses: { '200': { description: 'Recent price-change events with listing/property context.' } },
+        },
+      },
+      '/v1/markets/{market}/readiness': {
+        get: {
+          summary: 'Market readiness summary',
+          description: 'Admin diagnostic for deciding whether a market is ready for BBC users.',
+          parameters: [
+            { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
+          ],
+          responses: { '200': { description: 'Market coverage and readiness metrics.' } },
         },
       },
       '/v1/markets/{market}/completion': {
