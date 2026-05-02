@@ -81,6 +81,33 @@ const MARKET_CONFIGS: Record<string, {
 };
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
+const BBC_EVENT_TYPES = new Set([
+  'parcel_created',
+  'parcel_updated',
+  'ownership_changed',
+  'deed_recorded',
+  'mortgage_recorded',
+  'lien_recorded',
+  'lien_released',
+  'listing_created',
+  'listing_refreshed',
+  'listing_price_changed',
+  'price_changed',
+  'listing_status_changed',
+  'status_changed',
+  'listing_pending',
+  'listing_sold',
+  'listing_delisted',
+  'listing_relisted',
+  'agent_contact_updated',
+  'rent_observed',
+  'rent_changed',
+  'floorplan_changed',
+  'creative_finance_detected',
+  'preforeclosure_detected',
+  'tax_changed',
+  'assessment_changed',
+]);
 
 function resolveMarketConfig(value: string) {
   const key = value.toLowerCase();
@@ -378,8 +405,8 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
   const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 100, 1000);
   const eventTypes = (c.req.query('event_types') ?? '')
     .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => BBC_EVENT_TYPES.has(value));
   const eventFilterSql = eventTypes.length > 0
     ? `and event_type in (${eventTypes.map((type) => `'${sqlString(type)}'`).join(',')})`
     : '';
@@ -3836,7 +3863,9 @@ function numberOrNull(value: unknown): number | null {
 
 function parsePositiveInt(value: string | undefined): number | null {
   if (!value) return null;
-  const parsed = parseInt(value, 10);
+  const clean = value.trim();
+  if (!/^\d+$/.test(clean)) return null;
+  const parsed = Number(clean);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
@@ -3851,6 +3880,7 @@ function parseDateParam(value: string | undefined): string | null {
 function parseDateTimeParam(value: string | undefined): string | null {
   if (!value) return null;
   const clean = value.trim();
+  if (clean.length > 40) return null;
   const parsed = new Date(clean);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
@@ -3891,8 +3921,12 @@ function normalizeBbcAssetType(value: string): string {
 }
 
 function positiveNumberOrNull(value: unknown): number | null {
-  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())
+      ? Number(value)
+      : NaN;
+  return Number.isFinite(parsed) && parsed > 0 && parsed <= 1_000_000_000 ? Math.round(parsed) : null;
 }
 
 function buildBuyBoxClubPropertyResponse(response: ReturnType<typeof buildPropertyResponse>) {
