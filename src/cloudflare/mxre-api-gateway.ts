@@ -3,6 +3,7 @@ export interface Env {
   MXRE_UPSTREAM_API_KEY?: string;
   MXRE_CLIENT_API_KEYS?: string;
   MXRE_BUY_BOX_CLUB_KEY?: string;
+  MXRE_BUY_BOX_CLUB_SANDBOX_KEY?: string;
   CACHE_SECONDS?: string;
 }
 
@@ -89,6 +90,11 @@ function authenticate(request: Request, env: Env): ApiClient | null {
   if (env.MXRE_BUY_BOX_CLUB_KEY?.trim() && apiKey === env.MXRE_BUY_BOX_CLUB_KEY.trim()) {
     if (clientId && clientId !== 'buy_box_club_prod') return null;
     return { id: 'buy_box_club_prod', key: apiKey, environment: 'production' };
+  }
+
+  if (env.MXRE_BUY_BOX_CLUB_SANDBOX_KEY?.trim() && apiKey === env.MXRE_BUY_BOX_CLUB_SANDBOX_KEY.trim()) {
+    if (clientId && clientId !== 'buy_box_club_sandbox') return null;
+    return { id: 'buy_box_club_sandbox', key: apiKey, environment: 'sandbox' };
   }
 
   const matches = loadClients(env).filter((client) => client.key === apiKey);

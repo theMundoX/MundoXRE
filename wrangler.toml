@@ -14,3 +14,4 @@ CACHE_SECONDS = "60"
 # npx wrangler secret put MXRE_UPSTREAM_API_KEY
 # npx wrangler secret put MXRE_CLIENT_API_KEYS
 # npx wrangler secret put MXRE_BUY_BOX_CLUB_KEY
+# npx wrangler secret put MXRE_BUY_BOX_CLUB_SANDBOX_KEY
