@@ -5,6 +5,10 @@ const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "500", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
+const arg = (name: string) =>
+  process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
+const STATE = arg("state")?.toUpperCase();
+const CITY = arg("city")?.toUpperCase();
 
 type ListingRow = {
   id: number;
@@ -83,11 +87,18 @@ async function main() {
   console.log("MXRE - Listing agent contact enrichment");
   console.log(`Dry run: ${DRY_RUN}`);
   console.log(`Limit: ${LIMIT}`);
+  if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
+
+  const filters = [
+    STATE ? `state_code = ${sqlString(STATE)}` : null,
+    CITY ? `upper(coalesce(city,'')) = ${sqlString(CITY)}` : null,
+  ].filter(Boolean).join("\n      and ");
 
   const rows = await pg(`
     select id, listing_agent_name, listing_agent_first_name, listing_agent_last_name, listing_brokerage, raw
     from listing_signals
     where is_on_market = true
+      ${filters ? `and ${filters}` : ""}
       and (
         listing_agent_first_name is null
         or listing_agent_last_name is null

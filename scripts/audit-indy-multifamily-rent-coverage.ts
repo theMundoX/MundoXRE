@@ -3,6 +3,11 @@ import "dotenv/config";
 
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
+const arg = (name: string, fallback?: string) =>
+  process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? fallback;
+const STATE = (arg("state", "IN") ?? "IN").toUpperCase();
+const CITY = (arg("city", "INDIANAPOLIS") ?? "INDIANAPOLIS").toUpperCase();
+const COUNTY_ID = arg("county_id", "797583");
 
 async function pg(query: string): Promise<Record<string, unknown>[]> {
   const response = await fetch(PG_URL, {
@@ -29,28 +34,48 @@ async function main() {
   // Keep this on indexed columns. Free-text property_use scans on the full
   // Indianapolis property table were causing pg/query read timeouts.
   const mfWhere = `
-    county_id = 797583
+    county_id = ${Number(COUNTY_ID)}
+    and upper(coalesce(city,'')) like '%${CITY.replace(/'/g, "''")}%'
     and (
       coalesce(total_units,1) >= 2
       or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily')
     )
   `;
 
-  const [summary] = await pg(`
-    with mf as (
+  const ids: number[] = [];
+  const summary = {
+    mf_parcels: 0,
+    mf_units: 0,
+    four_plus_parcels: 0,
+  };
+  let lastId = 0;
+  while (true) {
+    const page = await pg(`
       select id, asset_type, total_units
       from properties
       where ${mfWhere}
-    )
-    select
-      count(*)::int as mf_parcels,
-      sum(coalesce(total_units,1))::int as mf_units,
-      count(*) filter (where coalesce(total_units,0) >= 4 or asset_type in ('apartment','commercial_multifamily'))::int as four_plus_parcels
-    from mf;
-  `);
-
-  const mfIds = await pg(`select id from properties where ${mfWhere};`);
-  const ids = mfIds.map(row => Number(row.id)).filter(Number.isFinite);
+        and id > ${lastId}
+      order by id
+      limit 1000;
+    `);
+    if (page.length === 0) break;
+    for (const row of page) {
+      const id = Number(row.id);
+      if (Number.isFinite(id)) {
+        ids.push(id);
+        if (id > lastId) lastId = id;
+      }
+      const units = Number(row.total_units ?? 1);
+      const assetType = String(row.asset_type ?? "");
+      summary.mf_parcels += 1;
+      summary.mf_units += Number.isFinite(units) && units > 0 ? units : 1;
+      if ((Number.isFinite(units) && units >= 4) || ["apartment", "commercial_multifamily"].includes(assetType)) {
+        summary.four_plus_parcels += 1;
+      }
+    }
+    if (page.length < 1000) break;
+    console.log(`  loaded ${ids.length.toLocaleString()} multifamily ids`);
+  }
   const total = Number(summary.mf_parcels ?? ids.length);
   const chunks: number[][] = [];
   for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
@@ -125,8 +150,8 @@ async function main() {
   }
 
   const report = {
-    market: "indianapolis",
-    scope: "marion_county_indexed_multifamily_universe",
+    market: `${CITY.toLowerCase()}, ${STATE}`,
+    scope: `${CITY.toLowerCase()}_${STATE.toLowerCase()}_indexed_multifamily_universe`,
     generated_at: new Date().toISOString(),
     ...summary,
     ...metrics,

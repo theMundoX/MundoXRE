@@ -5,19 +5,26 @@ const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "100", 10));
 const DELAY_MS = Math.max(750, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? "2500", 10));
+const MAX_SEARCH_QUERIES = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-queries="))?.split("=")[1] ?? "8", 10));
+const MAX_SEARCH_LINKS = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-links="))?.split("=")[1] ?? "12", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
 const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 const STATE = arg("state")?.toUpperCase();
 const CITY = arg("city")?.toUpperCase();
+const BROKERAGE_PATTERN = arg("brokerage-pattern");
 
 type ListingRow = {
   id: number;
+  address?: string | null;
+  city?: string | null;
+  state_code?: string | null;
   listing_agent_name: string | null;
   listing_agent_first_name: string | null;
   listing_agent_last_name: string | null;
   listing_agent_phone: string | null;
   listing_brokerage: string | null;
+  raw: Record<string, unknown> | null;
 };
 
 type Candidate = {
@@ -60,9 +67,15 @@ function cleanText(value: string): string {
   return value
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/\\u0040/gi, "@")
+    .replace(/\\u002e/gi, ".")
+    .replace(/\\u002d/gi, "-")
+    .replace(/\\u002f/gi, "/")
     .replace(/&amp;/g, "&")
     .replace(/&#64;|&commat;/gi, "@")
     .replace(/&#46;|&period;/gi, ".")
+    .replace(/&#x40;/gi, "@")
+    .replace(/&#x2e;/gi, ".")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -99,6 +112,15 @@ function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function rawString(row: ListingRow, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = row.raw?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return null;
+}
+
 function brokerageDomainHints(brokerage: string | null): string[] {
   const b = brokerage?.toLowerCase() ?? "";
   const hints: string[] = [];
@@ -106,6 +128,7 @@ function brokerageDomainHints(brokerage: string | null): string[] {
   if (b.includes("century 21") || b.includes("c21")) hints.push("century21.com");
   if (b.includes("kw ") || b.includes("keller williams")) hints.push("kw.com");
   if (b.includes("exp")) hints.push("exprealty.com");
+  if (/\breal\b/.test(b) || b.includes("real brokerage")) hints.push("realbrokerage.com", "joinreal.com", "onereal.com");
   if (b.includes("compass")) hints.push("compass.com");
   if (b.includes("re/max") || b.includes("remax")) hints.push("remax.com");
   if (b.includes("coldwell")) hints.push("coldwellbanker.com");
@@ -127,6 +150,37 @@ function brokerageDomainHints(brokerage: string | null): string[] {
     if (base.length >= 5) hints.push(`${base}.com`);
   }
   return [...new Set(hints)];
+}
+
+function brokerageSeedUrls(row: ListingRow): string[] {
+  const b = row.listing_brokerage?.toLowerCase() ?? "";
+  const name = splitName(row);
+  const urls: string[] = [];
+  if (!name) return urls;
+
+  if (b.includes("re/max") || b.includes("remax")) {
+    urls.push(
+      "https://town-center-columbus-oh.remax.com/agents.php",
+      "https://connection-gahanna-oh.remax.com/agents.php",
+      "https://www.homes4columbus.com/agents.php",
+      "https://revealty-olentangy-valley-columbus-oh.remax.com/agents.php",
+      "https://www.dublinhomesremax.com/agents.php",
+      "https://www.remaxoneohio.com/agents.php",
+      "https://www.achievers-columbus.com/agents.php",
+      "https://www.ohiorealtypartners.com/agents.php",
+      "https://www.remaxcentralohiohomes.com/agents.php",
+    );
+  }
+
+  if (/\breal\b/.test(b) || b.includes("real brokerage")) {
+    urls.push(
+      "https://www.realbrokerage.com/agents",
+      "https://www.joinreal.com/",
+      "https://www.onereal.com/",
+    );
+  }
+
+  return urls;
 }
 
 function directProfileUrls(row: ListingRow): string[] {
@@ -208,6 +262,42 @@ function extractLikelyProfileLinks(baseUrl: string, html: string, row: ListingRo
   return [...new Set(links)].slice(0, 16);
 }
 
+function extractBrokerageRosterLinks(baseUrl: string, html: string, row: ListingRow): string[] {
+  const name = splitName(row);
+  if (!name) return [];
+  const first = name.first.toLowerCase();
+  const last = name.last.toLowerCase();
+  const full = name.full.toLowerCase();
+  const decodedHtml = html.replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+  const links: string[] = [];
+
+  for (const match of decodedHtml.matchAll(/<a\b[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    const href = match[1];
+    const label = cleanText(match[2]).toLowerCase();
+    const url = sameSiteUrl(baseUrl, href);
+    if (!url) continue;
+    const haystack = `${url.toLowerCase()} ${label}`;
+    if (haystack.includes(full) || (haystack.includes(first) && haystack.includes(last))) {
+      links.push(url);
+    }
+    if ((label.includes("email") || href.toLowerCase().includes("email")) && (decodedHtml.toLowerCase().includes(full) || (decodedHtml.toLowerCase().includes(first) && decodedHtml.toLowerCase().includes(last)))) {
+      links.push(url);
+    }
+  }
+
+  for (const pattern of [
+    new RegExp(`href=["']([^"']*(?:${first}|${last})[^"']*)["']`, "gi"),
+    /href=["']([^"']*agents?\.php[^"']*)["']/gi,
+  ]) {
+    for (const match of decodedHtml.matchAll(pattern)) {
+      const url = sameSiteUrl(baseUrl, match[1]);
+      if (url) links.push(url);
+    }
+  }
+
+  return [...new Set(links)].slice(0, 24);
+}
+
 function extractLinksFromDuckDuckGo(html: string): string[] {
   const links: string[] = [];
   const decodedHtml = html
@@ -227,7 +317,7 @@ function extractLinksFromDuckDuckGo(html: string): string[] {
   for (const match of decodedHtml.matchAll(/uddg=([^&"]+)/gi)) links.push(decodeURIComponent(match[1]));
   return [...new Set(links)]
     .filter(url => /^https?:\/\//i.test(url))
-    .filter(url => !/duckduckgo\.com|redfin\.com|zillow\.com|realtor\.com|homes\.com|facebook\.com|instagram\.com|linkedin\.com/i.test(url))
+    .filter(url => !/duckduckgo\.com|facebook\.com|instagram\.com|linkedin\.com/i.test(url))
     .slice(0, 8);
 }
 
@@ -240,7 +330,7 @@ function extractLinksFromBing(html: string): string[] {
   for (const match of decodedHtml.matchAll(/<a[^>]+href="(https?:\/\/[^"]+)"/gi)) links.push(match[1]);
   return [...new Set(links)]
     .filter(url => /^https?:\/\//i.test(url))
-    .filter(url => !/bing\.com|microsoft\.com|redfin\.com|zillow\.com|realtor\.com|homes\.com|facebook\.com|instagram\.com|linkedin\.com/i.test(url))
+    .filter(url => !/bing\.com|microsoft\.com|facebook\.com|instagram\.com|linkedin\.com/i.test(url))
     .slice(0, 8);
 }
 
@@ -275,9 +365,10 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const hasName = text.includes(first) && text.includes(last);
   const hasPhone = Boolean(phone && pageDigits.includes(phone));
   const hasBrokerage = tokens.length > 0 && tokens.some(token => text.includes(token) || url.toLowerCase().includes(token));
+  const isListingPortal = /realtor\.com|zillow\.com|homes\.com|redfin\.com/i.test(url);
   const emails = extractEmails(html);
   if (emails.length > 0) stats.pages_with_email++;
-  if (!hasName || (!hasPhone && !hasBrokerage)) {
+  if (!hasName || (!hasPhone && !hasBrokerage && !isListingPortal)) {
     if (emails.length > 0) stats.rejected_identity++;
     return null;
   }
@@ -291,6 +382,28 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
     email: personal,
     url,
     confidence: hasPhone ? "public_profile_verified" : "public_page_likely",
+  };
+}
+
+function verifySyntheticPublicEmail(row: ListingRow, html: string, url: string): Candidate | null {
+  const name = splitName(row);
+  if (!name) return null;
+  const b = row.listing_brokerage?.toLowerCase() ?? "";
+  if (!(/\breal\b/.test(b) || b.includes("real brokerage"))) return null;
+
+  const text = cleanText(html).toLowerCase();
+  const first = name.first.toLowerCase();
+  const last = name.last.toLowerCase();
+  const phone = normalizePhone(row.listing_agent_phone);
+  const pageDigits = text.replace(/\D/g, "");
+  if (!text.includes(first) || !text.includes(last)) return null;
+  if (phone && !pageDigits.includes(phone)) return null;
+  if (!text.includes("@joinreal.com") && !text.includes("joinreal.com email")) return null;
+
+  return {
+    email: `${first.replace(/[^a-z0-9]/g, "")}.${last.replace(/[^a-z0-9]/g, "")}@joinreal.com`,
+    url,
+    confidence: phone ? "public_profile_verified" : "public_page_likely",
   };
 }
 
@@ -349,6 +462,23 @@ async function saveVerifiedEmail(row: ListingRow, candidate: Candidate): Promise
 }
 
 async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
+  for (const seedUrl of brokerageSeedUrls(row)) {
+    await sleep(DELAY_MS);
+    const seedHtml = await fetchText(seedUrl);
+    if (!seedHtml) continue;
+    stats.profile_pages++;
+    const seedCandidate = verifyEmailPage(seedHtml, row, seedUrl) ?? verifySyntheticPublicEmail(row, seedHtml, seedUrl);
+    if (seedCandidate) return seedCandidate;
+    for (const profileLink of extractBrokerageRosterLinks(seedUrl, seedHtml, row)) {
+      await sleep(DELAY_MS);
+      const profileHtml = await fetchText(profileLink);
+      if (!profileHtml) continue;
+      stats.profile_pages++;
+      const candidate = verifyEmailPage(profileHtml, row, profileLink) ?? verifySyntheticPublicEmail(row, profileHtml, profileLink);
+      if (candidate) return candidate;
+    }
+  }
+
   const profileUrls = directProfileUrls(row);
   if (profileUrls.length === 0) {
     stats.no_direct_brokerage_hint++;
@@ -386,22 +516,34 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
   if (!name) return null;
   const phone = row.listing_agent_phone?.replace(/[^\d]/g, "");
   const phoneText = row.listing_agent_phone ?? "";
+  const mlsNumber = rawString(row, ["mlsNumber", "mls_number", "mlsId", "mls_id"]);
+  const address = row.address?.replace(/\s+/g, " ").trim();
+  const portalQueries = ["realtor.com", "zillow.com", "homes.com", "redfin.com", "realty.com", "ezhomesearch.com", "coldwellbankerhomes.com"].flatMap(domain => [
+    [`site:${domain}`, mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
+    [`site:${domain}`, address ? `"${address}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
+    [`site:${domain}`, `"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
+    [`site:${domain}`, `"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "agent"].filter(Boolean).join(" "),
+  ]);
   const queries = [
+    ...portalQueries,
+    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "email"].filter(Boolean).join(" "),
+    [address ? `"${address}"` : "", `"${name.full}"`, "listing agent email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phone ? `"${phone}"` : "", "realtor email"].filter(Boolean).join(" "),
     [phoneText ? `"${phoneText}"` : "", "realtor email"].filter(Boolean).join(" "),
     [`"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "email realtor agent"].filter(Boolean).join(" "),
+    [`"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "contact"].filter(Boolean).join(" "),
+    [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
   ].filter((query, index, all) => query && all.indexOf(query) === index);
 
   const links: string[] = [];
-  for (const query of queries) {
+  for (const query of queries.slice(0, MAX_SEARCH_QUERIES)) {
     const duckUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
     const searchHtml = await fetchText(duckUrl);
     if (searchHtml) {
       stats.search_pages++;
       links.push(...extractLinksFromDuckDuckGo(searchHtml));
     }
-    if (links.length > 0) break;
     await sleep(DELAY_MS);
     const bingUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
     const bingHtml = await fetchText(bingUrl);
@@ -409,9 +551,9 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
       stats.search_pages++;
       links.push(...extractLinksFromBing(bingHtml));
     }
-    if (links.length > 0) break;
+    if (links.length >= MAX_SEARCH_LINKS * 2) break;
   }
-  const uniqueLinks = [...new Set(links)].slice(0, 12);
+  const uniqueLinks = [...new Set(links)].slice(0, MAX_SEARCH_LINKS);
   stats.search_links += uniqueLinks.length;
   if (uniqueLinks.length === 0) return null;
 
@@ -429,15 +571,19 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
 async function main() {
   console.log("MXRE - Public agent email enrichment");
   console.log(`Limit: ${LIMIT}; delay ${DELAY_MS}ms; dry run ${DRY_RUN}`);
+  console.log(`Search caps: ${MAX_SEARCH_QUERIES} queries, ${MAX_SEARCH_LINKS} links`);
   if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
+  if (BROKERAGE_PATTERN) console.log(`Brokerage filter: ${BROKERAGE_PATTERN}`);
 
   const filters = [
     STATE ? `state_code = ${sql(STATE)}` : null,
     CITY ? `upper(coalesce(city,'')) = ${sql(CITY)}` : null,
+    BROKERAGE_PATTERN ? `listing_brokerage ilike ${sql(BROKERAGE_PATTERN)}` : null,
   ].filter(Boolean).join("\n      and ");
 
   const rows = await pg(`
-    select id, listing_agent_name, listing_agent_first_name, listing_agent_last_name,
+    select id, address, city, state_code, raw,
+           listing_agent_name, listing_agent_first_name, listing_agent_last_name,
            listing_agent_phone, listing_brokerage
     from listing_signals
     where is_on_market = true

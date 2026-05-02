@@ -152,6 +152,7 @@ async function fetchPage(minObjectId: number): Promise<FetchResult> {
 async function main() {
   const minOidArg = process.argv.find((a) => a.startsWith("--min-objectid="))?.split("=")[1];
   const startMinOid = minOidArg ? parseInt(minOidArg, 10) : 0;
+  const skipExistingScan = process.argv.includes("--skip-existing-scan");
 
   console.log("MXRE — Dallas County, TX Assessor Parcel Ingest");
   console.log("═".repeat(60));
@@ -169,22 +170,27 @@ async function main() {
   const COUNTY_ID = county.id;
   console.log(`County ID: ${COUNTY_ID}\n`);
 
-  // Load existing parcel IDs to skip dupes
+  // Load existing parcel IDs to skip dupes. On resume runs, this can be skipped
+  // because the DB upsert already handles existing parcel_ids.
   const existing = new Set<string>();
-  let exOffset = 0;
-  while (true) {
-    const { data } = await db
-      .from("properties")
-      .select("parcel_id")
-      .eq("county_id", COUNTY_ID)
-      .not("parcel_id", "is", null)
-      .range(exOffset, exOffset + 999);
-    if (!data || data.length === 0) break;
-    for (const r of data) if (r.parcel_id) existing.add(r.parcel_id);
-    if (data.length < 1000) break;
-    exOffset += 1000;
+  if (!skipExistingScan) {
+    let exOffset = 0;
+    while (true) {
+      const { data } = await db
+        .from("properties")
+        .select("parcel_id")
+        .eq("county_id", COUNTY_ID)
+        .not("parcel_id", "is", null)
+        .range(exOffset, exOffset + 999);
+      if (!data || data.length === 0) break;
+      for (const r of data) if (r.parcel_id) existing.add(r.parcel_id);
+      if (data.length < 1000) break;
+      exOffset += 1000;
+    }
+    console.log(`  ${existing.size.toLocaleString()} parcels already in DB\n`);
+  } else {
+    console.log("  Existing parcel scan skipped; relying on DB upsert for duplicates\n");
   }
-  console.log(`  ${existing.size.toLocaleString()} parcels already in DB\n`);
 
   let inserted = 0, dupes = 0, errors = 0, skipped = 0;
   let minObjectId = startMinOid;
@@ -214,7 +220,7 @@ async function main() {
       const unitId = String(attrs.UNITID || "").trim();
       if (unitId) addrParts.push(unitId);
       const address = addrParts.join(" ").toUpperCase();
-      if (!address) { skipped++; continue; }
+      if (!address || address === "0") { skipped++; continue; }
 
       const city = String(attrs.CITY || "DALLAS").trim().toUpperCase();
 
@@ -241,8 +247,6 @@ async function main() {
         // Financial fields not available in this GIS layer
         market_value: null,
         assessed_value: null,
-        land_value: null,
-        building_value: null,
         year_built: null,
         last_sale_date: null,
         last_sale_price: null,

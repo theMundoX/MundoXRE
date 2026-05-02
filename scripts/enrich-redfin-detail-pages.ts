@@ -6,6 +6,10 @@ const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "250", 10));
 const DELAY_MS = Math.max(250, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? "1200", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
+const arg = (name: string, fallback: string) =>
+  process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? fallback;
+const STATE = arg("state", "IN").toUpperCase();
+const CITY = arg("city", "INDIANAPOLIS").toUpperCase();
 
 type ListingRow = {
   id: number;
@@ -112,6 +116,7 @@ async function fetchHtml(url: string): Promise<string | null> {
 
 async function main() {
   console.log("MXRE - Redfin detail page enrichment");
+  console.log(`Market: ${CITY}, ${STATE}`);
   console.log(`Limit: ${LIMIT}; delay ${DELAY_MS}ms; dry run ${DRY_RUN}`);
 
   const rows = await pg(`
@@ -120,8 +125,8 @@ async function main() {
     where is_on_market = true
       and listing_source = 'redfin'
       and listing_url is not null
-      and state_code = 'IN'
-      and upper(city) = 'INDIANAPOLIS'
+      and state_code = ${sql(STATE)}
+      and upper(city) = ${sql(CITY)}
       and (
         listing_agent_phone is null
         or listing_agent_name is null

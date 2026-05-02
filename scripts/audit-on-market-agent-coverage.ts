@@ -3,6 +3,10 @@ import "dotenv/config";
 
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
+const arg = (name: string, fallback: string) =>
+  process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? fallback;
+const STATE = arg("state", "IN").toUpperCase();
+const CITY = arg("city", "INDIANAPOLIS").toUpperCase();
 
 async function pg(query: string): Promise<Record<string, unknown>[]> {
   const response = await fetch(PG_URL, {
@@ -26,6 +30,7 @@ const pct = (value: unknown, total: unknown) => {
 };
 
 async function main() {
+  const sql = (value: string) => `'${value.replace(/'/g, "''")}'`;
   const [summary] = await pg(`
     select
       count(*)::int as active_listing_rows,
@@ -47,13 +52,13 @@ async function main() {
       count(*) filter (where creative_finance_score is not null)::int as creative_scored
     from listing_signals
     where is_on_market = true
-      and state_code = 'IN'
-      and upper(city) = 'INDIANAPOLIS';
+      and state_code = ${sql(STATE)}
+      and upper(city) = ${sql(CITY)};
   `);
 
   const total = Number(summary.active_listing_rows ?? 0);
   console.log(JSON.stringify({
-    market: "indianapolis",
+    market: `${CITY.toLowerCase()}, ${STATE}`,
     generated_at: new Date().toISOString(),
     ...summary,
     coverage_pct: {
