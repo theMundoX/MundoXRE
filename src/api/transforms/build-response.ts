@@ -146,12 +146,12 @@ export function buildPropertyResponse(
     }
   }
 
-  if (p.last_sale_price != null || p.last_sale_date != null) {
+  if ((p.last_sale_price != null || p.last_sale_date != null) && !hasMatchingActualSale(salesMapped, p)) {
     const sale: SaleRecord = {
       saleDate: (p.last_sale_date as string) ?? null,
       recordingDate: (p.last_sale_date as string) ?? '',
       saleAmount: (p.last_sale_price as number) ?? null,
-      documentType: 'Assessor last sale',
+      documentType: 'Assessor reported last sale',
       documentNumber: null,
       bookPage: null,
       buyerNames: '',
@@ -399,6 +399,28 @@ function normalizePublicSource(source: string | null): string {
   if (lower.includes('realtor')) return 'realtor';
   if (lower.startsWith('http://') || lower.startsWith('https://')) return 'public_record';
   return source;
+}
+
+function hasMatchingActualSale(sales: SaleRecord[], property: Row): boolean {
+  const lastSalePrice = typeof property.last_sale_price === 'number' ? property.last_sale_price : null;
+  const lastSaleDate = typeof property.last_sale_date === 'string' ? property.last_sale_date : null;
+  if (lastSalePrice == null && !lastSaleDate) return false;
+
+  return sales.some((sale) => {
+    if (sale.documentType.toLowerCase().includes('assessor')) return false;
+    const amountMatches = lastSalePrice == null || sale.saleAmount === lastSalePrice;
+    const saleDate = sale.saleDate ?? sale.recordingDate;
+    const dateMatches = !lastSaleDate || datesWithinDays(saleDate, lastSaleDate, 10);
+    return amountMatches && dateMatches;
+  });
+}
+
+function datesWithinDays(a: string | null, b: string, days: number): boolean {
+  if (!a || !b) return false;
+  const left = new Date(`${a.slice(0, 10)}T00:00:00.000Z`).getTime();
+  const right = new Date(`${b.slice(0, 10)}T00:00:00.000Z`).getTime();
+  if (Number.isNaN(left) || Number.isNaN(right)) return false;
+  return Math.abs(left - right) <= days * 24 * 60 * 60 * 1000;
 }
 
 function fmrRentForBedrooms(fmr: FMRData, bedrooms: number | null): number | null {
