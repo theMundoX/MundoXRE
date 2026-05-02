@@ -227,6 +227,7 @@ async function main() {
       // TAXPAZIP is the taxpayer mailing zip — best available zip for this layer
       const rawZip = String(attrs.TAXPAZIP || "").trim().replace(/\D/g, "").slice(0, 5);
       const zip = rawZip || null;
+      if (!zip) { skipped++; continue; }
 
       // Owner names
       const ownerName1 = String(attrs.TAXPANAME1 || "").trim();
