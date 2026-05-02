@@ -30,8 +30,17 @@ function mapMortgageRow(row: Record<string, unknown>): LienRecord {
     lenderType: (row.lender_type as string) ?? null,
     borrowerName: (row.borrower_name as string) ?? (row.grantee_name as string) ?? null,
     loanType: (row.loan_type as string) ?? null,
-    source: (row.source_url as string) ?? 'unknown',
+    source: normalizePublicSource((row.source_url as string) ?? null),
   };
+}
+
+function normalizePublicSource(source: string | null): string {
+  if (!source) return 'unknown';
+  const lower = source.toLowerCase();
+  if (lower.includes('stats.indiana.edu') || lower.includes('sdfdata')) return 'public_recorder';
+  if (lower.includes('assessor') || lower.includes('auditor') || lower.includes('parcel')) return 'county_assessor';
+  if (lower.startsWith('http://') || lower.startsWith('https://')) return 'public_record';
+  return source;
 }
 
 function mapDocumentType(docType: string | null): LienRecord['type'] {
@@ -70,8 +79,13 @@ export function splitLiens(
   const history: LienRecord[] = [];
 
   for (const lien of all) {
-    // Satisfactions/assignments are always history
-    if (lien.type === 'satisfaction' || lien.type === 'assignment' || lien.type === 'deed') {
+    // Deeds are sale/transfer events, not liens. They are mapped into the sales array upstream.
+    if (lien.type === 'deed') {
+      continue;
+    }
+
+    // Satisfactions/assignments are lien history, but never active liens.
+    if (lien.type === 'satisfaction' || lien.type === 'assignment') {
       history.push(lien);
       continue;
     }
@@ -117,7 +131,7 @@ export function splitLiens(
     estimatedEquity,
     equityPercent,
     freeClear: openMortgages.length === 0,
-    lienCount: all.length,
+    lienCount: current.length + history.length,
     openLienCount: current.length,
   };
 

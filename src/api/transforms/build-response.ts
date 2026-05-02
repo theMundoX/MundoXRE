@@ -87,7 +87,7 @@ export function buildPropertyResponse(
     agentEmail: (m.agent_email as string) ?? null,
     brokerage: (m.brokerage as string) ?? null,
     listingType: (m.listing_type as string) ?? null,
-    source: (m.source as string) ?? 'unknown',
+    source: normalizePublicSource((m.source as string) ?? 'unknown'),
   }));
 
   // Build rent history
@@ -113,7 +113,7 @@ export function buildPropertyResponse(
     purchaseMethod: (s.purchase_method as 'cash' | 'financed') ?? null,
     downPayment: (s.down_payment as number) ?? null,
     ltv: (s.ltv as number) ?? null,
-    source: (s.source as string) ?? 'unknown',
+    source: normalizePublicSource((s.source as string) ?? 'unknown'),
   }));
 
   const saleKey = (sale: SaleRecord) => [
@@ -137,7 +137,7 @@ export function buildPropertyResponse(
       purchaseMethod: null,
       downPayment: null,
       ltv: null,
-      source: (deed.source_url as string) ?? 'recorder',
+      source: normalizePublicSource((deed.source_url as string) ?? 'recorder'),
     };
     const key = saleKey(sale);
     if (!seenSales.has(key)) {
@@ -160,7 +160,7 @@ export function buildPropertyResponse(
       purchaseMethod: null,
       downPayment: null,
       ltv: null,
-      source: (p.source as string) ?? 'assessor',
+      source: normalizePublicSource((p.source as string) ?? 'assessor'),
     };
     const key = saleKey(sale);
     if (!seenSales.has(key)) salesMapped.push(sale);
@@ -345,7 +345,7 @@ export function buildPropertyResponse(
       listDate,
       daysOnMarket,
       status: marketStatus,
-      listingSource: (latestListing?.source as string) ?? null,
+      listingSource: latestListing?.source ? normalizePublicSource(latestListing.source as string) : null,
       listingUrl: (latestListing?.listing_url as string) ?? (latestListing?.url as string) ?? null,
       agent: latestListing?.agent_name ? {
         name: (latestListing.agent_name as string) ?? null,
@@ -385,6 +385,20 @@ function mapMarketStatus(status: string | null): MXREPropertyResponse['market'][
   if (lower.includes('sold') || lower.includes('closed')) return 'sold';
   if (lower.includes('cancel') || lower.includes('withdrawn') || lower.includes('expired')) return 'cancelled';
   return 'off_market';
+}
+
+function normalizePublicSource(source: string | null): string {
+  if (!source) return 'unknown';
+  const lower = source.toLowerCase();
+  if (lower.includes('stats.indiana.edu') || lower.includes('sdfdata')) return 'public_recorder';
+  if (lower.includes('in-data-harvest') || lower.includes('assessor') || lower.includes('auditor') || lower.includes('parcel')) {
+    return 'county_assessor';
+  }
+  if (lower.includes('redfin')) return 'redfin';
+  if (lower.includes('zillow')) return 'zillow';
+  if (lower.includes('realtor')) return 'realtor';
+  if (lower.startsWith('http://') || lower.startsWith('https://')) return 'public_record';
+  return source;
 }
 
 function fmrRentForBedrooms(fmr: FMRData, bedrooms: number | null): number | null {
