@@ -1730,8 +1730,8 @@ app.get('/v1/markets/:market/pre-foreclosures', async (c) => {
   });
 });
 
-app.get('/v1/markets/:market/reports/creative-finance', async (c) => {
-  const market = c.req.param('market').toLowerCase();
+const creativeFinanceListingsHandler = async (c: Context) => {
+  const market = (c.req.param('market') ?? '').toLowerCase();
   if (!['indianapolis', 'indy'].includes(market)) {
     return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
   }
@@ -1941,6 +1941,7 @@ app.get('/v1/markets/:market/reports/creative-finance', async (c) => {
   `);
 
   return c.json({
+    schemaVersion: 'mxre.bbc.creativeFinanceListings.v1',
     market: 'indianapolis',
     report: 'creative_finance',
     geography: { scope: scope.key, scope_label: scope.label },
@@ -1954,7 +1955,10 @@ app.get('/v1/markets/:market/reports/creative-finance', async (c) => {
     results: result?.results ?? [],
     generated_at: new Date().toISOString(),
   });
-});
+};
+
+app.get('/v1/bbc/markets/:market/creative-finance-listings', creativeFinanceListingsHandler);
+app.get('/v1/markets/:market/reports/creative-finance', creativeFinanceListingsHandler);
 
 app.get('/v1/markets/:market/opportunities', async (c) => {
   const market = c.req.param('market').toLowerCase();
@@ -4173,7 +4177,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr>
       <td>6. Report screens</td>
       <td>BBC wants dashboards like creative finance opportunities or price drops.</td>
-      <td><code>GET /v1/markets/{market}/reports/creative-finance</code>, <code>GET /v1/markets/{market}/price-changes</code></td>
+      <td><code>GET /v1/bbc/markets/{market}/creative-finance-listings</code>, <code>GET /v1/markets/{market}/price-changes</code></td>
       <td>Report filters and selected MXRE ids. Do not copy MXRE market stats as permanent truth unless BBC needs snapshot history.</td>
     </tr>
     <tr>
@@ -4238,7 +4242,8 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td><code>GET /v1/markets/{market}/readiness</code></td><td>Market readiness and coverage status.</td><td><code>market=indianapolis</code>, <code>columbus</code>, <code>west-chester</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/completion</code></td><td>Completion metrics for parcels, underwriting fields, rents, listings.</td><td><code>scope=city|core|metro</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/opportunities</code></td><td>Filterable active listing/opportunity table.</td><td><code>asset</code>, <code>zip</code>, <code>min_price</code>, <code>max_price</code>, <code>creative=positive</code>, <code>page</code>, <code>limit</code></td></tr>
-    <tr><td><code>GET /v1/markets/{market}/reports/creative-finance</code></td><td>Creative finance listings detected from public remarks.</td><td><code>limit</code>, <code>offset</code></td></tr>
+    <tr><td><code>GET /v1/bbc/markets/{market}/creative-finance-listings</code></td><td>BBC-stable creative finance listings detected daily from MLS/listing public remarks.</td><td><code>status</code>, <code>asset</code>, <code>zip</code>, <code>since</code>, <code>until</code>, <code>page</code>, <code>limit</code></td></tr>
+    <tr><td><code>GET /v1/markets/{market}/reports/creative-finance</code></td><td>Internal/admin creative finance report alias.</td><td><code>limit</code>, <code>offset</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/price-changes</code></td><td>Recent listing price-change events.</td><td><code>limit</code>, <code>offset</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/pre-foreclosures</code></td><td>Public pre-foreclosure signals where available.</td><td><code>status</code>, <code>limit</code>, <code>offset</code></td></tr>
     <tr><td><code>GET /v1/coverage</code></td><td>National/state coverage overview.</td><td>None</td></tr>
@@ -4251,7 +4256,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Required</td><td>BBC-normalized lookup by MXRE id.</td><td>Use for safe re-sync after BBC stores <code>mxreId</code>.</td></tr>
     <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Required</td><td>Changed market records since a cursor/time.</td><td>Use for daily sync and reconsidering failed deals.</td></tr>
     <tr><td><code>POST /v1/bbc/search-runs</code></td><td>Required</td><td>Delta-based saved-search execution.</td><td>Send filters plus <code>excludeMxreIds</code>; MXRE returns new/changed candidates.</td></tr>
-    <tr><td><code>GET /v1/markets/{market}/reports/creative-finance</code></td><td>Optional report</td><td>Creative finance opportunity report.</td><td>Use for the dedicated BBC creative finance screen.</td></tr>
+    <tr><td><code>GET /v1/bbc/markets/{market}/creative-finance-listings</code></td><td>Optional report</td><td>Creative finance listings identified daily from MLS/listing remarks.</td><td>Use for the dedicated BBC creative finance screen. Stable response: <code>mxre.bbc.creativeFinanceListings.v1</code>.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/price-changes</code></td><td>Optional report</td><td>MLS/listing price-change report.</td><td>Use for re-underwriting failed deals after price drops.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/readiness</code></td><td>Optional admin</td><td>Market readiness and coverage.</td><td>Use in BBC admin diagnostics.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/completion</code></td><td>Optional admin</td><td>Coverage/completion breakdown.</td><td>Use in MXRE/BBC admin dashboards.</td></tr>
@@ -4476,6 +4481,27 @@ function buildOpenApiSpec() {
             { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
           ],
           responses: { '200': { description: 'Opportunity rows, zip rollups, and summary metrics.' } },
+        },
+      },
+      '/v1/bbc/markets/{market}/creative-finance-listings': {
+        get: {
+          summary: 'BBC creative finance listings',
+          description: 'Stable BBC endpoint for daily MLS/listing remarks that indicate seller, owner, subject-to, or other creative finance signals. Negative language such as no owner financing is scored separately instead of treated as an opportunity.',
+          parameters: [
+            { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
+            { name: 'status', in: 'query', schema: { type: 'string', enum: ['positive', 'negative', 'all'], default: 'positive' } },
+            { name: 'asset', in: 'query', schema: { type: 'string', enum: ['all', 'single_family', 'multifamily'], default: 'all' } },
+            { name: 'zip', in: 'query', schema: { type: 'string' } },
+            { name: 'min_price', in: 'query', schema: { type: 'number' } },
+            { name: 'max_price', in: 'query', schema: { type: 'number' } },
+            { name: 'min_units', in: 'query', schema: { type: 'integer' } },
+            { name: 'max_units', in: 'query', schema: { type: 'integer' } },
+            { name: 'since', in: 'query', schema: { type: 'string', format: 'date' } },
+            { name: 'until', in: 'query', schema: { type: 'string', format: 'date' } },
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+          ],
+          responses: { '200': { description: 'mxre.bbc.creativeFinanceListings.v1 report with summary, zip rollups, term rollups, and listing rows.' } },
         },
       },
       '/v1/markets/{market}/reports/creative-finance': {
