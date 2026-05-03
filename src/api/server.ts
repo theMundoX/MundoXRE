@@ -4850,9 +4850,10 @@ async function fetchRentBaselineDemographics(
 
 // ── Start server ─────────────────────────────────────────────
 const port = parseInt(process.env.PORT ?? process.env.MXRE_API_PORT ?? '3100', 10);
+const hostname = process.env.HOST ?? process.env.MXRE_API_HOST ?? '127.0.0.1';
 
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`MXRE Property API running on http://localhost:${info.port}`);
+serve({ fetch: app.fetch, port, hostname }, (info) => {
+  console.log(`MXRE Property API running on http://${hostname}:${info.port}`);
 });
 
 export { app };

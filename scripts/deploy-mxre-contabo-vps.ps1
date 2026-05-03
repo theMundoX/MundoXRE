@@ -67,10 +67,14 @@ git fetch origin
 git checkout main
 git reset --hard origin/main
 mv /tmp/mxre.env "$AppDir/.env"
+id -u mxre >/dev/null 2>&1 || useradd --system --home-dir "$AppDir" --shell /usr/sbin/nologin mxre
+chown -R mxre:mxre "$AppDir"
+chmod 750 "$AppDir"
 chmod 600 "$AppDir/.env"
 
 npm ci
 npm run build
+chown -R mxre:mxre "$AppDir"
 
 cat >/etc/systemd/system/mxre-api.service <<'EOF'
 [Unit]
@@ -84,11 +88,18 @@ WorkingDirectory=/opt/mxre
 EnvironmentFile=/opt/mxre/.env
 Environment=NODE_ENV=production
 Environment=PORT=3101
+Environment=HOST=127.0.0.1
+User=mxre
+Group=mxre
 ExecStart=/usr/bin/node /opt/mxre/dist/api/server.js
 Restart=always
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/mxre
+ProtectHome=true
+PrivateDevices=true
 
 [Install]
 WantedBy=multi-user.target
