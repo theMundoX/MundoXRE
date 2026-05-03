@@ -1,0 +1,34 @@
+{
+  "source": "OpenAddresses",
+  "note": "Set these URLs to the current batch.openaddresses.io regional downloads before large production loads. The archived data.openaddresses.io URLs remain useful as a fallback seed, but fresh batch downloads are preferred.",
+  "regions": [
+    {
+      "id": "us_midwest",
+      "label": "U.S. Midwest",
+      "states": ["IA", "IL", "IN", "KS", "MI", "MN", "MO", "ND", "NE", "OH", "SD", "WI"],
+      "urlEnv": "OPENADDRESSES_US_MIDWEST_URL",
+      "fallbackUrl": "https://data.openaddresses.io/openaddr-collected-us_midwest.zip"
+    },
+    {
+      "id": "us_south",
+      "label": "U.S. South",
+      "states": ["AL", "AR", "DC", "DE", "FL", "GA", "KY", "LA", "MD", "MS", "NC", "OK", "SC", "TN", "TX", "VA", "WV"],
+      "urlEnv": "OPENADDRESSES_US_SOUTH_URL",
+      "fallbackUrl": "https://data.openaddresses.io/openaddr-collected-us_south.zip"
+    },
+    {
+      "id": "us_northeast",
+      "label": "U.S. Northeast",
+      "states": ["CT", "MA", "ME", "NH", "NJ", "NY", "PA", "RI", "VT"],
+      "urlEnv": "OPENADDRESSES_US_NORTHEAST_URL",
+      "fallbackUrl": "https://data.openaddresses.io/openaddr-collected-us_northeast.zip"
+    },
+    {
+      "id": "us_west",
+      "label": "U.S. West",
+      "states": ["AK", "AZ", "CA", "CO", "HI", "ID", "MT", "NM", "NV", "OR", "UT", "WA", "WY"],
+      "urlEnv": "OPENADDRESSES_US_WEST_URL",
+      "fallbackUrl": "https://data.openaddresses.io/openaddr-collected-us_west.zip"
+    }
+  ]
+}
