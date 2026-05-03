@@ -140,16 +140,22 @@ async function loadCandidates(): Promise<Array<{ id: number; parcel_id: string |
         }
 
         const result = await client.query(`
-          select distinct p.id, p.parcel_id, p.address, p.city, p.state_code, p.zip
-          from listing_signals l
-          join properties p on p.id = l.property_id
-          where l.is_on_market = true
-            and p.county_id = 797583
+          with active as (
+            select distinct l.property_id
+            from listing_signals l
+            where l.is_on_market = true
+              and l.state_code = 'IN'
+              and upper(l.city) = 'INDIANAPOLIS'
+              and l.property_id is not null
+            limit $1
+          )
+          select p.id, p.parcel_id, p.address, p.city, p.state_code, p.zip
+          from active a
+          join properties p on p.id = a.property_id
+          where p.county_id = 797583
             and p.state_code = 'IN'
             and p.address ~ '^[0-9]'
             ${cursorClause}
-          order by p.parcel_id
-          limit $1
         `, params);
         return result.rows;
       }
