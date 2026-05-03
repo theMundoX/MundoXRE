@@ -39,6 +39,7 @@ const hasFlag = (f: string) => args.includes(`--${f}`);
 const countyFilter = getArg("county")?.toLowerCase();
 const fromArg = getArg("from");
 const toArg = getArg("to");
+const docTypesArg = getArg("doc-types");
 const daysBack = parseInt(getArg("days") ?? "30", 10);
 const dryRun = hasFlag("dry-run");
 
@@ -148,7 +149,9 @@ async function resolveCountyId(county: DirectSearchCountyDef): Promise<number | 
 // ─── Process one county ────────────────────────────────────────────────────
 
 const BATCH_SIZE = 200;
-const DOC_TYPES = ["MORTGAGE", "DEED", "LIEN", "JUDGMENT", "MECHANICS LIEN"];
+const DOC_TYPES = docTypesArg
+  ? docTypesArg.split(",").map((value) => value.trim()).filter(Boolean)
+  : ["MORTGAGE", "DEED", "LIEN", "JUDGMENT", "MECHANICS LIEN"];
 
 async function ingestCounty(
   adapter: FidlarDirectSearchAdapter,
@@ -280,6 +283,7 @@ async function main() {
   console.log("\nMXRE — Indiana Recorder Ingest (Fidlar DirectSearch)");
   console.log("═".repeat(60));
   console.log(`Date range : ${startDate} to ${endDate}`);
+  console.log(`Doc types  : ${DOC_TYPES.join(", ")}`);
   console.log(`Dry run    : ${dryRun}`);
   if (countyFilter) console.log(`County     : ${countyFilter}`);
   console.log();
