@@ -4,7 +4,7 @@ param(
   [string]$User = "root",
   [string]$KeyPath = "$env:USERPROFILE\.ssh\mxre_contabo_ed25519",
   [string]$RepoDir = "/opt/mxre",
-  [string]$OnCalendar = "03:15"
+  [string]$OnCalendar = "08:15:00 UTC"
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +17,8 @@ function Run-Remote {
 if (!(Test-Path $KeyPath)) {
   throw "SSH key missing: $KeyPath"
 }
+
+$OnCalendarSpec = if ($OnCalendar -match '^\d{2}:\d{2}$') { "${OnCalendar}:00 UTC" } else { $OnCalendar }
 
 $remoteScript = @"
 set -euo pipefail
@@ -68,7 +70,7 @@ cat >/etc/systemd/system/mxre-market-refresh.timer <<EOF
 Description=Run MXRE market refresh once daily
 
 [Timer]
-OnCalendar=*-*-* $OnCalendar:00
+OnCalendar=*-*-* $OnCalendarSpec
 Persistent=true
 RandomizedDelaySec=20m
 Unit=mxre-market-refresh.service
