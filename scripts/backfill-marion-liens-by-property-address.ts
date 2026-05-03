@@ -1,0 +1,143 @@
+#!/usr/bin/env tsx
+import "dotenv/config";
+import { createClient } from "@supabase/supabase-js";
+import {
+  FidlarDirectSearchAdapter,
+  DIRECT_SEARCH_COUNTIES,
+} from "../src/discovery/adapters/fidlar-direct-search.js";
+import { computeMortgageFields } from "../src/utils/mortgage-calc.js";
+
+const args = process.argv.slice(2);
+const valueArg = (name: string) => {
+  const prefix = `--${name}=`;
+  return args.find((arg) => arg.startsWith(prefix))?.slice(prefix.length) ?? null;
+};
+
+const limit = Number(valueArg("limit") ?? "500");
+const from = valueArg("from") ?? "2000-01-01";
+const to = valueArg("to") ?? new Date().toISOString().slice(0, 10);
+const dryRun = args.includes("--dry-run");
+const onlyOnMarket = args.includes("--on-market");
+const batchSleepMs = Number(valueArg("delay-ms") ?? "250");
+
+const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
+  auth: { persistSession: false },
+});
+
+const marion = DIRECT_SEARCH_COUNTIES.find((county) => county.county_name === "Marion" && county.state === "IN");
+if (!marion) throw new Error("Marion DirectSearch config not found.");
+
+const adapter = new FidlarDirectSearchAdapter();
+
+function classifyDocType(raw: string): string {
+  const upper = raw.toUpperCase();
+  if (upper.includes("SATISFACTION") || upper.includes("RELEASE") || upper.includes("DISCHARGE")) return "satisfaction";
+  if (upper.includes("ASSIGNMENT")) return "assignment";
+  if (upper.includes("MECHANIC") || upper.includes("MATERIALMAN")) return "mechanics_lien";
+  if (upper.includes("JUDGMENT") || upper.includes("JUDGEMENT")) return "judgment";
+  if (upper.includes("TAX") && upper.includes("LIEN")) return "tax_lien";
+  if (upper.includes("MORTGAGE")) return "mortgage";
+  if (upper.includes("LIEN")) return "lien";
+  return raw.toLowerCase().trim() || "other";
+}
+
+function isOpenLienType(type: string): boolean {
+  return !["satisfaction", "assignment"].includes(type);
+}
+
+async function main() {
+  console.log(`Marion property-address lien backfill | limit=${limit} | ${from} to ${to} | dry=${dryRun}`);
+
+  let query = db.from("properties")
+    .select("id,address,city,state_code,zip")
+    .eq("county_id", 797583)
+    .eq("state_code", "IN")
+    .not("address", "is", null)
+    .order("id")
+    .limit(limit);
+
+  if (onlyOnMarket) query = query.eq("is_on_market", true);
+
+  // Avoid wasting calls on properties that already have a linked lien/mortgage row.
+  const { data: linked } = await db.from("mortgage_records")
+    .select("property_id")
+    .not("property_id", "is", null)
+    .limit(100000);
+  const alreadyLinked = new Set((linked ?? []).map((row) => row.property_id).filter(Boolean));
+
+  const { data: properties, error } = await query;
+  if (error) throw error;
+
+  const candidates = (properties ?? []).filter((property) => !alreadyLinked.has(property.id));
+  console.log(`Loaded ${properties?.length ?? 0}; searching ${candidates.length} without linked recorder rows.`);
+
+  let searched = 0;
+  let docsFound = 0;
+  let inserted = 0;
+  let noDocs = 0;
+  let errors = 0;
+
+  for (const property of candidates) {
+    searched++;
+    try {
+      const docs = await adapter.fetchAddressDocuments(marion, property.address, from, to);
+      if (docs.length === 0) {
+        noDocs++;
+        process.stdout.write(`\rsearched=${searched} no_docs=${noDocs} docs=${docsFound} inserted=${inserted} errors=${errors}`);
+        await sleep(batchSleepMs);
+        continue;
+      }
+
+      docsFound += docs.length;
+      for (const doc of docs) {
+        const docType = classifyDocType(doc.document_type);
+        const amount = doc.consideration ? Math.round(doc.consideration) : null;
+        const computed = amount && doc.recording_date && isOpenLienType(docType)
+          ? computeMortgageFields({ originalAmount: amount, recordingDate: doc.recording_date })
+          : null;
+
+        if (!dryRun) {
+          const { error: upsertError } = await db.from("mortgage_records").upsert({
+            property_id: property.id,
+            document_type: docType,
+            recording_date: doc.recording_date || null,
+            loan_amount: amount,
+            original_amount: amount,
+            lender_name: doc.grantee?.slice(0, 500) || null,
+            borrower_name: doc.grantor?.slice(0, 500) || null,
+            document_number: doc.instrument_number || null,
+            book_page: doc.book_page || null,
+            source_url: marion.base_url,
+            open: isOpenLienType(docType),
+            interest_rate: computed?.interest_rate ?? null,
+            term_months: computed?.term_months ?? null,
+            estimated_monthly_payment: computed?.estimated_monthly_payment ?? null,
+            estimated_current_balance: computed?.estimated_current_balance ?? null,
+            balance_as_of: computed?.balance_as_of ?? null,
+            maturity_date: computed?.maturity_date ?? null,
+            rate_source: computed?.rate_source ?? null,
+          }, { onConflict: "document_number,source_url", ignoreDuplicates: true });
+          if (upsertError) throw upsertError;
+        }
+        inserted++;
+      }
+    } catch (error) {
+      errors++;
+    }
+
+    process.stdout.write(`\rsearched=${searched} no_docs=${noDocs} docs=${docsFound} inserted=${inserted} errors=${errors}`);
+    await sleep(batchSleepMs);
+  }
+
+  console.log();
+  console.log(JSON.stringify({ searched, noDocs, docsFound, inserted, errors, dryRun }, null, 2));
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

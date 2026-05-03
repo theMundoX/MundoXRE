@@ -48,6 +48,7 @@
     "autocomplete:openaddresses": "tsx scripts/ingest-openaddresses-national-autocomplete.ts",
     "autocomplete:openaddresses:in": "tsx scripts/ingest-openaddresses-national-autocomplete.ts --state=IN",
     "mortgages:backfill-balances": "tsx scripts/backfill-mortgage-balance-estimates.ts",
+    "mortgages:backfill-marion-address": "tsx scripts/backfill-marion-liens-by-property-address.ts",
     "api": "tsx src/api/server.ts",
     "verify:liens": "tsx scripts/verify-liens.ts",
     "lookup:liens": "tsx scripts/lookup-liens-by-owner.ts",

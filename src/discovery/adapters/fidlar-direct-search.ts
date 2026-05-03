@@ -82,6 +82,17 @@ function parseRecordDate(raw: string): string {
   return m ? `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}` : "";
 }
 
+function parseStreetAddress(address: string): { number: string; street: string } | null {
+  const match = address.trim().match(/^(\d+)\s+(.+)$/);
+  if (!match) return null;
+  const street = match[2]
+    .replace(/^(N|S|E|W|NE|NW|SE|SW)\s+/i, "")
+    .replace(/\s+(STREET|ST|AVENUE|AVE|BOULEVARD|BLVD|ROAD|RD|DRIVE|DR|COURT|CT|LANE|LN|WAY|PLACE|PL|CIRCLE|CIR|TERRACE|TER)\s*$/i, "")
+    .trim();
+  if (!street) return null;
+  return { number: match[1], street };
+}
+
 export class FidlarDirectSearchAdapter {
   /** Cache: base_url → { webApiBase, token, obtainedAt } */
   private cache = new Map<string, { webApiBase: string; token: string; obtainedAt: number }>();
@@ -178,6 +189,50 @@ export class FidlarDirectSearchAdapter {
     if (startDate) body["StartDate"] = startDate;
     if (endDate)   body["EndDate"]   = endDate;
     return this.searchWithRetry(webApiBase, token, body);
+  }
+
+  private async searchByAddress(
+    webApiBase: string,
+    token: string,
+    addressNumber: string,
+    streetName: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<DirectSearchResponse> {
+    const body: Record<string, string> = {
+      AddressNumber: addressNumber,
+      AddressStreetName: streetName,
+    };
+    if (startDate) body["StartDate"] = startDate;
+    if (endDate) body["EndDate"] = endDate;
+    return this.searchWithRetry(webApiBase, token, body);
+  }
+
+  async fetchAddressDocuments(
+    config: DirectSearchCountyConfig,
+    address: string,
+    startDate = "2000-01-01",
+    endDate = new Date().toISOString().slice(0, 10),
+    docTypeFilter: string[] = ["MORTGAGE", "LIEN", "JUDGMENT", "MECHANIC"],
+  ): Promise<RecorderDocument[]> {
+    const parsed = parseStreetAddress(address);
+    if (!parsed) return [];
+
+    const webApiBase = await this.resolveApiBase(config);
+    const token = await this.getToken(webApiBase, config.base_url);
+    const data = await this.searchByAddress(webApiBase, token, parsed.number, parsed.street, startDate, endDate);
+    const out: RecorderDocument[] = [];
+
+    for (const raw of data.DocResults ?? []) {
+      if (docTypeFilter.length > 0) {
+        const rawType = (raw.DocumentType ?? "").toUpperCase();
+        const keep = docTypeFilter.some(f => rawType.includes(f.toUpperCase()));
+        if (!keep) continue;
+      }
+      const doc = this.mapDoc(raw, config.base_url);
+      if (doc) out.push(doc);
+    }
+    return out;
   }
 
   /**
