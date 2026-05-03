@@ -363,6 +363,222 @@ app.get('/v1/platform/source-registry', (c) => {
   return c.json(getSourceRegistry());
 });
 
+app.get('/v1/addresses/autocomplete', async (c) => {
+  const q = normalizeAutocompleteQuery(c.req.query('q') ?? c.req.query('query') ?? '');
+  const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 8, 20);
+  const includeProperties = c.req.query('includeProperties') !== 'false';
+
+  if (q.length < 2) {
+    return c.json({
+      schemaVersion: 'mxre.addressAutocomplete.v1',
+      query: q,
+      results: [],
+      meta: {
+        minQueryLength: 2,
+        strategy: 'preindexed_mxre_first',
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  const stateHint = (c.req.query('state') ?? extractStateHint(q) ?? '').toUpperCase();
+  const zipHint = extractZipHint(q);
+  const streetLike = /\d/.test(q);
+  const normalized = normalizeAutocompleteQueryForSql(q);
+  const normalizedNoState = normalizeAutocompleteQueryForSql(q.replace(/\b[A-Z]{2}\b/gi, ''));
+  const qSql = sqlString(normalized);
+  const qNoStateSql = sqlString(normalizedNoState || normalized);
+  const stateSql = stateHint ? `and state_code = '${sqlString(stateHint)}'` : '';
+  const zipSql = zipHint ? `and zip = '${sqlString(zipHint)}'` : '';
+  const cityLimit = streetLike ? 2 : Math.min(limit, 8);
+  const addressLimit = Math.max(limit - cityLimit, streetLike ? limit : Math.ceil(limit / 2));
+  const marketKeySql = "lower(regexp_replace(trim(coalesce(city, '')), '[^a-zA-Z0-9]+', '-', 'g')) || '-' || lower(coalesce(state_code, ''))";
+
+  let nationalRows: Record<string, unknown>[] = [];
+  try {
+    nationalRows = await queryPg<Record<string, unknown>>(`
+      select
+        type,
+        label,
+        street,
+        initcap(city) as city,
+        state_code as state,
+        zip,
+        null::bigint as "countyId",
+        county,
+        lat,
+        lng,
+        source,
+        mxre_property_id is not null as "hasMxrePropertyDetail",
+        mxre_property_id as "propertyId",
+        market_key as "marketId",
+        confidence,
+        case when source = 'mxre' then 10 else 30 end as rank
+      from address_autocomplete_entries
+      where type = 'address'
+        ${stateSql}
+        ${zipSql}
+        and normalized_label like '${qSql}%'
+      order by rank, label
+      limit ${addressLimit}
+    `);
+  } catch {
+    nationalRows = [];
+  }
+
+  const mxreRows = await queryPg<Record<string, unknown>>(`
+    with city_matches as (
+      select
+        'city'::text as type,
+        concat_ws(', ', initcap(city), state_code) as label,
+        null::text as street,
+        initcap(city) as city,
+        state_code as state,
+        null::text as zip,
+        null::bigint as "countyId",
+        null::text as county,
+        null::numeric as lat,
+        null::numeric as lng,
+        'mxre_city_index'::text as source,
+        false as "hasMxrePropertyDetail",
+        null::bigint as "propertyId",
+        ${marketKeySql} as "marketId",
+        'high'::text as confidence,
+        count(*)::int as "propertyCount",
+        0 as rank
+      from properties
+      where city is not null
+        and city <> ''
+        ${stateSql}
+        and (
+          upper(regexp_replace(concat_ws(' ', city, state_code), '[^A-Z0-9 ]', ' ', 'g')) like '${qSql}%'
+          or upper(regexp_replace(city, '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%'
+        )
+      group by city, state_code
+      order by count(*) desc, city
+      limit ${cityLimit}
+    ),
+    address_matches as (
+      select
+        'address'::text as type,
+        concat_ws(', ', initcap(p.address), initcap(p.city), concat(p.state_code, ' ', p.zip)) as label,
+        initcap(p.address) as street,
+        initcap(p.city) as city,
+        p.state_code as state,
+        p.zip,
+        p.county_id as "countyId",
+        c.county_name as county,
+        p.latitude as lat,
+        p.longitude as lng,
+        'mxre_property'::text as source,
+        true as "hasMxrePropertyDetail",
+        p.id as "propertyId",
+        lower(regexp_replace(trim(coalesce(p.city, '')), '[^a-zA-Z0-9]+', '-', 'g')) || '-' || lower(coalesce(p.state_code, '')) as "marketId",
+        case
+          when upper(regexp_replace(coalesce(p.address, ''), '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%' then 'high'
+          else 'medium'
+        end as confidence,
+        null::int as "propertyCount",
+        20 as rank
+      from properties p
+      left join counties c on c.id = p.county_id
+      where ${includeProperties ? 'true' : 'false'}
+        and p.address is not null
+        and p.address <> ''
+        ${stateSql}
+        ${zipSql}
+        and (
+          upper(regexp_replace(concat_ws(' ', p.address, p.city, p.state_code, p.zip), '[^A-Z0-9 ]', ' ', 'g')) like '${qSql}%'
+          or upper(regexp_replace(coalesce(p.address, ''), '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%'
+        )
+      order by
+        case when upper(regexp_replace(coalesce(p.address, ''), '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%' then 0 else 1 end,
+        p.state_code,
+        p.city,
+        p.address
+      limit ${addressLimit}
+    ),
+    combined as (
+      select * from address_matches
+      union all
+      select * from city_matches
+    ),
+    deduped as (
+      select distinct on (type, label, coalesce(zip, ''))
+        type,
+        label,
+        street,
+        city,
+        state,
+        zip,
+        "countyId",
+        county,
+        lat,
+        lng,
+        source,
+        "hasMxrePropertyDetail",
+        "propertyId",
+        "marketId",
+        confidence,
+        "propertyCount",
+        rank
+      from combined
+      order by type, label, coalesce(zip, ''), rank
+    )
+    select *
+    from deduped
+    order by
+      case when type = 'address' then 0 else 1 end,
+      rank,
+      label
+    limit ${limit};
+  `);
+
+  const rows = dedupeAutocompleteRows([...mxreRows, ...nationalRows])
+    .sort((a, b) => {
+      const aType = a.type === 'address' ? 0 : 1;
+      const bType = b.type === 'address' ? 0 : 1;
+      if (aType !== bType) return aType - bType;
+      return String(a.label ?? '').localeCompare(String(b.label ?? ''));
+    })
+    .slice(0, limit);
+
+  return c.json({
+    schemaVersion: 'mxre.addressAutocomplete.v1',
+    query: q,
+    results: rows.map((row) => ({
+      type: row.type,
+      label: row.label,
+      street: row.street ?? null,
+      city: row.city ?? null,
+      state: row.state ?? null,
+      zip: row.zip ?? null,
+      county: row.county ?? null,
+      lat: numberOrNull(row.lat),
+      lng: numberOrNull(row.lng),
+      source: row.source,
+      confidence: row.confidence,
+      coverage: {
+        hasMxrePropertyDetail: Boolean(row.hasMxrePropertyDetail),
+        propertyId: numberOrNull(row.propertyId),
+        marketId: row.marketId ?? null,
+        propertyCount: numberOrNull(row.propertyCount),
+      },
+    })),
+    usage: {
+      selectAddressThenCall: '/v1/bbc/property?address={street}&city={city}&state={state}&zip={zip}',
+      selectCityThenCall: '/v1/bbc/search-runs',
+    },
+    meta: {
+      limit,
+      strategy: 'preindexed_mxre_first',
+      nationalIndex: 'address_autocomplete_entries_optional',
+      liveExternalCalls: false,
+      generatedAt: new Date().toISOString(),
+    },
+  });
+});
+
 app.get('/v1/bbc/property/:id', async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   if (isNaN(id)) return c.json({ error: 'Invalid property ID' }, 400);
@@ -3918,6 +4134,49 @@ function normalizeRecord(value: unknown): Record<string, unknown> {
   return (value && typeof value === 'object' && !Array.isArray(value)) ? value as Record<string, unknown> : {};
 }
 
+function normalizeAutocompleteQuery(value: string): string {
+  return value
+    .replace(/[^\w\s,#.-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120);
+}
+
+function normalizeAutocompleteQueryForSql(value: string): string {
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractStateHint(value: string): string | null {
+  const match = value.toUpperCase().match(/(?:^|[\s,])([A-Z]{2})(?:[\s,]|$)/);
+  return match?.[1] ?? null;
+}
+
+function extractZipHint(value: string): string | null {
+  const match = value.match(/\b\d{5}\b/);
+  return match?.[0] ?? null;
+}
+
+function dedupeAutocompleteRows(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  const seen = new Set<string>();
+  const out: Record<string, unknown>[] = [];
+  for (const row of rows) {
+    const key = [
+      row.type,
+      String(row.label ?? '').toUpperCase(),
+      row.zip ?? '',
+      row.propertyId ?? '',
+    ].join('|');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
 function normalizeBbcSearchFilters(input: Record<string, unknown>) {
   const location = normalizeRecord(input.location);
   const assetTypes = Array.isArray(input.assetTypes)
@@ -4270,6 +4529,12 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   <table>
     <tr><th>Stage</th><th>What BBC Is Doing</th><th>MXRE Endpoint</th><th>What BBC Stores</th></tr>
     <tr>
+      <td>0. Human autocomplete</td>
+      <td>User types a city/state or starts an address before clicking Search.</td>
+      <td><code>GET /v1/addresses/autocomplete?q=429%20N%20Tibbs</code></td>
+      <td>Selected result <code>type</code>, label, city/state/zip, and <code>propertyId</code> when MXRE already has property detail.</td>
+    </tr>
+    <tr>
       <td>1. Sandbox connection</td>
       <td>Verify BBC backend can authenticate and reach MXRE.</td>
       <td><code>GET /v1/bbc/property?address=429%20N%20Tibbs%20Ave&amp;city=Indianapolis&amp;state=IN&amp;zip=46222</code></td>
@@ -4337,6 +4602,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   <p>Use the BBC-normalized endpoint for Buy Box Club underwriting. The raw MXRE endpoint remains available for admin/debug views.</p>
   <table>
     <tr><th>Method</th><th>Path</th><th>Use</th><th>Required</th></tr>
+    <tr><td><code>GET</code></td><td><code>/v1/addresses/autocomplete</code></td><td>Fast human city/state/address autocomplete before running property or market search.</td><td><code>q</code>; optional <code>state</code>, <code>limit</code></td></tr>
     <tr><td><code>GET</code></td><td><code>/v1/bbc/property</code></td><td>BBC exact address underwriting contract.</td><td><code>address</code>, <code>state</code>; <code>city</code>/<code>zip</code> recommended</td></tr>
     <tr><td><code>GET</code></td><td><code>/v1/bbc/property/{mxreId}</code></td><td>BBC re-sync after storing MXRE id.</td><td><code>mxreId</code></td></tr>
     <tr><td><code>GET</code></td><td><code>/v1/property</code></td><td>Raw MXRE/admin detail.</td><td><code>address</code>, <code>state</code></td></tr>
@@ -4377,6 +4643,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   <h2>Buy Box Club Endpoints</h2>
   <table>
     <tr><th>Endpoint</th><th>Status</th><th>Purpose</th><th>Notes</th></tr>
+    <tr><td><code>GET /v1/addresses/autocomplete</code></td><td>Required UX</td><td>Human users type city/state or address and select a normalized result before searching.</td><td>Debounce browser calls. If result type is <code>address</code>, call property detail after Search. If result type is <code>city</code>, call saved-search/listing endpoints.</td></tr>
     <tr><td><code>GET /v1/bbc/property</code></td><td>Required</td><td>BBC-normalized exact address lookup.</td><td>Use <code>address</code>, <code>city</code>, <code>state</code>, <code>zip</code>.</td></tr>
     <tr><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Required</td><td>BBC-normalized lookup by MXRE id.</td><td>Use for safe re-sync after BBC stores <code>mxreId</code>.</td></tr>
     <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Required</td><td>Changed market records since a cursor/time.</td><td>Use for daily sync and reconsidering failed deals.</td></tr>
@@ -4389,6 +4656,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   <h3>Minimum BBC Integration</h3>
   <table>
     <tr><th>BBC Use Case</th><th>MXRE Endpoint</th><th>Fallback</th></tr>
+    <tr><td>Autocomplete input</td><td><code>GET /v1/addresses/autocomplete</code></td><td>Do not call slow live geocoders on every keystroke; fallback only after submit/no result if BBC chooses to keep one.</td></tr>
     <tr><td>Exact address underwriting</td><td><code>GET /v1/bbc/property</code></td><td>RealEstateAPI if <code>404</code> or <code>quality.fallbackRecommended=true</code></td></tr>
     <tr><td>Stored property refresh</td><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Keep previous BBC snapshot if MXRE unavailable</td></tr>
     <tr><td>Daily saved search</td><td><code>POST /v1/bbc/search-runs</code></td><td>Return no rows rather than re-underwrite unchanged deals</td></tr>
@@ -4514,6 +4782,23 @@ function buildOpenApiSpec() {
       },
     },
     paths: {
+      '/v1/addresses/autocomplete': {
+        get: {
+          summary: 'Fast human city/state/address autocomplete',
+          description: 'Returns mixed address and city suggestions for one-at-a-time user input. This endpoint does not perform slow live external geocoding while the user types.',
+          parameters: [
+            { name: 'q', in: 'query', required: true, schema: { type: 'string', minLength: 2 }, example: '429 N Tibbs' },
+            { name: 'state', in: 'query', required: false, schema: { type: 'string', minLength: 2, maxLength: 2 }, example: 'IN' },
+            { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 8, maximum: 20 } },
+            { name: 'includeProperties', in: 'query', required: false, schema: { type: 'boolean', default: true } },
+          ],
+          responses: {
+            '200': { description: 'mxre.addressAutocomplete.v1 with address/city suggestions and MXRE coverage flags.' },
+            '401': { description: 'Invalid client id or API key.' },
+            '429': { description: 'Rate limit exceeded.' },
+          },
+        },
+      },
       '/v1/bbc/property': {
         get: {
           summary: 'BBC-normalized property lookup by address',
