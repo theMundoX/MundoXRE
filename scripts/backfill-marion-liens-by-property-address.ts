@@ -23,6 +23,7 @@ const batchSleepMs = Number(valueArg("delay-ms") ?? "250");
 const afterParcel = valueArg("after-parcel");
 const maxRunMs = Number(valueArg("max-run-ms") ?? "0");
 const perSearchTimeoutMs = Number(valueArg("per-search-timeout-ms") ?? "45000");
+const verboseErrors = args.includes("--verbose-errors");
 
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
   auth: { persistSession: false },
@@ -120,6 +121,10 @@ async function main() {
       }
     } catch (error) {
       errors++;
+      if (verboseErrors || errors <= 5) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`\n[error] property_id=${property.id} address="${property.address}" ${message}`);
+      }
     }
 
     process.stdout.write(`\rsearched=${searched} no_docs=${noDocs} docs=${docsFound} inserted=${inserted} errors=${errors}`);
