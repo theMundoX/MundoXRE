@@ -21,6 +21,7 @@ const dryRun = args.includes("--dry-run");
 const onlyOnMarket = args.includes("--on-market");
 const batchSleepMs = Number(valueArg("delay-ms") ?? "250");
 const afterParcel = valueArg("after-parcel");
+const maxRunMs = Number(valueArg("max-run-ms") ?? "0");
 
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
   auth: { persistSession: false },
@@ -50,6 +51,7 @@ function isOpenLienType(type: string): boolean {
 
 async function main() {
   console.log(`Marion property-address lien backfill | limit=${limit} | ${from} to ${to} | dry=${dryRun}`);
+  const startedAt = Date.now();
 
   const candidates = await loadCandidates();
   console.log(`Searching ${candidates.length} properties without linked recorder rows.`);
@@ -61,6 +63,11 @@ async function main() {
   let errors = 0;
 
   for (const property of candidates) {
+    if (maxRunMs > 0 && Date.now() - startedAt > maxRunMs) {
+      console.log(`\nReached max runtime ${maxRunMs}ms; stopping cleanly.`);
+      break;
+    }
+
     searched++;
     try {
       const docs = await adapter.fetchAddressDocuments(marion, property.address, from, to);
@@ -132,30 +139,42 @@ async function loadCandidates(): Promise<Array<{ id: number; parcel_id: string |
     await client.connect();
     try {
       if (onlyOnMarket) {
-        const params: Array<string | number> = [limit];
+        const listingLimit = Math.max(limit * 10, 100);
+        const { data: listingRows, error: listingError } = await db
+          .from("listing_signals")
+          .select("property_id")
+          .eq("is_on_market", true)
+          .eq("state_code", "IN")
+          .eq("city", "INDIANAPOLIS")
+          .not("property_id", "is", null)
+          .limit(listingLimit);
+
+        if (listingError) throw listingError;
+
+        const propertyIds = Array.from(new Set(
+          (listingRows ?? [])
+            .map((row) => Number(row.property_id))
+            .filter((id) => Number.isFinite(id) && id > 0),
+        )).slice(0, listingLimit);
+
+        if (propertyIds.length === 0) return [];
+
+        const params: Array<string | number | number[]> = [limit, propertyIds];
         let cursorClause = "";
         if (afterParcel) {
           params.push(afterParcel);
-          cursorClause = "and p.parcel_id > $2";
+          cursorClause = "and p.parcel_id > $3";
         }
 
         const result = await client.query(`
-          with active as (
-            select distinct l.property_id
-            from listing_signals l
-            where l.is_on_market = true
-              and l.state_code = 'IN'
-              and upper(l.city) = 'INDIANAPOLIS'
-              and l.property_id is not null
-            limit $1
-          )
           select p.id, p.parcel_id, p.address, p.city, p.state_code, p.zip
-          from active a
-          join properties p on p.id = a.property_id
-          where p.county_id = 797583
+          from properties p
+          where p.id = any($2::int[])
+            and p.county_id = 797583
             and p.state_code = 'IN'
             and p.address ~ '^[0-9]'
             ${cursorClause}
+          limit $1
         `, params);
         return result.rows;
       }

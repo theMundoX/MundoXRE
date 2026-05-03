@@ -33,6 +33,7 @@ const SKIP_HAMILTON = hasFlag("skip-hamilton");
 const SKIP_HENDRICKS = hasFlag("skip-hendricks");
 const SKIP_MADISON = hasFlag("skip-madison");
 const SKIP_LISTING_QUALITY = hasFlag("skip-listing-quality");
+const SKIP_RECORDER_BACKFILL = hasFlag("skip-recorder-backfill");
 
 interface Step {
   name: string;
@@ -171,6 +172,22 @@ const steps: Step[] = [
     required: false,
     supportsDryRun: false,
     skip: SKIP_LISTINGS || SKIP_LISTING_QUALITY,
+  },
+  {
+    name: "Backfill Marion recorder liens for active listings",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/backfill-marion-liens-by-property-address.ts",
+      "--on-market",
+      "--limit=250",
+      "--delay-ms=500",
+      "--max-run-ms=900000",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_RECORDER_BACKFILL,
   },
 ];
 
