@@ -208,6 +208,19 @@ export class FidlarDirectSearchAdapter {
     return this.searchWithRetry(webApiBase, token, body);
   }
 
+  private async searchByTaxId(
+    webApiBase: string,
+    token: string,
+    taxId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<DirectSearchResponse> {
+    const body: Record<string, string> = { TaxId: taxId };
+    if (startDate) body["StartDate"] = startDate;
+    if (endDate) body["EndDate"] = endDate;
+    return this.searchWithRetry(webApiBase, token, body);
+  }
+
   async fetchAddressDocuments(
     config: DirectSearchCountyConfig,
     address: string,
@@ -221,6 +234,33 @@ export class FidlarDirectSearchAdapter {
     const webApiBase = await this.resolveApiBase(config);
     const token = await this.getToken(webApiBase, config.base_url);
     const data = await this.searchByAddress(webApiBase, token, parsed.number, parsed.street, startDate, endDate);
+    const out: RecorderDocument[] = [];
+
+    for (const raw of data.DocResults ?? []) {
+      if (docTypeFilter.length > 0) {
+        const rawType = (raw.DocumentType ?? "").toUpperCase();
+        const keep = docTypeFilter.some(f => rawType.includes(f.toUpperCase()));
+        if (!keep) continue;
+      }
+      const doc = this.mapDoc(raw, config.base_url);
+      if (doc) out.push(doc);
+    }
+    return out;
+  }
+
+  async fetchTaxIdDocuments(
+    config: DirectSearchCountyConfig,
+    taxId: string,
+    startDate = "2000-01-01",
+    endDate = new Date().toISOString().slice(0, 10),
+    docTypeFilter: string[] = ["MORTGAGE", "LIEN", "JUDGMENT", "MECHANIC"],
+  ): Promise<RecorderDocument[]> {
+    const cleaned = taxId.trim();
+    if (!cleaned) return [];
+
+    const webApiBase = await this.resolveApiBase(config);
+    const token = await this.getToken(webApiBase, config.base_url);
+    const data = await this.searchByTaxId(webApiBase, token, cleaned, startDate, endDate);
     const out: RecorderDocument[] = [];
 
     for (const raw of data.DocResults ?? []) {

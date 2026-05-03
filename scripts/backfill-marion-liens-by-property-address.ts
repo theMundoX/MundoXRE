@@ -75,9 +75,9 @@ async function main() {
     searched++;
     try {
       const docs = await withTimeout(
-        adapter.fetchAddressDocuments(marion, property.address, from, to),
+        fetchPropertyRecorderDocuments(property),
         perSearchTimeoutMs,
-        `Timed out searching ${property.address}`,
+        `Timed out searching ${property.address} / ${property.parcel_id ?? "no parcel"}`,
       );
       if (docs.length === 0) {
         noDocs++;
@@ -143,6 +143,14 @@ async function main() {
     lastPropertyId: last?.id ?? null,
     lastParcel: last?.parcel_id ?? null,
   }, null, 2));
+}
+
+async function fetchPropertyRecorderDocuments(property: { parcel_id: string | null; address: string }) {
+  if (property.parcel_id) {
+    const docs = await adapter.fetchTaxIdDocuments(marion, property.parcel_id, from, to);
+    if (docs.length > 0) return docs;
+  }
+  return adapter.fetchAddressDocuments(marion, property.address, from, to);
 }
 
 async function loadCandidates(): Promise<Array<{ id: number; parcel_id: string | null; address: string; city: string; state_code: string; zip: string }>> {
