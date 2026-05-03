@@ -27,6 +27,8 @@ const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_
   auth: { persistSession: false },
 });
 const directPgUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+const pgQueryUrl = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+const pgQueryKey = process.env.SUPABASE_SERVICE_KEY ?? "";
 
 const marion = DIRECT_SEARCH_COUNTIES.find((county) => county.county_name === "Marion" && county.state === "IN");
 if (!marion) throw new Error("Marion DirectSearch config not found.");
@@ -134,51 +136,14 @@ async function main() {
 }
 
 async function loadCandidates(): Promise<Array<{ id: number; parcel_id: string | null; address: string; city: string; state_code: string; zip: string }>> {
+  if (onlyOnMarket && pgQueryKey) {
+    return loadOnMarketCandidatesViaPgQuery();
+  }
+
   if (directPgUrl) {
     const client = new Client({ connectionString: directPgUrl });
     await client.connect();
     try {
-      if (onlyOnMarket) {
-        const listingLimit = Math.max(limit * 10, 100);
-        const { data: listingRows, error: listingError } = await db
-          .from("listing_signals")
-          .select("property_id")
-          .eq("is_on_market", true)
-          .eq("state_code", "IN")
-          .eq("city", "INDIANAPOLIS")
-          .not("property_id", "is", null)
-          .limit(listingLimit);
-
-        if (listingError) throw listingError;
-
-        const propertyIds = Array.from(new Set(
-          (listingRows ?? [])
-            .map((row) => Number(row.property_id))
-            .filter((id) => Number.isFinite(id) && id > 0),
-        )).slice(0, listingLimit);
-
-        if (propertyIds.length === 0) return [];
-
-        const params: Array<string | number | number[]> = [limit, propertyIds];
-        let cursorClause = "";
-        if (afterParcel) {
-          params.push(afterParcel);
-          cursorClause = "and p.parcel_id > $3";
-        }
-
-        const result = await client.query(`
-          select p.id, p.parcel_id, p.address, p.city, p.state_code, p.zip
-          from properties p
-          where p.id = any($2::int[])
-            and p.county_id = 797583
-            and p.state_code = 'IN'
-            and p.address ~ '^[0-9]'
-            ${cursorClause}
-          limit $1
-        `, params);
-        return result.rows;
-      }
-
       const result = await client.query(`
         select p.id, p.parcel_id, p.address, p.city, p.state_code, p.zip
         from properties p
@@ -204,6 +169,51 @@ async function loadCandidates(): Promise<Array<{ id: number; parcel_id: string |
     .limit(limit);
   if (error) throw error;
   return data ?? [];
+}
+
+async function loadOnMarketCandidatesViaPgQuery(): Promise<Array<{ id: number; parcel_id: string | null; address: string; city: string; state_code: string; zip: string }>> {
+  const listingLimit = Math.max(limit * 10, 100);
+  const afterClause = afterParcel ? `and p.parcel_id > ${sqlString(afterParcel)}` : "";
+  const query = `
+    with active as (
+      select distinct property_id
+      from listing_signals
+      where is_on_market = true
+        and state_code = 'IN'
+        and upper(city) = 'INDIANAPOLIS'
+        and property_id is not null
+      limit ${listingLimit}
+    )
+    select p.id, p.parcel_id, p.address, p.city, p.state_code, p.zip
+    from active a
+    join properties p on p.id = a.property_id
+    where p.county_id = 797583
+      and p.state_code = 'IN'
+      and p.address ~ '^[0-9]'
+      ${afterClause}
+    limit ${limit};
+  `;
+
+  const response = await fetch(pgQueryUrl, {
+    method: "POST",
+    headers: {
+      apikey: pgQueryKey,
+      Authorization: `Bearer ${pgQueryKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query }),
+    signal: AbortSignal.timeout(60_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`pg/query candidate load failed ${response.status}: ${await response.text()}`);
+  }
+
+  return response.json() as Promise<Array<{ id: number; parcel_id: string | null; address: string; city: string; state_code: string; zip: string }>>;
+}
+
+function sqlString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
 }
 
 function sleep(ms: number) {
