@@ -389,7 +389,9 @@ app.get('/v1/addresses/autocomplete', async (c) => {
   const qSql = sqlString(normalized);
   const qNoStateSql = sqlString(normalizedNoState || normalized);
   const stateSql = stateHint ? `and state_code = '${sqlString(stateHint)}'` : '';
+  const propertyStateSql = stateHint ? `and p.state_code = '${sqlString(stateHint)}'` : '';
   const zipSql = zipHint ? `and zip = '${sqlString(zipHint)}'` : '';
+  const propertyZipSql = zipHint ? `and p.zip = '${sqlString(zipHint)}'` : '';
   const cityLimit = streetLike ? 2 : Math.min(limit, 8);
   const addressLimit = Math.max(limit - cityLimit, streetLike ? limit : Math.ceil(limit / 2));
   const marketKeySql = "lower(regexp_replace(trim(coalesce(city, '')), '[^a-zA-Z0-9]+', '-', 'g')) || '-' || lower(coalesce(state_code, ''))";
@@ -485,8 +487,8 @@ app.get('/v1/addresses/autocomplete', async (c) => {
       where ${includeProperties ? 'true' : 'false'}
         and p.address is not null
         and p.address <> ''
-        ${stateSql}
-        ${zipSql}
+        ${propertyStateSql}
+        ${propertyZipSql}
         and (
           upper(regexp_replace(concat_ws(' ', p.address, p.city, p.state_code, p.zip), '[^A-Z0-9 ]', ' ', 'g')) like '${qSql}%'
           or upper(regexp_replace(coalesce(p.address, ''), '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%'
