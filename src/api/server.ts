@@ -398,42 +398,6 @@ app.get('/v1/addresses/autocomplete', async (c) => {
   const staticCityRows = buildStaticMarketAutocompleteRows(q, stateHint);
   const dbCityLimit = staticCityRows.length > 0 ? 0 : cityLimit;
 
-  if (streetLike) {
-    let propertyQuery = db.from('properties')
-      .select('id,address,city,state_code,zip,county_id,latitude,longitude,counties(county_name)')
-      .like('address', `${qNoStateSql}%`)
-      .limit(limit);
-
-    if (stateHint) propertyQuery = propertyQuery.eq('state_code', stateHint);
-    if (zipHint) propertyQuery = propertyQuery.eq('zip', zipHint);
-
-    const { data, error } = await propertyQuery;
-    if (error) return c.json({ error: 'Database error', detail: error.message }, 500);
-
-    return c.json(buildAutocompleteResponse(q, limit, (data ?? []).map((row) => {
-      const county = normalizeRecord(row.counties);
-      const city = String(row.city ?? '');
-      const state = String(row.state_code ?? '');
-      return {
-        type: 'address',
-        label: [toTitleCase(row.address), toTitleCase(city), `${state} ${row.zip ?? ''}`.trim()].filter(Boolean).join(', '),
-        street: toTitleCase(row.address),
-        city: toTitleCase(city),
-        state,
-        zip: row.zip ?? null,
-        county: county.county_name ?? null,
-        lat: row.latitude ?? null,
-        lng: row.longitude ?? null,
-        source: 'mxre_property',
-        confidence: 'high',
-        hasMxrePropertyDetail: true,
-        propertyId: row.id,
-        marketId: city && state ? `${city.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${state.toLowerCase()}` : null,
-        propertyCount: null,
-      };
-    })));
-  }
-
   if (staticCityRows.length > 0) {
     return c.json(buildAutocompleteResponse(q, limit, staticCityRows.slice(0, limit)));
   }

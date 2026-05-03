@@ -43,7 +43,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 if command -v apt-get >/dev/null 2>&1; then
   apt-get update
-  apt-get install -y ca-certificates curl git build-essential
+  apt-get install -y ca-certificates curl git build-essential unzip
   if ! command -v node >/dev/null 2>&1 || ! node -v | grep -q '^v22'; then
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     apt-get install -y nodejs
