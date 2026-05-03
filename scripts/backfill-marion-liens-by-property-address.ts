@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
+import { Client } from "pg";
 import {
   FidlarDirectSearchAdapter,
   DIRECT_SEARCH_COUNTIES,
@@ -23,6 +24,7 @@ const batchSleepMs = Number(valueArg("delay-ms") ?? "250");
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
   auth: { persistSession: false },
 });
+const directPgUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
 
 const marion = DIRECT_SEARCH_COUNTIES.find((county) => county.county_name === "Marion" && county.state === "IN");
 if (!marion) throw new Error("Marion DirectSearch config not found.");
@@ -48,28 +50,8 @@ function isOpenLienType(type: string): boolean {
 async function main() {
   console.log(`Marion property-address lien backfill | limit=${limit} | ${from} to ${to} | dry=${dryRun}`);
 
-  let query = db.from("properties")
-    .select("id,address,city,state_code,zip")
-    .eq("county_id", 797583)
-    .eq("state_code", "IN")
-    .not("address", "is", null)
-    .order("id")
-    .limit(limit);
-
-  if (onlyOnMarket) query = query.eq("is_on_market", true);
-
-  // Avoid wasting calls on properties that already have a linked lien/mortgage row.
-  const { data: linked } = await db.from("mortgage_records")
-    .select("property_id")
-    .not("property_id", "is", null)
-    .limit(100000);
-  const alreadyLinked = new Set((linked ?? []).map((row) => row.property_id).filter(Boolean));
-
-  const { data: properties, error } = await query;
-  if (error) throw error;
-
-  const candidates = (properties ?? []).filter((property) => !alreadyLinked.has(property.id));
-  console.log(`Loaded ${properties?.length ?? 0}; searching ${candidates.length} without linked recorder rows.`);
+  const candidates = await loadCandidates();
+  console.log(`Searching ${candidates.length} properties without linked recorder rows.`);
 
   let searched = 0;
   let docsFound = 0;
@@ -131,6 +113,43 @@ async function main() {
 
   console.log();
   console.log(JSON.stringify({ searched, noDocs, docsFound, inserted, errors, dryRun }, null, 2));
+}
+
+async function loadCandidates(): Promise<Array<{ id: number; address: string; city: string; state_code: string; zip: string }>> {
+  if (directPgUrl) {
+    const client = new Client({ connectionString: directPgUrl });
+    await client.connect();
+    try {
+      const result = await client.query(`
+        select p.id, p.address, p.city, p.state_code, p.zip
+        from properties p
+        where p.county_id = 797583
+          and p.state_code = 'IN'
+          and p.address is not null
+          and p.address <> ''
+          ${onlyOnMarket ? "and exists (select 1 from listing_signals l where l.property_id = p.id and l.is_on_market = true)" : ""}
+          and not exists (
+            select 1 from mortgage_records m
+            where m.property_id = p.id
+          )
+        order by p.id
+        limit $1
+      `, [limit]);
+      return result.rows;
+    } finally {
+      await client.end();
+    }
+  }
+
+  const { data, error } = await db.from("properties")
+    .select("id,address,city,state_code,zip")
+    .eq("county_id", 797583)
+    .eq("state_code", "IN")
+    .not("address", "is", null)
+    .order("id")
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
 }
 
 function sleep(ms: number) {
