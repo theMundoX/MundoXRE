@@ -25,7 +25,7 @@ cd "$RepoDir"
 git config --global --add safe.directory "$RepoDir" || true
 git fetch origin main
 git pull --ff-only origin main
-npm ci --omit=optional
+npm ci
 npm run build
 
 mkdir -p /var/log/mxre
