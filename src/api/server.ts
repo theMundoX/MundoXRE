@@ -580,6 +580,17 @@ app.post('/v1/bbc/search-runs', async (c) => {
     filters.maxPrice !== null ? `and l.mls_list_price <= ${filters.maxPrice}` : '',
     filters.minUnits !== null ? `and coalesce(p.total_units, 0) >= ${filters.minUnits}` : '',
     filters.maxUnits !== null ? `and coalesce(p.total_units, 0) <= ${filters.maxUnits}` : '',
+    filters.minBeds !== null ? `and coalesce(p.bedrooms, 0) >= ${filters.minBeds}` : '',
+    filters.maxBeds !== null ? `and coalesce(p.bedrooms, 0) <= ${filters.maxBeds}` : '',
+    filters.minBaths !== null ? `and coalesce(p.bathrooms, p.bathrooms_full, 0) >= ${filters.minBaths}` : '',
+    filters.maxBaths !== null ? `and coalesce(p.bathrooms, p.bathrooms_full, 0) <= ${filters.maxBaths}` : '',
+    filters.minSqft !== null ? `and coalesce(p.living_sqft, 0) >= ${filters.minSqft}` : '',
+    filters.maxSqft !== null ? `and coalesce(p.living_sqft, 0) <= ${filters.maxSqft}` : '',
+    filters.minYearBuilt !== null ? `and coalesce(p.year_built, 0) >= ${filters.minYearBuilt}` : '',
+    filters.maxYearBuilt !== null ? `and coalesce(p.year_built, 0) <= ${filters.maxYearBuilt}` : '',
+    filters.states.length > 0 ? `and p.state_code in (${filters.states.map((state) => `'${sqlString(state)}'`).join(',')})` : '',
+    filters.cities.length > 0 ? `and upper(coalesce(p.city,'')) in (${filters.cities.map((city) => `'${sqlString(city)}'`).join(',')})` : '',
+    filters.zips.length > 0 ? `and p.zip in (${filters.zips.map((zip) => `'${sqlString(zip)}'`).join(',')})` : '',
   ].filter(Boolean).join('\n        ');
   const creativeSql = filters.creativeOnly ? `and l.creative_finance_status = 'positive'` : '';
 
@@ -3898,6 +3909,7 @@ function normalizeRecord(value: unknown): Record<string, unknown> {
 }
 
 function normalizeBbcSearchFilters(input: Record<string, unknown>) {
+  const location = normalizeRecord(input.location);
   const assetTypes = Array.isArray(input.assetTypes)
     ? input.assetTypes.map((value) => String(value)).map(normalizeBbcAssetType).filter(Boolean)
     : [];
@@ -3912,8 +3924,46 @@ function normalizeBbcSearchFilters(input: Record<string, unknown>) {
     maxPrice: positiveNumberOrNull(input.maxPrice),
     minUnits: positiveNumberOrNull(input.minUnits),
     maxUnits: positiveNumberOrNull(input.maxUnits),
+    minBeds: positiveNumberOrNull(input.minBeds ?? input.minBedrooms),
+    maxBeds: positiveNumberOrNull(input.maxBeds ?? input.maxBedrooms),
+    minBaths: positiveNumberOrNull(input.minBaths ?? input.minBathrooms),
+    maxBaths: positiveNumberOrNull(input.maxBaths ?? input.maxBathrooms),
+    minSqft: positiveNumberOrNull(input.minSqft ?? input.minLivingSqft),
+    maxSqft: positiveNumberOrNull(input.maxSqft ?? input.maxLivingSqft),
+    minYearBuilt: positiveNumberOrNull(input.minYearBuilt),
+    maxYearBuilt: positiveNumberOrNull(input.maxYearBuilt),
+    states: normalizeStateFilters(input.state ?? input.states ?? location.state ?? location.states),
+    cities: normalizeCityFilters(input.city ?? input.cities ?? location.city ?? location.cities),
+    zips: normalizeZipFilters(input.zip ?? input.zips ?? input.zipCodes ?? location.zip ?? location.zips ?? location.zipCodes),
     creativeOnly: input.creativeOnly === true,
   };
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item));
+  if (typeof value === 'string') return value.split(',');
+  return [];
+}
+
+function normalizeStateFilters(value: unknown): string[] {
+  return [...new Set(normalizeStringList(value)
+    .map((item) => item.trim().toUpperCase())
+    .filter((item) => /^[A-Z]{2}$/.test(item))
+    .slice(0, 20))];
+}
+
+function normalizeCityFilters(value: unknown): string[] {
+  return [...new Set(normalizeStringList(value)
+    .map((item) => item.trim().toUpperCase())
+    .filter((item) => item.length >= 2 && item.length <= 80)
+    .slice(0, 100))];
+}
+
+function normalizeZipFilters(value: unknown): string[] {
+  return [...new Set(normalizeStringList(value)
+    .map((item) => item.replace(/[^\d]/g, '').slice(0, 5))
+    .filter((item) => /^\d{5}$/.test(item))
+    .slice(0, 500))];
 }
 
 function normalizeBbcAssetType(value: string): string {
@@ -4270,6 +4320,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td>Reconsider failed deals</td><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Only re-score when <code>recordVersion</code> changes</td></tr>
   </table>
   <h3>BBC Daily Search Example</h3>
+  <p>Use <code>POST /v1/bbc/search-runs</code> for frontend searches and backend cron searches. The <code>market</code> selects a covered MXRE universe; <code>location</code> and numeric filters narrow the returned active/new/changed leads.</p>
   <pre>curl "https://api.mxre.mundox.ai/v1/bbc/search-runs" \
   -X POST \
   -H "content-type: application/json" \
@@ -4277,10 +4328,16 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   -H "x-api-key: YOUR_SANDBOX_KEY" \
   -d '{
     "market": "indianapolis",
+    "location": { "city": "Indianapolis", "state": "IN", "zipCodes": ["46222", "46203"] },
     "assetTypes": ["single_family", "small_multifamily"],
     "status": ["active"],
     "minPrice": 50000,
     "maxPrice": 250000,
+    "minBeds": 2,
+    "maxBeds": 4,
+    "minBaths": 1,
+    "minSqft": 900,
+    "maxSqft": 2500,
     "onlyChangedSince": "2026-05-02T00:00:00Z",
     "excludeMxreIds": [50913586],
     "limit": 100
@@ -4411,10 +4468,16 @@ function buildOpenApiSpec() {
                 schema: { type: 'object' },
                 example: {
                   market: 'indianapolis',
+                  location: { city: 'Indianapolis', state: 'IN', zipCodes: ['46222', '46203'] },
                   assetTypes: ['single_family', 'small_multifamily'],
                   status: ['active'],
                   minPrice: 50000,
                   maxPrice: 250000,
+                  minBeds: 2,
+                  maxBeds: 4,
+                  minBaths: 1,
+                  minSqft: 900,
+                  maxSqft: 2500,
                   onlyChangedSince: '2026-05-02T00:00:00Z',
                   excludeMxreIds: [50913586],
                   limit: 100,
