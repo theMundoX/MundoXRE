@@ -197,6 +197,7 @@ const steps: Step[] = [
       "tsx",
       "scripts/link-marion-fidlar-owner-fast.ts",
       "--limit=10000",
+      "--max-run-ms=900000",
       ...(DRY_RUN ? ["--dry-run"] : []),
     ],
     required: false,

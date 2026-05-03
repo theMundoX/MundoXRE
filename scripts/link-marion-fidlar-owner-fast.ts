@@ -10,6 +10,7 @@ const valueArg = (name: string) => {
 
 const limit = Number(valueArg("limit") ?? "1000");
 const dryRun = args.includes("--dry-run");
+const maxRunMs = Number(valueArg("max-run-ms") ?? "0");
 const directPgUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
 const MARION_COUNTY_ID = 797583;
 const SOURCE_URL = "https://inmarion.fidlar.com/INMarion/DirectSearch/";
@@ -73,6 +74,7 @@ function namesToTry(record: RecorderRow): string[] {
 
 async function main() {
   console.log(`Fast Marion Fidlar owner linker | limit=${limit} | dry=${dryRun}`);
+  const startedAt = Date.now();
   const client = new Client({ connectionString: directPgUrl });
   await client.connect();
 
@@ -96,6 +98,11 @@ async function main() {
     let noMatch = 0;
 
     for (const record of records.rows) {
+      if (maxRunMs > 0 && Date.now() - startedAt > maxRunMs) {
+        console.log(`\nReached max runtime ${maxRunMs}ms; stopping cleanly.`);
+        break;
+      }
+
       processed++;
       let best: { id: number; score: number } | null = null;
       let tied = false;
@@ -150,7 +157,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
