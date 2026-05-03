@@ -1,6 +1,8 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 import { Client } from "pg";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 const args = process.argv.slice(2);
 const valueArg = (name: string) => {
@@ -11,7 +13,8 @@ const valueArg = (name: string) => {
 const limit = Number(valueArg("limit") ?? "1000");
 const dryRun = args.includes("--dry-run");
 const maxRunMs = Number(valueArg("max-run-ms") ?? "0");
-const afterId = Number(valueArg("after-id") ?? "0");
+const explicitAfterId = Number(valueArg("after-id") ?? "0");
+const cursorFile = valueArg("cursor-file");
 const onlyMortgageAmounts = args.includes("--only-mortgage-amounts");
 const directPgUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
 const MARION_COUNTY_ID = 797583;
@@ -75,7 +78,17 @@ function namesToTry(record: RecorderRow): string[] {
 }
 
 async function main() {
-  console.log(`Fast Marion Fidlar owner linker | limit=${limit} | dry=${dryRun} | onlyMortgageAmounts=${onlyMortgageAmounts}`);
+  let afterId = explicitAfterId;
+  if (cursorFile) {
+    try {
+      const saved = Number((await readFile(cursorFile, "utf8")).trim());
+      if (Number.isFinite(saved) && saved > afterId) afterId = saved;
+    } catch {
+      // Missing cursor is fine; the first run starts from the explicit cursor.
+    }
+  }
+
+  console.log(`Fast Marion Fidlar owner linker | limit=${limit} | dry=${dryRun} | onlyMortgageAmounts=${onlyMortgageAmounts} | afterId=${afterId}`);
   const startedAt = Date.now();
   const client = new Client({ connectionString: directPgUrl });
   await client.connect();
@@ -100,6 +113,7 @@ async function main() {
     let linked = 0;
     let ambiguous = 0;
     let noMatch = 0;
+    let lastProcessedId = afterId;
 
     for (const record of records.rows) {
       if (maxRunMs > 0 && Date.now() - startedAt > maxRunMs) {
@@ -108,6 +122,7 @@ async function main() {
       }
 
       processed++;
+      lastProcessedId = record.id;
       let best: { id: number; score: number } | null = null;
       let tied = false;
 
@@ -154,8 +169,13 @@ async function main() {
       }
     }
 
+    if (cursorFile && !dryRun && lastProcessedId > afterId) {
+      await mkdir(dirname(cursorFile), { recursive: true });
+      await writeFile(cursorFile, `${lastProcessedId}\n`, "utf8");
+    }
+
     console.log();
-    console.log(JSON.stringify({ processed, linked, ambiguous, noMatch, dryRun }, null, 2));
+    console.log(JSON.stringify({ processed, linked, ambiguous, noMatch, dryRun, afterId, lastProcessedId, cursorFile }, null, 2));
   } finally {
     await client.end();
   }
