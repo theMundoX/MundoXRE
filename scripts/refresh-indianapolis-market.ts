@@ -195,9 +195,7 @@ const steps: Step[] = [
     command: [
       "npx",
       "tsx",
-      "scripts/link-mortgage-records.ts",
-      "--state=IN",
-      "--county=Marion",
+      "scripts/link-marion-fidlar-owner-fast.ts",
       "--limit=10000",
       ...(DRY_RUN ? ["--dry-run"] : []),
     ],
