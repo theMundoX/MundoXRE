@@ -12,6 +12,7 @@ const limit = Number(valueArg("limit") ?? "1000");
 const dryRun = args.includes("--dry-run");
 const maxRunMs = Number(valueArg("max-run-ms") ?? "0");
 const afterId = Number(valueArg("after-id") ?? "0");
+const onlyMortgageAmounts = args.includes("--only-mortgage-amounts");
 const directPgUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
 const MARION_COUNTY_ID = 797583;
 const SOURCE_URL = "https://inmarion.fidlar.com/INMarion/DirectSearch/";
@@ -74,7 +75,7 @@ function namesToTry(record: RecorderRow): string[] {
 }
 
 async function main() {
-  console.log(`Fast Marion Fidlar owner linker | limit=${limit} | dry=${dryRun}`);
+  console.log(`Fast Marion Fidlar owner linker | limit=${limit} | dry=${dryRun} | onlyMortgageAmounts=${onlyMortgageAmounts}`);
   const startedAt = Date.now();
   const client = new Client({ connectionString: directPgUrl });
   await client.connect();
@@ -88,6 +89,8 @@ async function main() {
           and property_id is null
           and id > $3
           and (borrower_name is not null or lender_name is not null)
+          ${onlyMortgageAmounts ? "and lower(coalesce(document_type,'')) like '%mortgage%' and coalesce(nullif(loan_amount,0), nullif(original_amount,0)) is not null" : ""}
+        order by id
         limit $2
       `,
       [SOURCE_URL, limit, afterId],
