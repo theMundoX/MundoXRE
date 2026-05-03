@@ -74,7 +74,6 @@ const client = new Client({ connectionString: pgUrl });
 await client.connect();
 
 try {
-  await client.query("begin");
   await client.query(`
     create temp table oa_autocomplete_stage (
       source text,
@@ -90,9 +89,8 @@ try {
       lng numeric,
       confidence text,
       market_key text
-    ) on commit drop;
+    );
   `);
-  await client.query("commit");
 
   let imported = 0;
   for (const file of csvFiles) {
