@@ -31,10 +31,10 @@ Write-Host "Testing SSH to $User@$HostName..."
 Run-Remote "echo MXRE_SSH_OK && uname -a"
 
 Write-Host "Preparing remote directories..."
-Run-Remote "mkdir -p $AppDir /etc/cloudflared"
+Run-Remote "mkdir -p /etc/cloudflared"
 
 Write-Host "Copying environment and Cloudflare tunnel credentials..."
-scp -i $KeyPath -o StrictHostKeyChecking=accept-new ".env" "${User}@${HostName}:$AppDir/.env"
+scp -i $KeyPath -o StrictHostKeyChecking=accept-new ".env" "${User}@${HostName}:/tmp/mxre.env"
 scp -i $KeyPath -o StrictHostKeyChecking=accept-new $LocalTunnelCredential "${User}@${HostName}:/etc/cloudflared/$TunnelId.json"
 
 $remoteBootstrap = @"
@@ -66,6 +66,7 @@ cd "$AppDir"
 git fetch origin
 git checkout main
 git reset --hard origin/main
+mv /tmp/mxre.env "$AppDir/.env"
 chmod 600 "$AppDir/.env"
 
 npm ci
