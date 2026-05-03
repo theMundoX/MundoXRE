@@ -15,7 +15,7 @@ create table if not exists address_autocomplete_entries (
   mxre_property_id bigint,
   market_key text,
   normalized_label text generated always as (
-    upper(regexp_replace(coalesce(label, ''), '[^A-Z0-9 ]', ' ', 'g'))
+    regexp_replace(upper(coalesce(label, '')), '[^A-Z0-9 ]', ' ', 'g')
   ) stored,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -31,3 +31,21 @@ create index if not exists idx_address_autocomplete_state_city
 create index if not exists idx_address_autocomplete_mxre_property
   on address_autocomplete_entries (mxre_property_id)
   where mxre_property_id is not null;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_name = 'address_autocomplete_entries'
+      and column_name = 'normalized_label'
+  ) then
+    alter table address_autocomplete_entries drop column normalized_label;
+    alter table address_autocomplete_entries add column normalized_label text generated always as (
+      regexp_replace(upper(coalesce(label, '')), '[^A-Z0-9 ]', ' ', 'g')
+    ) stored;
+  end if;
+end $$;
+
+create index if not exists idx_address_autocomplete_label_prefix
+  on address_autocomplete_entries (normalized_label text_pattern_ops);
