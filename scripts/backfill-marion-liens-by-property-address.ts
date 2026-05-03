@@ -20,6 +20,7 @@ const to = valueArg("to") ?? new Date().toISOString().slice(0, 10);
 const dryRun = args.includes("--dry-run");
 const onlyOnMarket = args.includes("--on-market");
 const batchSleepMs = Number(valueArg("delay-ms") ?? "250");
+const afterParcel = valueArg("after-parcel");
 
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
   auth: { persistSession: false },
@@ -125,16 +126,12 @@ async function loadCandidates(): Promise<Array<{ id: number; address: string; ci
         from properties p
         where p.county_id = 797583
           and p.state_code = 'IN'
-          and p.address is not null
-          and p.address <> ''
+          and p.address ~ '^[0-9]'
+          ${afterParcel ? "and p.parcel_id > $2" : ""}
           ${onlyOnMarket ? "and exists (select 1 from listing_signals l where l.property_id = p.id and l.is_on_market = true)" : ""}
-          and not exists (
-            select 1 from mortgage_records m
-            where m.property_id = p.id
-          )
-        order by p.id
+        order by p.parcel_id
         limit $1
-      `, [limit]);
+      `, afterParcel ? [limit, afterParcel] : [limit]);
       return result.rows;
     } finally {
       await client.end();
