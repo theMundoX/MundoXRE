@@ -144,7 +144,7 @@ curl -fsS http://127.0.0.1:3101/health
 "@
 
 $tmp = New-TemporaryFile
-Set-Content -Path $tmp -Value $remoteBootstrap -Encoding UTF8
+Set-Content -Path $tmp -Value $remoteBootstrap -Encoding utf8NoBOM
 try {
   scp -i $KeyPath -o StrictHostKeyChecking=accept-new $tmp "${User}@${HostName}:/tmp/mxre-bootstrap.sh"
 } finally {
