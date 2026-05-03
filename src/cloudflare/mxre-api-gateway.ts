@@ -4,6 +4,7 @@ export interface Env {
   MXRE_CLIENT_API_KEYS?: string;
   MXRE_BUY_BOX_CLUB_KEY?: string;
   MXRE_BUY_BOX_CLUB_SANDBOX_KEY?: string;
+  MXRE_DOCS_API_KEY?: string;
   CACHE_SECONDS?: string;
 }
 
@@ -12,6 +13,7 @@ type ApiClient = {
   key: string;
   environment?: string;
   monthlyQuota?: number;
+  scope?: 'api' | 'docs';
 };
 
 type RateBucket = {
@@ -96,6 +98,11 @@ function authenticate(request: Request, env: Env): ApiClient | null {
   if (env.MXRE_BUY_BOX_CLUB_SANDBOX_KEY?.trim() && constantTimeEqual(apiKey, env.MXRE_BUY_BOX_CLUB_SANDBOX_KEY.trim())) {
     if (clientId && clientId !== 'buy_box_club_sandbox') return null;
     return { id: 'buy_box_club_sandbox', key: apiKey, environment: 'sandbox' };
+  }
+
+  if (env.MXRE_DOCS_API_KEY?.trim() && constantTimeEqual(apiKey, env.MXRE_DOCS_API_KEY.trim())) {
+    if (clientId && clientId !== 'buy_box_club_docs') return null;
+    return { id: 'buy_box_club_docs', key: apiKey, environment: 'docs', scope: 'docs' };
   }
 
   const matches = loadClients(env).filter((client) => constantTimeEqual(client.key, apiKey));
@@ -199,7 +206,7 @@ export default {
       return json({ status: 'ok', edge: 'cloudflare', timestamp: new Date().toISOString() }, 200, securityHeaders());
     }
 
-    const isDocs = url.pathname === '/docs';
+    const isDocs = url.pathname === '/docs' || url.pathname === '/v1/docs/openapi.json';
     if (!url.pathname.startsWith('/v1/') && !isDocs) {
       return json({ error: 'Not found' }, 404, securityHeaders());
     }
@@ -228,6 +235,10 @@ export default {
 
     const clientLimit = rateLimit(`client:${client.id}:${ip}`, 600, 60_000);
     if (!clientLimit.allowed) return rateLimitResponse(clientLimit.retryAfter);
+
+    if (client.scope === 'docs' && !isDocs) {
+      return json({ error: 'Forbidden', message: 'This API key only grants access to MXRE docs.' }, 403, securityHeaders());
+    }
 
     if (!env.MXRE_ORIGIN_URL || !env.MXRE_UPSTREAM_API_KEY) {
       return json({ error: 'Gateway origin not configured for this endpoint' }, 503, securityHeaders());

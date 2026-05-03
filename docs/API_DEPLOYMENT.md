@@ -13,6 +13,7 @@ Set these in the hosting provider. Do not commit production values.
 NODE_ENV=production
 MXRE_API_KEY=<long random API key>
 MXRE_CLIENT_API_KEYS=<json array of client keys>
+MXRE_DOCS_API_KEY=<docs-only key for /docs and /v1/docs/openapi.json>
 SUPABASE_URL=<supabase project url>
 SUPABASE_SERVICE_KEY=<supabase service role key>
 ```
@@ -218,6 +219,30 @@ All protected `/v1/*` endpoints require:
 ```text
 x-api-key: <MXRE_API_KEY>
 x-client-id: buy_box_club_prod
+```
+
+## Docs-Only Key
+
+Use a separate docs-only key when an implementation agent needs to read the private docs but should not access property or market data.
+
+```text
+x-client-id: buy_box_club_docs
+x-api-key: <MXRE_DOCS_API_KEY>
+```
+
+Allowed:
+
+```text
+GET /docs
+GET /v1/docs/openapi.json
+```
+
+Blocked:
+
+```text
+/v1/bbc/property
+/v1/bbc/search-runs
+/v1/bbc/markets/*
 ```
 
 The API returns `x-mxre-client-id` and `x-request-id`, and logs a structured `mxre_api_request` JSON line for each protected request.

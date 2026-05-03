@@ -14,6 +14,7 @@ type ApiClient = {
   key: string;
   environment?: string;
   monthlyQuota?: number;
+  scope?: 'api' | 'docs';
 };
 
 type RateBucket = {
@@ -130,7 +131,10 @@ function loadApiClients(): ApiClient[] {
   }
 
   const legacyKey = process.env.MXRE_API_KEY;
-  return legacyKey ? [{ id: 'legacy', key: legacyKey, environment: process.env.NODE_ENV }] : [];
+  const clients: ApiClient[] = legacyKey ? [{ id: 'legacy', key: legacyKey, environment: process.env.NODE_ENV }] : [];
+  const docsKey = process.env.MXRE_DOCS_API_KEY;
+  if (docsKey) clients.push({ id: 'buy_box_club_docs', key: docsKey, environment: 'docs', scope: 'docs' });
+  return clients;
 }
 
 function authenticateApiClient(apiKey: string | undefined, clientId: string | undefined): ApiClient | null {
@@ -285,6 +289,10 @@ app.use('*', async (c, next) => {
       c.header('www-authenticate', 'Basic realm="MXRE Private API Docs", charset="UTF-8"');
     }
     return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  if (client.scope === 'docs' && c.req.path !== '/docs' && c.req.path !== '/v1/docs/openapi.json') {
+    return c.json({ error: 'Forbidden', message: 'This API key only grants access to MXRE docs.' }, 403);
   }
 
   const clientLimit = rateLimit(`client:${client.id}:${ip}`, 1200, 60_000);
