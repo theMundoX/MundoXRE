@@ -67,6 +67,10 @@ git fetch origin
 git checkout main
 git reset --hard origin/main
 mv /tmp/mxre.env "$AppDir/.env"
+sed -i \
+  -e 's#http://[0-9.]\+:8000#http://127.0.0.1:8000#g' \
+  -e 's#https://[0-9.]\+:8443#https://127.0.0.1:8443#g' \
+  "$AppDir/.env"
 id -u mxre >/dev/null 2>&1 || useradd --system --home-dir "$AppDir" --shell /usr/sbin/nologin mxre
 chown -R mxre:mxre "$AppDir"
 chmod 750 "$AppDir"
