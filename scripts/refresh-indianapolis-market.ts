@@ -191,7 +191,37 @@ const steps: Step[] = [
     skip: SKIP_RECORDER_BACKFILL,
   },
   {
-    name: "Link Marion recorder rows to properties",
+    name: "Link Marion amount-bearing mortgages to properties",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/link-marion-fidlar-owner-fast.ts",
+      "--limit=10000",
+      "--max-run-ms=900000",
+      "--only-mortgage-amounts",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_RECORDER_BACKFILL,
+  },
+  {
+    name: "Estimate current mortgage balances",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/backfill-mortgage-balance-estimates.ts",
+      "--state=IN",
+      "--city=Indianapolis",
+      "--batch-size=2000",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_RECORDER_BACKFILL,
+  },
+  {
+    name: "Link remaining Marion recorder rows to properties",
     command: [
       "npx",
       "tsx",
