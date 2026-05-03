@@ -399,35 +399,37 @@ app.get('/v1/addresses/autocomplete', async (c) => {
   const dbCityLimit = staticCityRows.length > 0 ? 0 : cityLimit;
 
   let nationalRows: Record<string, unknown>[] = [];
-  try {
-    nationalRows = await queryPg<Record<string, unknown>>(`
-      select
-        type,
-        label,
-        street,
-        initcap(city) as city,
-        state_code as state,
-        zip,
-        null::bigint as "countyId",
-        county,
-        lat,
-        lng,
-        source,
-        mxre_property_id is not null as "hasMxrePropertyDetail",
-        mxre_property_id as "propertyId",
-        market_key as "marketId",
-        confidence,
-        case when source = 'mxre' then 10 else 30 end as rank
-      from address_autocomplete_entries
-      where type = 'address'
-        ${stateSql}
-        ${zipSql}
-        and normalized_label like '${qSql}%'
-      order by rank, label
-      limit ${addressLimit}
-    `);
-  } catch {
-    nationalRows = [];
+  if (process.env.MXRE_ENABLE_NATIONAL_AUTOCOMPLETE === 'true') {
+    try {
+      nationalRows = await queryPg<Record<string, unknown>>(`
+        select
+          type,
+          label,
+          street,
+          initcap(city) as city,
+          state_code as state,
+          zip,
+          null::bigint as "countyId",
+          county,
+          lat,
+          lng,
+          source,
+          mxre_property_id is not null as "hasMxrePropertyDetail",
+          mxre_property_id as "propertyId",
+          market_key as "marketId",
+          confidence,
+          case when source = 'mxre' then 10 else 30 end as rank
+        from address_autocomplete_entries
+        where type = 'address'
+          ${stateSql}
+          ${zipSql}
+          and normalized_label like '${qSql}%'
+        order by rank, label
+        limit ${addressLimit}
+      `);
+    } catch {
+      nationalRows = [];
+    }
   }
 
   const mxreRows = await queryPg<Record<string, unknown>>(`
