@@ -183,6 +183,7 @@ const steps: Step[] = [
       "--limit=250",
       "--delay-ms=500",
       "--max-run-ms=900000",
+      "--per-search-timeout-ms=30000",
       ...(DRY_RUN ? ["--dry-run"] : []),
     ],
     required: false,

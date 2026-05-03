@@ -22,6 +22,7 @@ const onlyOnMarket = args.includes("--on-market");
 const batchSleepMs = Number(valueArg("delay-ms") ?? "250");
 const afterParcel = valueArg("after-parcel");
 const maxRunMs = Number(valueArg("max-run-ms") ?? "0");
+const perSearchTimeoutMs = Number(valueArg("per-search-timeout-ms") ?? "45000");
 
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
   auth: { persistSession: false },
@@ -72,7 +73,11 @@ async function main() {
 
     searched++;
     try {
-      const docs = await adapter.fetchAddressDocuments(marion, property.address, from, to);
+      const docs = await withTimeout(
+        adapter.fetchAddressDocuments(marion, property.address, from, to),
+        perSearchTimeoutMs,
+        `Timed out searching ${property.address}`,
+      );
       if (docs.length === 0) {
         noDocs++;
         process.stdout.write(`\rsearched=${searched} no_docs=${noDocs} docs=${docsFound} inserted=${inserted} errors=${errors}`);
@@ -218,6 +223,22 @@ function sqlString(value: string): string {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 main().catch((error) => {
