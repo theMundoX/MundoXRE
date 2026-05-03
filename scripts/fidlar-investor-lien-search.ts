@@ -17,6 +17,7 @@
  *   npx tsx scripts/fidlar-investor-lien-search.ts --from-year=2018 # only since 2018
  *   npx tsx scripts/fidlar-investor-lien-search.ts --dry-run
  *   npx tsx scripts/fidlar-investor-lien-search.ts --name="BEDSON PEAK"  # single entity
+ *   npx tsx scripts/fidlar-investor-lien-search.ts --name-source=on-market
  */
 
 import "dotenv/config";
@@ -37,6 +38,7 @@ const LIMIT     = getArg("limit") ? parseInt(getArg("limit")!) : Infinity;
 const FROM_YEAR = parseInt(getArg("from-year") ?? "2000");
 const TO_YEAR   = parseInt(getArg("to-year") ?? String(new Date().getFullYear()));
 const NAME_ARG  = getArg("name");   // single entity override
+const NAME_SOURCE = getArg("name-source") ?? "corporate";
 
 // ─── DB ────────────────────────────────────────────────────────────────────
 
@@ -83,6 +85,42 @@ function normaliseForSearch(name: string): string {
  */
 async function loadEntityNames(): Promise<string[]> {
   if (NAME_ARG) return [NAME_ARG.toUpperCase()];
+
+  if (NAME_SOURCE === "on-market") {
+    const PAGE = 1000;
+    const names = new Set<string>();
+    let offset = 0;
+
+    while (true) {
+      const { data, error } = await db
+        .from("listing_signals")
+        .select("property_id, properties!inner(owner_name, county_id)")
+        .eq("is_on_market", true)
+        .eq("state_code", "IN")
+        .eq("city", "INDIANAPOLIS")
+        .not("property_id", "is", null)
+        .range(offset, offset + PAGE - 1);
+
+      if (error) throw new Error(`DB: ${error.message}`);
+      if (!data || data.length === 0) break;
+
+      for (const row of data as Array<{ properties?: { owner_name?: string | null; county_id?: number | null } }>) {
+        const property = row.properties;
+        if (property?.county_id === MARION_COUNTY_ID && property.owner_name) {
+          names.add(property.owner_name.trim().toUpperCase());
+        }
+      }
+
+      offset += data.length;
+      if (data.length < PAGE) break;
+    }
+
+    return [...names];
+  }
+
+  if (NAME_SOURCE !== "corporate") {
+    throw new Error(`Invalid --name-source=${NAME_SOURCE}. Use corporate or on-market.`);
+  }
 
   // Pull all unique owner names where corporate_owned = true
   const PAGE = 1000;
@@ -136,6 +174,7 @@ async function main() {
   console.log(`Years    : ${FROM_YEAR}–${TO_YEAR}`);
   console.log(`Dry run  : ${DRY_RUN}`);
   console.log(`Limit    : ${LIMIT === Infinity ? "all" : LIMIT} entities`);
+  console.log(`Names    : ${NAME_SOURCE}`);
   console.log();
 
   const marionConfig = DIRECT_SEARCH_COUNTIES.find(c => c.county_name === "Marion")!;
