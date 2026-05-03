@@ -4465,8 +4465,12 @@ function buildBuyBoxClubPropertyResponse(response: ReturnType<typeof buildProper
     debtAndLiens: {
       freeClear: response.liens.summary.freeClear,
       openMortgageBalance: response.liens.summary.openMortgageBalance,
+      openMortgageBalanceSource: response.liens.summary.openMortgageBalanceSource,
+      openMortgageBalanceConfidence: response.liens.summary.openMortgageBalanceConfidence,
       estimatedEquity: response.liens.summary.estimatedEquity,
       equityPercent: response.liens.summary.equityPercent,
+      equityBasis: response.liens.summary.equityBasis,
+      equityValue: response.liens.summary.equityValue,
       openLienCount: response.liens.summary.openLienCount,
       lienCount: response.liens.summary.lienCount,
       current: response.liens.current,

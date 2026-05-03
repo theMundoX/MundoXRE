@@ -32,16 +32,6 @@ export function buildPropertyResponse(
   const c = county;
 
   const marketValue = (p.market_value as number) ?? null;
-  const { summary: lienSummary, current: currentLiens, history: lienHistory } = splitLiens(mortgages, marketValue);
-
-  const signals = computeSignals({
-    property: p,
-    currentLiens,
-    equityPercent: lienSummary.equityPercent,
-    freeClear: lienSummary.freeClear,
-    sales: saleHistory,
-    foreclosures,
-  });
 
   const owner1 = parseOwnerName(p.owner_name as string | null);
   const owner2 = parseOwnerName(p.owner2_name as string | null);
@@ -73,6 +63,37 @@ export function buildPropertyResponse(
     listing_url: rawListing.listing_url ?? null,
     list_date: rawListing.first_seen_at ?? rawListing.list_date ?? rawListing.snapshot_date ?? null,
   } : null;
+  const listPrice = (latestListing?.list_price as number) ?? (latestListing?.price as number) ?? null;
+  const listStatus = latestListing?.status as string | null;
+  const marketStatus = mapMarketStatus(listStatus);
+  const equityBasis = (marketStatus === 'active' || marketStatus === 'pending') && listPrice
+    ? 'list_price'
+    : p.estimated_value
+      ? 'estimated_value'
+      : marketValue
+        ? 'market_value'
+        : p.assessed_value
+          ? 'assessed_value'
+          : null;
+  const equityValue = equityBasis === 'list_price'
+    ? listPrice
+    : equityBasis === 'estimated_value'
+      ? (p.estimated_value as number)
+      : equityBasis === 'market_value'
+        ? marketValue
+        : equityBasis === 'assessed_value'
+          ? (p.assessed_value as number)
+          : null;
+  const { summary: lienSummary, current: currentLiens, history: lienHistory } = splitLiens(mortgages, equityValue, equityBasis);
+
+  const signals = computeSignals({
+    property: p,
+    currentLiens,
+    equityPercent: lienSummary.equityPercent,
+    freeClear: lienSummary.freeClear,
+    sales: saleHistory,
+    foreclosures,
+  });
 
   // Build MLS history
   const mlsHistoryMapped: MLSHistoryEntry[] = mlsHistory.map((m) => ({
@@ -181,8 +202,6 @@ export function buildPropertyResponse(
   } : null;
 
   // Listing status
-  const listStatus = latestListing?.status as string | null;
-  const marketStatus = mapMarketStatus(listStatus);
   const listDate = (latestListing?.list_date as string) ?? (latestListing?.first_seen_at as string) ?? null;
   const daysOnMarket = listDate
     ? Math.round((Date.now() - new Date(listDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -341,7 +360,7 @@ export function buildPropertyResponse(
 
     market: {
       onMarket: marketStatus === 'active' || marketStatus === 'pending',
-      listPrice: (latestListing?.list_price as number) ?? (latestListing?.price as number) ?? null,
+      listPrice,
       listDate,
       daysOnMarket,
       status: marketStatus,

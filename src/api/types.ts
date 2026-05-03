@@ -35,7 +35,7 @@ export interface LienRecord {
   position: number | null;
   originalAmount: number | null;
   currentBalance: number | null;
-  balanceSource: 'actual' | 'computed' | null;
+  balanceSource: 'actual' | 'computed' | 'amortized_estimate' | 'original_amount_proxy' | null;
   interestRate: number | null;
   interestRateSource: 'hmda_match' | 'agency_lld' | 'pmms_weekly' | 'manual' | null;
   interestRateConfidence: number | null;  // 0-100; 77+=HMDA match, 40=PMMS baseline
@@ -71,9 +71,13 @@ export interface SaleRecord {
 
 export interface LienSummary {
   openMortgageBalance: number | null;
+  openMortgageBalanceSource: 'actual' | 'computed' | 'amortized_estimate' | 'original_amount_proxy' | 'mixed' | null;
+  openMortgageBalanceConfidence: number | null;
   totalMonthlyPayment: number | null;
   estimatedEquity: number | null;
   equityPercent: number | null;
+  equityBasis: 'list_price' | 'estimated_value' | 'market_value' | 'assessed_value' | null;
+  equityValue: number | null;
   freeClear: boolean;
   lienCount: number;
   openLienCount: number;

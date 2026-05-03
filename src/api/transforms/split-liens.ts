@@ -8,14 +8,14 @@ import type { LienRecord, LienSummary } from '../types.js';
  *   source_url, balance_as_of, grantor, grantee
  */
 function mapMortgageRow(row: Record<string, unknown>): LienRecord {
-  const hasBalance = row.estimated_current_balance != null;
+  const balance = estimateCurrentBalance(row);
   return {
     type: mapDocumentType(row.document_type as string | null),
     open: (row.open as boolean) ?? true,
     position: (row.position as number) ?? null,
     originalAmount: (row.loan_amount as number) ?? (row.original_amount as number) ?? null,
-    currentBalance: (row.estimated_current_balance as number) ?? null,
-    balanceSource: hasBalance ? 'computed' : null,
+    currentBalance: balance.currentBalance,
+    balanceSource: balance.balanceSource,
     interestRate: (row.interest_rate as number) ?? null,
     interestRateSource: (row.rate_source as LienRecord['interestRateSource']) ?? null,
     interestRateConfidence: (row.rate_match_confidence as number) ?? null,
@@ -70,7 +70,8 @@ function mapRateType(rateType: string | null): 'fixed' | 'adjustable' | null {
  */
 export function splitLiens(
   mortgageRows: Record<string, unknown>[],
-  marketValue: number | null,
+  equityValue: number | null,
+  equityBasis: LienSummary['equityBasis'] = 'market_value',
 ): { summary: LienSummary; current: LienRecord[]; history: LienRecord[] } {
   const all = mortgageRows.map(mapMortgageRow);
   const now = new Date();
@@ -109,31 +110,93 @@ export function splitLiens(
   const mortgageTypes = new Set<LienRecord['type']>(['mortgage', 'heloc']);
   const openMortgages = current.filter((l) => mortgageTypes.has(l.type));
 
-  const openMortgageBalance = openMortgages.reduce((sum, l) => {
-    return sum + (l.currentBalance ?? l.originalAmount ?? 0);
-  }, 0) || null;
+  const openMortgageBalance = openMortgages.reduce((sum, l) => sum + (l.currentBalance ?? 0), 0) || null;
+  const openMortgageBalanceSource = summarizeBalanceSource(openMortgages);
+  const openMortgageBalanceConfidence = confidenceForBalanceSource(openMortgageBalanceSource);
 
   const totalMonthlyPayment = openMortgages.reduce((sum, l) => {
     return sum + (l.monthlyPayment ?? 0);
   }, 0) || null;
 
-  const estimatedEquity = marketValue != null && openMortgageBalance != null
-    ? marketValue - openMortgageBalance
+  const estimatedEquity = equityValue != null && openMortgageBalance != null
+    ? equityValue - openMortgageBalance
     : null;
 
-  const equityPercent = marketValue != null && marketValue > 0 && estimatedEquity != null
-    ? Math.round((estimatedEquity / marketValue) * 100)
+  const equityPercent = equityValue != null && equityValue > 0 && estimatedEquity != null
+    ? Math.round((estimatedEquity / equityValue) * 100)
     : null;
 
   const summary: LienSummary = {
     openMortgageBalance,
+    openMortgageBalanceSource,
+    openMortgageBalanceConfidence,
     totalMonthlyPayment,
     estimatedEquity,
     equityPercent,
+    equityBasis: equityValue != null ? equityBasis : null,
+    equityValue,
     freeClear: openMortgages.length === 0,
     lienCount: current.length + history.length,
     openLienCount: current.length,
   };
 
   return { summary, current, history };
+}
+
+function estimateCurrentBalance(row: Record<string, unknown>): Pick<LienRecord, 'currentBalance' | 'balanceSource'> {
+  const explicit = positiveNumber(row.estimated_current_balance);
+  if (explicit != null) return { currentBalance: explicit, balanceSource: 'computed' };
+
+  const original = positiveNumber(row.loan_amount) ?? positiveNumber(row.original_amount);
+  if (original == null) return { currentBalance: null, balanceSource: null };
+
+  const rate = positiveNumber(row.interest_rate);
+  const term = positiveNumber(row.term_months);
+  const recordingDate = typeof row.recording_date === 'string' ? row.recording_date : null;
+  const elapsedMonths = recordingDate ? monthsSince(recordingDate) : null;
+  if (rate != null && term != null && term > 0 && elapsedMonths != null && elapsedMonths > 0) {
+    const balance = amortizedBalance(original, rate, term, Math.min(elapsedMonths, term));
+    if (balance != null) return { currentBalance: balance, balanceSource: 'amortized_estimate' };
+  }
+
+  // Conservative fallback: overstates debt and understates equity until a better balance is available.
+  return { currentBalance: original, balanceSource: 'original_amount_proxy' };
+}
+
+function positiveNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function monthsSince(date: string): number | null {
+  const started = new Date(`${date.slice(0, 10)}T00:00:00.000Z`).getTime();
+  if (Number.isNaN(started)) return null;
+  return Math.max(0, Math.floor((Date.now() - started) / (1000 * 60 * 60 * 24 * 30.44)));
+}
+
+function amortizedBalance(original: number, annualRate: number, termMonths: number, elapsedMonths: number): number | null {
+  const monthlyRate = annualRate > 1 ? annualRate / 100 / 12 : annualRate / 12;
+  if (!Number.isFinite(monthlyRate) || monthlyRate < 0) return null;
+  if (monthlyRate === 0) return Math.max(0, Math.round(original * (1 - elapsedMonths / termMonths)));
+  const payment = original * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1);
+  const remaining = original * Math.pow(1 + monthlyRate, elapsedMonths)
+    - payment * ((Math.pow(1 + monthlyRate, elapsedMonths) - 1) / monthlyRate);
+  return Number.isFinite(remaining) ? Math.max(0, Math.round(remaining)) : null;
+}
+
+function summarizeBalanceSource(openMortgages: LienRecord[]): LienSummary['openMortgageBalanceSource'] {
+  const sources = [...new Set(openMortgages.map((lien) => lien.balanceSource).filter(Boolean))] as Exclude<LienSummary['openMortgageBalanceSource'], 'mixed' | null>[];
+  if (sources.length === 0) return null;
+  if (sources.length === 1) return sources[0];
+  return 'mixed';
+}
+
+function confidenceForBalanceSource(source: LienSummary['openMortgageBalanceSource']): number | null {
+  switch (source) {
+    case 'actual': return 95;
+    case 'computed': return 75;
+    case 'amortized_estimate': return 65;
+    case 'original_amount_proxy': return 35;
+    case 'mixed': return 50;
+    default: return null;
+  }
 }
