@@ -453,8 +453,8 @@ app.get('/v1/addresses/autocomplete', async (c) => {
         and city <> ''
         ${stateSql}
         and (
-          upper(regexp_replace(concat_ws(' ', city, state_code), '[^A-Z0-9 ]', ' ', 'g')) like '${qSql}%'
-          or upper(regexp_replace(city, '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%'
+          upper(city) like '${qNoStateSql}%'
+          or upper(concat_ws(' ', city, state_code)) like '${qSql}%'
         )
       group by city, state_code
       order by count(*) desc, city
@@ -477,7 +477,7 @@ app.get('/v1/addresses/autocomplete', async (c) => {
         p.id as "propertyId",
         lower(regexp_replace(trim(coalesce(p.city, '')), '[^a-zA-Z0-9]+', '-', 'g')) || '-' || lower(coalesce(p.state_code, '')) as "marketId",
         case
-          when upper(regexp_replace(coalesce(p.address, ''), '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%' then 'high'
+          when p.address like '${qNoStateSql}%' then 'high'
           else 'medium'
         end as confidence,
         null::int as "propertyCount",
@@ -490,11 +490,11 @@ app.get('/v1/addresses/autocomplete', async (c) => {
         ${propertyStateSql}
         ${propertyZipSql}
         and (
-          upper(regexp_replace(concat_ws(' ', p.address, p.city, p.state_code, p.zip), '[^A-Z0-9 ]', ' ', 'g')) like '${qSql}%'
-          or upper(regexp_replace(coalesce(p.address, ''), '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%'
+          p.address like '${qNoStateSql}%'
+          or upper(concat_ws(' ', p.address, p.city, p.state_code, p.zip)) like '${qSql}%'
         )
       order by
-        case when upper(regexp_replace(coalesce(p.address, ''), '[^A-Z0-9 ]', ' ', 'g')) like '${qNoStateSql}%' then 0 else 1 end,
+        case when p.address like '${qNoStateSql}%' then 0 else 1 end,
         p.state_code,
         p.city,
         p.address
