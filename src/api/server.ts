@@ -392,9 +392,11 @@ app.get('/v1/addresses/autocomplete', async (c) => {
   const propertyStateSql = stateHint ? `and p.state_code = '${sqlString(stateHint)}'` : '';
   const zipSql = zipHint ? `and zip = '${sqlString(zipHint)}'` : '';
   const propertyZipSql = zipHint ? `and p.zip = '${sqlString(zipHint)}'` : '';
-  const cityLimit = streetLike ? 2 : Math.min(limit, 8);
-  const addressLimit = Math.max(limit - cityLimit, streetLike ? limit : Math.ceil(limit / 2));
+  const cityLimit = streetLike ? 0 : Math.min(limit, 8);
+  const addressLimit = streetLike ? limit : 0;
   const marketKeySql = "lower(regexp_replace(trim(coalesce(city, '')), '[^a-zA-Z0-9]+', '-', 'g')) || '-' || lower(coalesce(state_code, ''))";
+  const staticCityRows = buildStaticMarketAutocompleteRows(q, stateHint);
+  const dbCityLimit = staticCityRows.length > 0 ? 0 : cityLimit;
 
   let nationalRows: Record<string, unknown>[] = [];
   try {
@@ -451,6 +453,7 @@ app.get('/v1/addresses/autocomplete', async (c) => {
       from properties
       where city is not null
         and city <> ''
+        and city !~ '[0-9]'
         ${stateSql}
         and (
           upper(city) like '${qNoStateSql}%'
@@ -458,7 +461,7 @@ app.get('/v1/addresses/autocomplete', async (c) => {
         )
       group by city, state_code
       order by count(*) desc, city
-      limit ${cityLimit}
+      limit ${dbCityLimit}
     ),
     address_matches as (
       select
@@ -536,7 +539,7 @@ app.get('/v1/addresses/autocomplete', async (c) => {
     limit ${limit};
   `);
 
-  const rows = dedupeAutocompleteRows([...mxreRows, ...nationalRows])
+  const rows = dedupeAutocompleteRows([...staticCityRows, ...mxreRows, ...nationalRows])
     .sort((a, b) => {
       const aType = a.type === 'address' ? 0 : 1;
       const bType = b.type === 'address' ? 0 : 1;
@@ -4177,6 +4180,34 @@ function dedupeAutocompleteRows(rows: Record<string, unknown>[]): Record<string,
     out.push(row);
   }
   return out;
+}
+
+function buildStaticMarketAutocompleteRows(query: string, stateHint: string): Record<string, unknown>[] {
+  const normalized = normalizeAutocompleteQueryForSql(query.replace(/\b[A-Z]{2}\b/gi, ''));
+  if (normalized.length < 2 || /\d/.test(query)) return [];
+
+  return Object.values(MARKET_CONFIGS)
+    .filter((market) => !stateHint || market.state === stateHint)
+    .filter((market) => normalizeAutocompleteQueryForSql(market.city).startsWith(normalized))
+    .map((market) => ({
+      type: 'city',
+      label: `${market.city}, ${market.state}`,
+      street: null,
+      city: market.city,
+      state: market.state,
+      zip: null,
+      countyId: market.countyId,
+      county: market.county,
+      lat: null,
+      lng: null,
+      source: 'mxre_market_config',
+      hasMxrePropertyDetail: false,
+      propertyId: null,
+      marketId: market.key,
+      confidence: 'high',
+      propertyCount: null,
+      rank: -10,
+    }));
 }
 
 function normalizeBbcSearchFilters(input: Record<string, unknown>) {
