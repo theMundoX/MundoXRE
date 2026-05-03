@@ -580,6 +580,7 @@ app.post('/v1/bbc/search-runs', async (c) => {
   const limit = Math.min(Number(input.limit) > 0 ? Number(input.limit) : 100, 500);
   const excludeSql = excludedIds.length > 0 ? `and p.id not in (${excludedIds.join(',')})` : '';
   const assetSql = filters.assetTypes.length > 0 ? `and asset_group in (${filters.assetTypes.map((asset) => `'${sqlString(asset)}'`).join(',')})` : '';
+  const unitClassSql = filters.unitClasses.length > 0 ? `and (${filters.unitClasses.map(unitClassSqlCondition).filter(Boolean).join(' or ')})` : '';
   const statusSql = filters.statuses.length > 0
     ? `and (case when l.is_on_market then 'active' else 'off_market' end) in (${filters.statuses.map((status) => `'${sqlString(status)}'`).join(',')})`
     : '';
@@ -662,6 +663,7 @@ app.post('/v1/bbc/search-runs', async (c) => {
       where coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
         ${excludeSql}
         ${assetSql}
+        ${unitClassSql}
         ${statusSql}
         ${priceSql}
         ${creativeSql}
@@ -3921,12 +3923,14 @@ function normalizeBbcSearchFilters(input: Record<string, unknown>) {
   const assetTypes = Array.isArray(input.assetTypes)
     ? input.assetTypes.map((value) => String(value)).map(normalizeBbcAssetType).filter(Boolean)
     : [];
+  const unitClasses = normalizeUnitClassFilters(input.unitClass ?? input.unitClasses ?? input.unit_class ?? input.unit_classes);
   const statuses = Array.isArray(input.status)
     ? input.status.map((value) => String(value).toLowerCase()).filter((value) => ['active', 'pending', 'off_market'].includes(value))
     : ['active'];
 
   return {
     assetTypes: [...new Set(assetTypes)],
+    unitClasses,
     statuses: [...new Set(statuses)],
     minPrice: positiveNumberOrNull(input.minPrice),
     maxPrice: positiveNumberOrNull(input.maxPrice),
@@ -3945,6 +3949,69 @@ function normalizeBbcSearchFilters(input: Record<string, unknown>) {
     zips: normalizeZipFilters(input.zip ?? input.zips ?? input.zipCodes ?? location.zip ?? location.zips ?? location.zipCodes),
     creativeOnly: input.creativeOnly === true,
   };
+}
+
+function normalizeUnitClassFilters(value: unknown): string[] {
+  const aliases: Record<string, string> = {
+    single_family: 'single_family',
+    sfr: 'single_family',
+    one_unit: 'single_family',
+    '1_unit': 'single_family',
+    duplex: 'duplex',
+    two_unit: 'duplex',
+    '2_unit': 'duplex',
+    triplex: 'triplex',
+    three_unit: 'triplex',
+    '3_unit': 'triplex',
+    fourplex: 'fourplex',
+    quadplex: 'fourplex',
+    four_unit: 'fourplex',
+    '4_unit': 'fourplex',
+    fiveplex: 'fiveplex',
+    five_unit: 'fiveplex',
+    '5_unit': 'fiveplex',
+    small_multifamily: 'small_multifamily_2_5',
+    small_multifamily_2_5: 'small_multifamily_2_5',
+    residential_multifamily_2_5: 'small_multifamily_2_5',
+    two_to_five: 'small_multifamily_2_5',
+    '2_5_units': 'small_multifamily_2_5',
+    multifamily_5_plus: 'multifamily_5_plus',
+    multifamily_6_plus: 'commercial_multifamily_6_plus',
+    commercial_multifamily: 'commercial_multifamily_6_plus',
+    commercial_multifamily_6_plus: 'commercial_multifamily_6_plus',
+    apartment: 'commercial_multifamily_6_plus',
+    apartments: 'commercial_multifamily_6_plus',
+  };
+
+  return [...new Set(normalizeStringList(value)
+    .map((item) => item.trim().toLowerCase().replace(/[\s-]+/g, '_'))
+    .map((item) => aliases[item] ?? '')
+    .filter(Boolean)
+    .slice(0, 20))];
+}
+
+function unitClassSqlCondition(unitClass: string): string {
+  const units = 'coalesce(nullif(p.total_units, 0), case when asset_group = \'single_family\' then 1 else 0 end)';
+  switch (unitClass) {
+    case 'single_family':
+      return `(asset_group = 'single_family' and ${units} = 1)`;
+    case 'duplex':
+      return `(${units} = 2 or p.asset_subtype = 'duplex')`;
+    case 'triplex':
+      return `(${units} = 3 or p.asset_subtype = 'triplex')`;
+    case 'fourplex':
+      return `(${units} = 4 or p.asset_subtype in ('fourplex','quadplex'))`;
+    case 'fiveplex':
+      return `${units} = 5`;
+    case 'small_multifamily_2_5':
+      return `(asset_group = 'small_multifamily' and ${units} between 2 and 5)`;
+    case 'multifamily_5_plus':
+      return `(asset_group in ('small_multifamily','commercial_multifamily') and ${units} >= 5)`;
+    case 'commercial_multifamily_6_plus':
+      return `(asset_group = 'commercial_multifamily' or ${units} >= 6)`;
+    default:
+      return '';
+  }
 }
 
 function normalizeStringList(value: unknown): string[] {
@@ -4338,6 +4405,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     "market": "indianapolis",
     "location": { "city": "Indianapolis", "state": "IN", "zipCodes": ["46222", "46203"] },
     "assetTypes": ["single_family", "small_multifamily"],
+    "unitClasses": ["duplex", "triplex", "fourplex", "fiveplex"],
     "status": ["active"],
     "minPrice": 50000,
     "maxPrice": 250000,
@@ -4350,6 +4418,17 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     "excludeMxreIds": [50913586],
     "limit": 100
   }'</pre>
+  <h3>Asset And Unit Class Presets</h3>
+  <table>
+    <tr><th>BBC Use</th><th>Recommended Filter</th><th>Meaning</th></tr>
+    <tr><td>Single family</td><td><code>"unitClasses": ["single_family"]</code></td><td>1-unit SFR/condo-style residential rows.</td></tr>
+    <tr><td>Duplex</td><td><code>"unitClasses": ["duplex"]</code></td><td>Exactly 2 units or assessor/listing subtype duplex.</td></tr>
+    <tr><td>Triplex</td><td><code>"unitClasses": ["triplex"]</code></td><td>Exactly 3 units or subtype triplex.</td></tr>
+    <tr><td>Fourplex</td><td><code>"unitClasses": ["fourplex"]</code></td><td>Exactly 4 units or subtype fourplex/quadplex.</td></tr>
+    <tr><td>2-5 unit small multifamily</td><td><code>"unitClasses": ["small_multifamily_2_5"]</code></td><td>Small multifamily rows with 2 through 5 known units.</td></tr>
+    <tr><td>5+ multifamily</td><td><code>"unitClasses": ["multifamily_5_plus"]</code></td><td>Multifamily rows with 5 or more known units.</td></tr>
+    <tr><td>Commercial apartment scale</td><td><code>"unitClasses": ["commercial_multifamily_6_plus"]</code></td><td>Commercial multifamily classification or 6+ known units.</td></tr>
+  </table>
 
   <h2>Recommended BBC Wiring</h2>
   <ul>
@@ -4478,6 +4557,7 @@ function buildOpenApiSpec() {
                   market: 'indianapolis',
                   location: { city: 'Indianapolis', state: 'IN', zipCodes: ['46222', '46203'] },
                   assetTypes: ['single_family', 'small_multifamily'],
+                  unitClasses: ['duplex', 'triplex', 'fourplex', 'fiveplex'],
                   status: ['active'],
                   minPrice: 50000,
                   maxPrice: 250000,
