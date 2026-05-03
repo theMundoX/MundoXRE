@@ -113,22 +113,54 @@ async function main() {
   }
 
   console.log();
-  console.log(JSON.stringify({ searched, noDocs, docsFound, inserted, errors, dryRun }, null, 2));
+  const last = candidates[candidates.length - 1];
+  console.log(JSON.stringify({
+    searched,
+    noDocs,
+    docsFound,
+    inserted,
+    errors,
+    dryRun,
+    lastPropertyId: last?.id ?? null,
+    lastParcel: last?.parcel_id ?? null,
+  }, null, 2));
 }
 
-async function loadCandidates(): Promise<Array<{ id: number; address: string; city: string; state_code: string; zip: string }>> {
+async function loadCandidates(): Promise<Array<{ id: number; parcel_id: string | null; address: string; city: string; state_code: string; zip: string }>> {
   if (directPgUrl) {
     const client = new Client({ connectionString: directPgUrl });
     await client.connect();
     try {
+      if (onlyOnMarket) {
+        const params: Array<string | number> = [limit];
+        let cursorClause = "";
+        if (afterParcel) {
+          params.push(afterParcel);
+          cursorClause = "and p.parcel_id > $2";
+        }
+
+        const result = await client.query(`
+          select distinct p.id, p.parcel_id, p.address, p.city, p.state_code, p.zip
+          from listing_signals l
+          join properties p on p.id = l.property_id
+          where l.is_on_market = true
+            and p.county_id = 797583
+            and p.state_code = 'IN'
+            and p.address ~ '^[0-9]'
+            ${cursorClause}
+          order by p.parcel_id
+          limit $1
+        `, params);
+        return result.rows;
+      }
+
       const result = await client.query(`
-        select p.id, p.address, p.city, p.state_code, p.zip
+        select p.id, p.parcel_id, p.address, p.city, p.state_code, p.zip
         from properties p
         where p.county_id = 797583
           and p.state_code = 'IN'
           and p.address ~ '^[0-9]'
           ${afterParcel ? "and p.parcel_id > $2" : ""}
-          ${onlyOnMarket ? "and exists (select 1 from listing_signals l where l.property_id = p.id and l.is_on_market = true)" : ""}
         order by p.parcel_id
         limit $1
       `, afterParcel ? [limit, afterParcel] : [limit]);
@@ -139,7 +171,7 @@ async function loadCandidates(): Promise<Array<{ id: number; address: string; ci
   }
 
   const { data, error } = await db.from("properties")
-    .select("id,address,city,state_code,zip")
+    .select("id,parcel_id,address,city,state_code,zip")
     .eq("county_id", 797583)
     .eq("state_code", "IN")
     .not("address", "is", null)
