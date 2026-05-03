@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "indianapolis-in",
+      "label": "Indianapolis, IN",
+      "enabled": true,
+      "required": true,
+      "command": ["npx", "tsx", "scripts/refresh-indianapolis-market.ts"]
+    }
+  ]
+}
