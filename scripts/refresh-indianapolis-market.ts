@@ -182,6 +182,8 @@ const steps: Step[] = [
       "--name-source=on-market",
       "--from-year=2020",
       "--limit=1000",
+      "--max-run-ms=900000",
+      "--per-entity-timeout-ms=45000",
       ...(DRY_RUN ? ["--dry-run"] : []),
     ],
     required: false,

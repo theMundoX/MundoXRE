@@ -39,6 +39,8 @@ const FROM_YEAR = parseInt(getArg("from-year") ?? "2000");
 const TO_YEAR   = parseInt(getArg("to-year") ?? String(new Date().getFullYear()));
 const NAME_ARG  = getArg("name");   // single entity override
 const NAME_SOURCE = getArg("name-source") ?? "corporate";
+const MAX_RUN_MS = getArg("max-run-ms") ? parseInt(getArg("max-run-ms")!, 10) : 0;
+const PER_ENTITY_TIMEOUT_MS = getArg("per-entity-timeout-ms") ? parseInt(getArg("per-entity-timeout-ms")!, 10) : 90_000;
 
 // ─── DB ────────────────────────────────────────────────────────────────────
 
@@ -175,6 +177,8 @@ async function main() {
   console.log(`Dry run  : ${DRY_RUN}`);
   console.log(`Limit    : ${LIMIT === Infinity ? "all" : LIMIT} entities`);
   console.log(`Names    : ${NAME_SOURCE}`);
+  if (MAX_RUN_MS > 0) console.log(`Max run  : ${MAX_RUN_MS}ms`);
+  console.log(`Timeout  : ${PER_ENTITY_TIMEOUT_MS}ms/entity`);
   console.log();
 
   const marionConfig = DIRECT_SEARCH_COUNTIES.find(c => c.county_name === "Marion")!;
@@ -187,6 +191,7 @@ async function main() {
   console.log();
 
   let totalEntities = 0, totalDocs = 0, totalInserted = 0, totalDupes = 0;
+  const startedAt = Date.now();
   const batch: Record<string, unknown>[] = [];
 
   async function flushBatch() {
@@ -211,6 +216,11 @@ async function main() {
   }
 
   for (const entityName of names) {
+    if (MAX_RUN_MS > 0 && Date.now() - startedAt > MAX_RUN_MS) {
+      console.log(`\nReached max runtime ${MAX_RUN_MS}ms; stopping cleanly.`);
+      break;
+    }
+
     totalEntities++;
     const searchName = normaliseForSearch(entityName);
     if (!searchName) continue;
@@ -220,7 +230,11 @@ async function main() {
     const docsThisEntity: { instrument: string; doc: Record<string, unknown> }[] = [];
 
     try {
-      for await (const doc of adapter.fetchByBusinessName(marionConfig, searchName, FROM_YEAR, TO_YEAR)) {
+      for await (const doc of withAsyncTimeout(
+        adapter.fetchByBusinessName(marionConfig, searchName, FROM_YEAR, TO_YEAR),
+        PER_ENTITY_TIMEOUT_MS,
+        `Timed out searching ${searchName}`,
+      )) {
         totalDocs++;
         docsThisEntity.push({
           instrument: doc.instrument_number ?? "",
@@ -264,6 +278,18 @@ async function main() {
   console.log(`Inserted          : ${totalInserted.toLocaleString()}`);
   console.log(`Dupes skipped     : ${totalDupes.toLocaleString()}`);
   console.log("Done.\n");
+}
+
+async function* withAsyncTimeout<T>(iterable: AsyncIterable<T>, ms: number, message: string): AsyncGenerator<T> {
+  const iterator = iterable[Symbol.asyncIterator]();
+  while (true) {
+    const timeout = new Promise<IteratorResult<T>>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), ms);
+    });
+    const next = await Promise.race([iterator.next(), timeout]);
+    if (next.done) return;
+    yield next.value;
+  }
 }
 
 main().catch(err => { console.error("Fatal:", err); process.exit(1); });
