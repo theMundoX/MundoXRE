@@ -137,7 +137,7 @@ function namesToTry(record: RecorderRow): NameCandidate[] {
   add(record.grantee_name, "grantee");
   if (!onlyMortgageAmounts) add(record.lender_name, "lender");
 
-  return [...names];
+  return [...names.values()];
 }
 
 async function main() {
