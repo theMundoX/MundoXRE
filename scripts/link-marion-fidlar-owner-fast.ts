@@ -25,13 +25,30 @@ if (!directPgUrl) throw new Error("MXRE_DIRECT_PG_URL, DATABASE_URL, or POSTGRES
 type RecorderRow = {
   id: number;
   borrower_name: string | null;
+  grantee_name: string | null;
   lender_name: string | null;
   document_type: string | null;
+  recording_date: string | null;
+  loan_amount: number | null;
+  original_amount: number | null;
 };
 
 type PropertyRow = {
   id: number;
   owner_name: string | null;
+  owner_name2: string | null;
+  owner1_first: string | null;
+  owner1_last: string | null;
+  owner2_first: string | null;
+  owner2_last: string | null;
+  ownership_start_date: string | null;
+  last_sale_date: string | null;
+  last_sale_price: number | null;
+};
+
+type NameCandidate = {
+  name: string;
+  role: "borrower" | "grantee" | "lender";
 };
 
 function normalizeName(value: string): string {
@@ -49,7 +66,7 @@ function usefulParts(value: string): string[] {
     .filter((part) => part.length >= 3 && !["THE", "AND", "FOR", "REVOCABLE", "AGREEMENT", "DATED"].includes(part));
 }
 
-function scoreMatch(recordName: string, ownerName: string): number {
+function scoreNameMatch(recordName: string, ownerName: string): number {
   const recordParts = usefulParts(recordName);
   const owner = normalizeName(ownerName);
   if (recordParts.length === 0 || !owner) return 0;
@@ -66,14 +83,60 @@ function scoreMatch(recordName: string, ownerName: string): number {
   return Math.round((matched / recordParts.length) * 90);
 }
 
-function namesToTry(record: RecorderRow): string[] {
-  const names = new Set<string>();
-  for (const raw of [record.borrower_name, record.lender_name]) {
+function daysBetween(a: string | null, b: string | null): number | null {
+  if (!a || !b) return null;
+  const left = new Date(a).getTime();
+  const right = new Date(b).getTime();
+  if (!Number.isFinite(left) || !Number.isFinite(right)) return null;
+  return Math.abs(left - right) / 86_400_000;
+}
+
+function propertyNames(property: PropertyRow): string[] {
+  return [
+    property.owner_name,
+    property.owner_name2,
+    [property.owner1_first, property.owner1_last].filter(Boolean).join(" "),
+    [property.owner2_first, property.owner2_last].filter(Boolean).join(" "),
+  ].filter((value): value is string => Boolean(value && value.trim().length >= 3));
+}
+
+function scoreProperty(record: RecorderRow, candidate: NameCandidate, property: PropertyRow): number {
+  const nameScore = Math.max(0, ...propertyNames(property).map((name) => scoreNameMatch(candidate.name, name)));
+  if (nameScore === 0) return 0;
+
+  let score = nameScore;
+  if (candidate.role === "borrower" || candidate.role === "grantee") score += 12;
+  if (candidate.role === "lender") score -= 20;
+
+  const ownershipDays = daysBetween(record.recording_date, property.ownership_start_date);
+  const saleDays = daysBetween(record.recording_date, property.last_sale_date);
+  const closestTransferDays = Math.min(ownershipDays ?? Number.POSITIVE_INFINITY, saleDays ?? Number.POSITIVE_INFINITY);
+  if (closestTransferDays <= 14) score += 12;
+  else if (closestTransferDays <= 60) score += 8;
+  else if (closestTransferDays <= 180) score += 4;
+
+  const amount = record.loan_amount ?? record.original_amount;
+  if (amount && property.last_sale_price && closestTransferDays <= 90) {
+    const ratio = amount / property.last_sale_price;
+    if (ratio > 0.4 && ratio < 1.15) score += 6;
+  }
+
+  return score;
+}
+
+function namesToTry(record: RecorderRow): NameCandidate[] {
+  const names = new Map<string, NameCandidate>();
+  const add = (raw: string | null, role: NameCandidate["role"]) => {
     for (const part of (raw ?? "").split(";")) {
       const trimmed = part.trim();
-      if (trimmed.length >= 3) names.add(trimmed);
+      if (trimmed.length >= 3) names.set(`${role}:${normalizeName(trimmed)}`, { name: trimmed, role });
     }
-  }
+  };
+
+  add(record.borrower_name, "borrower");
+  add(record.grantee_name, "grantee");
+  if (!onlyMortgageAmounts) add(record.lender_name, "lender");
+
   return [...names];
 }
 
@@ -96,7 +159,7 @@ async function main() {
   try {
     const records = await client.query<RecorderRow>(
       `
-        select id, borrower_name, lender_name, document_type
+        select id, borrower_name, grantee_name, lender_name, document_type, recording_date, loan_amount, original_amount
         from mortgage_records
         where source_url = $1
           and property_id is null
@@ -127,12 +190,22 @@ async function main() {
       let tied = false;
 
       for (const name of namesToTry(record)) {
-        const firstPart = usefulParts(name)[0];
+        const firstPart = usefulParts(name.name)[0];
         if (!firstPart) continue;
 
         const candidates = await client.query<PropertyRow>(
           `
-            select id, owner_name
+            select
+              id,
+              owner_name,
+              owner_name2,
+              owner1_first,
+              owner1_last,
+              owner2_first,
+              owner2_last,
+              ownership_start_date,
+              last_sale_date,
+              last_sale_price
             from properties
             where county_id = $1
               and owner_name ilike $2
@@ -142,18 +215,17 @@ async function main() {
         );
 
         for (const property of candidates.rows) {
-          if (!property.owner_name) continue;
-          const score = scoreMatch(name, property.owner_name);
+          const score = scoreProperty(record, name, property);
           if (score > (best?.score ?? 0)) {
             best = { id: property.id, score };
             tied = false;
-          } else if (best && score === best.score && score >= 80 && property.id !== best.id) {
+          } else if (best && Math.abs(score - best.score) <= 2 && score >= 92 && property.id !== best.id) {
             tied = true;
           }
         }
       }
 
-      if (best && best.score >= 80 && !tied) {
+      if (best && best.score >= 92 && !tied) {
         if (!dryRun) {
           await client.query("update mortgage_records set property_id = $1 where id = $2", [best.id, record.id]);
         }
