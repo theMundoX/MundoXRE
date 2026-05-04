@@ -9,11 +9,15 @@ import type { LienRecord, LienSummary } from '../types.js';
  */
 function mapMortgageRow(row: Record<string, unknown>): LienRecord {
   const balance = estimateCurrentBalance(row);
+  const originalAmount = positiveNumber(row.loan_amount) ?? positiveNumber(row.original_amount);
+  const explicitOpen = typeof row.open === 'boolean' ? row.open : null;
   return {
     type: mapDocumentType(row.document_type as string | null),
-    open: (row.open as boolean) ?? true,
+    open: explicitOpen ?? true,
+    status: explicitOpen === false ? 'historical' : 'unknown',
     position: (row.position as number) ?? null,
-    originalAmount: (row.loan_amount as number) ?? (row.original_amount as number) ?? null,
+    originalAmount,
+    hasRecordedAmount: originalAmount != null,
     currentBalance: balance.currentBalance,
     balanceSource: balance.balanceSource,
     interestRate: (row.interest_rate as number) ?? null,
@@ -52,6 +56,7 @@ function mapDocumentType(docType: string | null): LienRecord['type'] {
   if (upper.includes('JUDGMENT')) return 'judgment';
   if (upper.includes('SATISFACTION') || upper.includes('RELEASE') || upper.includes('DISCHARGE')) return 'satisfaction';
   if (upper.includes('ASSIGNMENT')) return 'assignment';
+  if (upper.includes('UNIFORM COMMERCIAL CODE') || upper === 'UCC' || upper.includes('UCC')) return 'ucc';
   if (upper.includes('DEED')) return 'deed';
   return 'mortgage';
 }
@@ -75,6 +80,7 @@ export function splitLiens(
 ): { summary: LienSummary; current: LienRecord[]; history: LienRecord[] } {
   const all = mortgageRows.map(mapMortgageRow);
   const now = new Date();
+  const releaseDocs = all.filter((lien) => lien.type === 'satisfaction');
 
   const current: LienRecord[] = [];
   const history: LienRecord[] = [];
@@ -87,6 +93,18 @@ export function splitLiens(
 
     // Satisfactions/assignments are lien history, but never active liens.
     if (lien.type === 'satisfaction' || lien.type === 'assignment') {
+      lien.open = false;
+      lien.status = 'historical';
+      history.push(lien);
+      continue;
+    }
+
+    const release = findMatchingRelease(lien, releaseDocs);
+    if (release) {
+      lien.open = false;
+      lien.status = 'released';
+      lien.releasedDate = release.recordingDate || null;
+      lien.releasedByDocumentNumber = release.documentNumber;
       history.push(lien);
       continue;
     }
@@ -94,17 +112,26 @@ export function splitLiens(
     const isOpen = lien.open || (lien.maturityDate && new Date(lien.maturityDate) > now);
 
     if (isOpen) {
+      lien.open = true;
+      lien.status = 'active';
       current.push(lien);
     } else {
+      lien.open = false;
+      lien.status = 'historical';
       history.push(lien);
     }
   }
 
   // Sort current by recording date ascending (oldest = 1st position)
-  current.sort((a, b) => new Date(a.recordingDate).getTime() - new Date(b.recordingDate).getTime());
+  current.sort((a, b) => {
+    const byExistingPosition = (a.position ?? Number.POSITIVE_INFINITY) - (b.position ?? Number.POSITIVE_INFINITY);
+    if (byExistingPosition !== 0 && Number.isFinite(byExistingPosition)) return byExistingPosition;
+    return new Date(a.recordingDate).getTime() - new Date(b.recordingDate).getTime();
+  });
   for (let i = 0; i < current.length; i++) {
     current[i].position = i + 1;
   }
+  history.sort((a, b) => (b.recordingDate || '').localeCompare(a.recordingDate || ''));
 
   // Compute summary
   const mortgageTypes = new Set<LienRecord['type']>(['mortgage', 'heloc']);
@@ -161,6 +188,42 @@ function estimateCurrentBalance(row: Record<string, unknown>): Pick<LienRecord, 
 
   // Conservative fallback: overstates debt and understates equity until a better balance is available.
   return { currentBalance: original, balanceSource: 'original_amount_proxy' };
+}
+
+function findMatchingRelease(lien: LienRecord, releases: LienRecord[]): LienRecord | null {
+  if (releases.length === 0) return null;
+  const lienDate = dateMs(lien.recordingDate);
+  return releases.find((release) => {
+    const releaseDate = dateMs(release.recordingDate);
+    if (lienDate != null && releaseDate != null && releaseDate < lienDate) return false;
+    return sharesMeaningfulParty(lien, release);
+  }) ?? null;
+}
+
+function sharesMeaningfulParty(a: LienRecord, b: LienRecord): boolean {
+  const left = meaningfulTokens(`${a.borrowerName ?? ''} ${a.lenderName ?? ''}`);
+  const right = meaningfulTokens(`${b.borrowerName ?? ''} ${b.lenderName ?? ''}`);
+  if (left.size === 0 || right.size === 0) return false;
+  let hits = 0;
+  for (const token of left) {
+    if (right.has(token)) hits++;
+  }
+  return hits >= 2;
+}
+
+function meaningfulTokens(value: string): Set<string> {
+  const stop = new Set(['LLC', 'INC', 'CORP', 'CORPORATION', 'COMPANY', 'CO', 'THE', 'AND', 'TRUST', 'TRUSTEE', 'MORTGAGE', 'BANK', 'NA']);
+  return new Set(value
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length >= 3 && !stop.has(token)));
+}
+
+function dateMs(value: string | null): number | null {
+  if (!value) return null;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : null;
 }
 
 function positiveNumber(value: unknown): number | null {

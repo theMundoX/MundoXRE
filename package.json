@@ -50,6 +50,7 @@
     "mortgages:backfill-balances": "tsx scripts/backfill-mortgage-balance-estimates.ts",
     "mortgages:backfill-marion-address": "tsx scripts/backfill-marion-liens-by-property-address.ts",
     "mortgages:link-marion-owner-fast": "tsx scripts/link-marion-fidlar-owner-fast.ts",
+    "mortgages:enrich-directsearch-amounts": "tsx scripts/enrich-fidlar-directsearch-amounts.ts",
     "api": "tsx src/api/server.ts",
     "verify:liens": "tsx scripts/verify-liens.ts",
     "lookup:liens": "tsx scripts/lookup-liens-by-owner.ts",

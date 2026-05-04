@@ -226,6 +226,20 @@ const steps: Step[] = [
     skip: SKIP_RECORDER_BACKFILL,
   },
   {
+    name: "Enrich Marion DirectSearch mortgage amounts",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/enrich-fidlar-directsearch-amounts.ts",
+      "--limit=2000",
+      "--max-run-ms=900000",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_RECORDER_BACKFILL,
+  },
+  {
     name: "Estimate current mortgage balances",
     command: [
       "npx",

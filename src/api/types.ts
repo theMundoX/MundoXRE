@@ -30,10 +30,12 @@ export interface AgentInfo {
 }
 
 export interface LienRecord {
-  type: 'mortgage' | 'heloc' | 'tax_lien' | 'mech_lien' | 'judgment' | 'satisfaction' | 'assignment' | 'deed';
+  type: 'mortgage' | 'heloc' | 'tax_lien' | 'mech_lien' | 'judgment' | 'satisfaction' | 'assignment' | 'deed' | 'ucc';
   open: boolean;
+  status: 'active' | 'released' | 'historical' | 'unknown';
   position: number | null;
   originalAmount: number | null;
+  hasRecordedAmount: boolean;
   currentBalance: number | null;
   balanceSource: 'actual' | 'computed' | 'amortized_estimate' | 'original_amount_proxy' | null;
   interestRate: number | null;
@@ -51,6 +53,8 @@ export interface LienRecord {
   borrowerName: string | null;
   loanType: string | null;
   source: string;
+  releasedDate?: string | null;
+  releasedByDocumentNumber?: string | null;
 }
 
 export interface SaleRecord {
