@@ -126,7 +126,9 @@ export function splitLiens(
   current.sort((a, b) => {
     const byExistingPosition = (a.position ?? Number.POSITIVE_INFINITY) - (b.position ?? Number.POSITIVE_INFINITY);
     if (byExistingPosition !== 0 && Number.isFinite(byExistingPosition)) return byExistingPosition;
-    return new Date(a.recordingDate).getTime() - new Date(b.recordingDate).getTime();
+    const byRecordingDate = new Date(a.recordingDate).getTime() - new Date(b.recordingDate).getTime();
+    if (byRecordingDate !== 0) return byRecordingDate;
+    return (a.documentNumber ?? '').localeCompare(b.documentNumber ?? '');
   });
   for (let i = 0; i < current.length; i++) {
     current[i].position = i + 1;
