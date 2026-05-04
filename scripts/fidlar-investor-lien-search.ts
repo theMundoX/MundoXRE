@@ -24,6 +24,7 @@ import "dotenv/config";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { Client } from "pg";
 import {
   FidlarDirectSearchAdapter,
   DIRECT_SEARCH_COUNTIES,
@@ -56,6 +57,7 @@ const db = createClient(
 
 const MARION_COUNTY_ID = 797583;
 const SOURCE_URL = "https://inmarion.fidlar.com/INMarion/DirectSearch/";
+const directPgUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -129,6 +131,44 @@ async function loadEntityNames(): Promise<string[]> {
   }
 
   // Pull all unique owner names where corporate_owned = true
+  if (directPgUrl) {
+    const pg = new Client({ connectionString: directPgUrl });
+    await pg.connect();
+    try {
+      await pg.query("set max_parallel_workers_per_gather = 0");
+      const PAGE = 1000;
+      const names = new Set<string>();
+      let lastId = 0;
+
+      while (true) {
+        const { rows } = await pg.query<{ id: number; owner_name: string | null }>(
+          `
+            select id, owner_name
+            from properties
+            where county_id = $1
+              and corporate_owned = true
+              and owner_name is not null
+              and id > $2
+            order by id
+            limit $3
+          `,
+          [MARION_COUNTY_ID, lastId, PAGE],
+        );
+
+        if (rows.length === 0) break;
+        for (const row of rows) {
+          if (row.owner_name) names.add(row.owner_name.trim().toUpperCase());
+        }
+        lastId = rows[rows.length - 1].id;
+        if (rows.length < PAGE) break;
+      }
+
+      return [...names];
+    } finally {
+      await pg.end();
+    }
+  }
+
   const PAGE = 1000;
   const names = new Set<string>();
   let lastId = 0;
