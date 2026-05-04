@@ -34,10 +34,10 @@ const force = args.includes("--force");
 const city = (valueArg("city") ?? "Indianapolis").toUpperCase();
 const state = (valueArg("state") ?? "IN").toUpperCase();
 const limit = Math.min(Math.max(Number(valueArg("limit") ?? "10"), 1), 500);
-const maxCalls = Math.min(Math.max(Number(valueArg("max-calls") ?? String(limit * 3)), 0), limit * 5);
+const maxCalls = Math.min(Math.max(Number(valueArg("max-calls") ?? String(limit)), 0), limit * 5);
 const rapidApiKey = process.env.RAPIDAPI_KEY ?? process.env.ZILLOW_RAPIDAPI_KEY;
-const host = process.env.ZILLOW_RAPIDAPI_HOST ?? "zillow-real-estate-api.p.rapidapi.com";
-const provider = process.env.ZILLOW_RAPIDAPI_PROVIDER ?? "jdtpnjtp";
+const provider = process.env.ZILLOW_RAPIDAPI_PROVIDER ?? "realestate101";
+const host = process.env.ZILLOW_RAPIDAPI_HOST ?? defaultHost(provider);
 const databaseUrl = process.env.MXRE_DIRECT_PG_URL
   ?? process.env.MXRE_PG_URL
   ?? process.env.DATABASE_URL
@@ -134,6 +134,11 @@ async function loadCandidates(): Promise<Candidate[]> {
 }
 
 async function lookupContact(candidate: Candidate): Promise<Contact | null> {
+  if (provider === "realestate101") {
+    const detail = await rapidGet("/api/property-details/byaddress", { address: requestLabel(candidate) });
+    return extractContact(detail, "property_details_byaddress");
+  }
+
   const detail = await propertyLookup(candidate);
   const zpid = findFirstString(detail, ["zpid", "property.zpid", "data.zpid", "homeInfo.zpid"]);
   const baseContact = extractContact(detail, "property_lookup");
@@ -233,7 +238,7 @@ function extractContact(payload: unknown, sourceEndpoint: string): Contact | nul
     const name = firstString(obj, ["agentName", "name", "displayName", "fullName", "listingAgentName", "attributionTitle"]);
     const email = firstEmail(obj);
     const phone = firstPhone(obj);
-    const brokerage = firstString(obj, ["brokerage", "brokerageName", "brokerName", "officeName", "agentOffice", "businessName"]);
+    const brokerage = firstString(obj, ["brokerage", "brokerageName", "brokerName", "broker", "officeName", "agentOffice", "businessName"]);
     const screenName = firstString(obj, ["screenName", "screen_name", "profileScreenName", "zillowScreenName"]);
     if (!name && !email && !phone && !brokerage && !screenName) continue;
     const split = splitName(name);
@@ -318,6 +323,12 @@ function findAgentScreenName(payload: unknown): string | null {
 
 function requestLabel(candidate: Candidate): string {
   return [candidate.address, candidate.city, candidate.state_code, candidate.zip].filter(Boolean).join(", ");
+}
+
+function defaultHost(providerName: string) {
+  if (providerName === "realestate101") return "real-estate101.p.rapidapi.com";
+  if (providerName === "oneapi") return "zllw-working-api.p.rapidapi.com";
+  return "zillow-real-estate-api.p.rapidapi.com";
 }
 
 function splitName(name: string | null) {
