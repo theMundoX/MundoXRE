@@ -21,6 +21,8 @@
  */
 
 import "dotenv/config";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import {
   FidlarDirectSearchAdapter,
@@ -41,6 +43,8 @@ const NAME_ARG  = getArg("name");   // single entity override
 const NAME_SOURCE = getArg("name-source") ?? "corporate";
 const MAX_RUN_MS = getArg("max-run-ms") ? parseInt(getArg("max-run-ms")!, 10) : 0;
 const PER_ENTITY_TIMEOUT_MS = getArg("per-entity-timeout-ms") ? parseInt(getArg("per-entity-timeout-ms")!, 10) : 90_000;
+const OFFSET = getArg("offset") ? parseInt(getArg("offset")!, 10) : 0;
+const CURSOR_FILE = getArg("cursor-file");
 
 // ─── DB ────────────────────────────────────────────────────────────────────
 
@@ -177,6 +181,8 @@ async function main() {
   console.log(`Dry run  : ${DRY_RUN}`);
   console.log(`Limit    : ${LIMIT === Infinity ? "all" : LIMIT} entities`);
   console.log(`Names    : ${NAME_SOURCE}`);
+  console.log(`Offset   : ${OFFSET.toLocaleString()} entities`);
+  if (CURSOR_FILE) console.log(`Cursor   : ${CURSOR_FILE}`);
   if (MAX_RUN_MS > 0) console.log(`Max run  : ${MAX_RUN_MS}ms`);
   console.log(`Timeout  : ${PER_ENTITY_TIMEOUT_MS}ms/entity`);
   console.log();
@@ -186,7 +192,18 @@ async function main() {
 
   console.log("Loading entity names from DB...");
   const allNames = await loadEntityNames();
-  const names = LIMIT < Infinity ? allNames.slice(0, LIMIT) : allNames;
+  let startIndex = OFFSET;
+  if (CURSOR_FILE) {
+    try {
+      const saved = Number((await readFile(CURSOR_FILE, "utf8")).trim());
+      if (Number.isFinite(saved) && saved > startIndex) startIndex = saved;
+    } catch {
+      // Missing cursor is fine; the first run starts from --offset.
+    }
+  }
+  if (startIndex >= allNames.length) startIndex = 0;
+  const endIndex = LIMIT < Infinity ? Math.min(allNames.length, startIndex + LIMIT) : allNames.length;
+  const names = allNames.slice(startIndex, endIndex);
   console.log(`  ${allNames.length.toLocaleString()} unique entities → processing ${names.length.toLocaleString()}`);
   console.log();
 
@@ -215,13 +232,15 @@ async function main() {
     batch.length = 0;
   }
 
-  for (const entityName of names) {
+  let lastProcessedIndex = startIndex - 1;
+  for (const [relativeIndex, entityName] of names.entries()) {
     if (MAX_RUN_MS > 0 && Date.now() - startedAt > MAX_RUN_MS) {
       console.log(`\nReached max runtime ${MAX_RUN_MS}ms; stopping cleanly.`);
       break;
     }
 
     totalEntities++;
+    lastProcessedIndex = startIndex + relativeIndex;
     const searchName = normaliseForSearch(entityName);
     if (!searchName) continue;
 
@@ -272,11 +291,18 @@ async function main() {
 
   await flushBatch();
 
+  if (CURSOR_FILE && !DRY_RUN && lastProcessedIndex >= startIndex) {
+    const nextIndex = lastProcessedIndex + 1 >= allNames.length ? 0 : lastProcessedIndex + 1;
+    await mkdir(dirname(CURSOR_FILE), { recursive: true });
+    await writeFile(CURSOR_FILE, `${nextIndex}\n`, "utf8");
+  }
+
   console.log(`\n\n${"═".repeat(60)}`);
   console.log(`Entities searched : ${totalEntities.toLocaleString()}`);
   console.log(`Documents found   : ${totalDocs.toLocaleString()}`);
   console.log(`Inserted          : ${totalInserted.toLocaleString()}`);
   console.log(`Dupes skipped     : ${totalDupes.toLocaleString()}`);
+  if (CURSOR_FILE) console.log(`Next cursor       : ${(lastProcessedIndex + 1).toLocaleString()}`);
   console.log("Done.\n");
 }
 
