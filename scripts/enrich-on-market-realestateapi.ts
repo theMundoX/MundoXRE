@@ -56,8 +56,8 @@ const stats = {
 };
 
 try {
-  await ensureQueue();
-  const candidates = await loadCandidates();
+  const previewCandidates = await ensureQueue();
+  const candidates = dryRun ? previewCandidates : await loadCandidates();
   stats.candidates = candidates.length;
 
   for (const candidate of candidates) {
@@ -98,7 +98,7 @@ try {
 
 console.log(JSON.stringify(stats, null, 2));
 
-async function ensureQueue() {
+async function ensureQueue(): Promise<Candidate[]> {
   const { rows } = await client.query<Candidate>(`
     with active as (
       select distinct on (p.id)
@@ -165,6 +165,8 @@ async function ensureQueue() {
       stats.queued++;
     }
   }
+
+  return rows;
 }
 
 async function loadCandidates(): Promise<Candidate[]> {
