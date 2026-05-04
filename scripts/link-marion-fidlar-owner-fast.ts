@@ -155,6 +155,7 @@ async function main() {
   const startedAt = Date.now();
   const client = new Client({ connectionString: directPgUrl });
   await client.connect();
+  await client.query("set max_parallel_workers_per_gather = 0");
 
   try {
     const records = await client.query<RecorderRow>(
