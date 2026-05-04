@@ -46,21 +46,6 @@ interface StepResult {
 
 const steps: Step[] = [
   {
-    name: "Refresh on-market Redfin listing signals",
-    command: [
-      "npx",
-      "tsx",
-      "scripts/ingest-listings-fast.ts",
-      "--state",
-      "IN",
-      "--county",
-      "Marion",
-      "--concurrency",
-      "5",
-    ],
-    required: false,
-  },
-  {
     name: "Refresh Indianapolis Movoto listing/contact signals",
     command: ["npx", "tsx", "scripts/ingest-movoto-indy.ts"],
     required: false,
