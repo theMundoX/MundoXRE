@@ -35,6 +35,7 @@
     "reingest:shapefile": "tsx scripts/reingest-fairfield-shapefile.ts",
     "market:indy:refresh": "tsx scripts/refresh-indianapolis-market.ts",
     "market:indy:refresh:dry": "tsx scripts/refresh-indianapolis-market.ts --dry-run",
+    "market:indy:listings": "tsx scripts/refresh-indianapolis-listings.ts",
     "market:west-chester:refresh": "tsx scripts/refresh-west-chester-market.ts",
     "market:west-chester:refresh:dry": "tsx scripts/refresh-west-chester-market.ts --dry-run",
     "market:indy:transit": "tsx scripts/ingest-indygo-transit.ts",
