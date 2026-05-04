@@ -343,7 +343,7 @@ async function upsertMortgages(propertyId: number, response: ReapiResponse) {
       stringOrNull(row.granteeName),
       stringOrNull(row.documentNumber),
       stringOrNull(row.loanType),
-      boolOrNull(row.open),
+      boolOrNull(row.open) ?? true,
       positionNumber(row.position) ?? numberOrNull(row.seqNo),
       numberOrNull(row.interestRate),
       stringOrNull(row.interestRateType),
