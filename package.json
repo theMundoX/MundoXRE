@@ -48,6 +48,8 @@
     "autocomplete:migrate": "tsx scripts/apply-address-autocomplete-migration.ts",
     "autocomplete:openaddresses": "tsx scripts/ingest-openaddresses-national-autocomplete.ts",
     "autocomplete:openaddresses:in": "tsx scripts/ingest-openaddresses-national-autocomplete.ts --state=IN",
+    "fallback:migrate": "tsx scripts/apply-fallback-enrichment-migration.ts",
+    "fallback:reapi:on-market": "tsx scripts/enrich-on-market-realestateapi.ts",
     "mortgages:backfill-balances": "tsx scripts/backfill-mortgage-balance-estimates.ts",
     "mortgages:backfill-marion-address": "tsx scripts/backfill-marion-liens-by-property-address.ts",
     "mortgages:link-marion-owner-fast": "tsx scripts/link-marion-fidlar-owner-fast.ts",
