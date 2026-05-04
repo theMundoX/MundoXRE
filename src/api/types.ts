@@ -163,7 +163,29 @@ export interface InvestorSignals {
 export interface DataQualityEntry {
   field: string;
   source: string;
-  type: 'actual' | 'computed' | 'estimated';
+  type: 'actual' | 'computed' | 'estimated' | 'fallback';
+  provider?: 'mxre' | 'realestateapi' | 'zillow_api' | 'public_record' | 'hud' | 'listing_site' | 'unknown';
+  mxreNative?: boolean;
+  confidence?: number | null;
+  observedAt?: string | null;
+}
+
+export interface SourceMixSection {
+  provider: DataQualityEntry['provider'];
+  source: string;
+  mxreNative: boolean;
+  type: DataQualityEntry['type'];
+  confidence: number | null;
+}
+
+export interface SourceMix {
+  policy: 'mxre_first_with_paid_fallback';
+  mxreNativePercent: number;
+  fallbackPercent: number;
+  publicRecordPercent: number;
+  paidProviderPercent: number;
+  bySection: Record<string, SourceMixSection>;
+  byProvider: Record<string, number>;
 }
 
 export interface MXREPropertyResponse {
@@ -306,6 +328,9 @@ export interface MXREPropertyResponse {
     lastUpdated: string;
     dataSources: string[];
     completeness: number;
+    mxreNativeCoverage: number;
+    fallbackCoverage: number;
+    sourceMix: SourceMix;
     dataQuality: DataQualityEntry[];
   };
 }

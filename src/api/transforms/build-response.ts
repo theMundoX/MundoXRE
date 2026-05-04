@@ -6,6 +6,8 @@ import type {
   PublicPropertySignal,
   DataQualityEntry,
   FMRData,
+  SourceMix,
+  SourceMixSection,
 } from '../types.js';
 import { parseOwnerName } from './parse-owner.js';
 import { splitLiens } from './split-liens.js';
@@ -208,7 +210,7 @@ export function buildPropertyResponse(
     : null;
 
   // Meta
-  const { dataSources, dataQuality } = buildMeta(p, c, mortgages, rentSnapshots, listingSignals, saleHistory, mlsHistory, demographics, foreclosures, publicSignals);
+  const { dataSources, dataQuality, sourceMix } = buildMeta(p, c, mortgages, rentSnapshots, listingSignals, saleHistory, mlsHistory, demographics, foreclosures, publicSignals);
   const completeness = computeCompleteness(p, owner1, marketValue, lienSummary.openMortgageBalance, latestRent, latestListing, fmr);
 
   const bedrooms = typeof p.bedrooms === 'number' ? Math.max(0, Math.min(4, p.bedrooms)) : null;
@@ -391,6 +393,9 @@ export function buildPropertyResponse(
       lastUpdated: new Date().toISOString(),
       dataSources,
       completeness,
+      mxreNativeCoverage: sourceMix.mxreNativePercent,
+      fallbackCoverage: sourceMix.fallbackPercent,
+      sourceMix,
       dataQuality,
     },
   };
@@ -471,35 +476,45 @@ function buildMeta(
   demographics: Row | null,
   foreclosures: Row[],
   publicSignals: Row[] = [],
-): { dataSources: string[]; dataQuality: DataQualityEntry[] } {
+): { dataSources: string[]; dataQuality: DataQualityEntry[]; sourceMix: SourceMix } {
   const sources = new Set<string>();
   const quality: DataQualityEntry[] = [];
+  const addQuality = (entry: DataQualityEntry) => {
+    quality.push(enrichQualityEntry(entry));
+  };
 
   // County assessor as property source
   const countyName = (c.county_name as string) ?? 'unknown';
   const stateCode = (c.state_code as string) ?? '';
-  sources.add(`${countyName.toLowerCase().replace(/\s+/g, '_')}_county_assessor`);
+  const assessorSource = `${countyName.toLowerCase().replace(/\s+/g, '_')}_county_assessor`;
+  sources.add(assessorSource);
 
   // Property fields from assessor
   const assessorFields = ['address', 'market_value', 'assessed_value', 'year_built', 'sqft', 'bedrooms', 'owner_name'];
   for (const f of assessorFields) {
     if (p[f] != null) {
-      quality.push({ field: f, source: `${stateCode.toLowerCase()}_assessor`, type: 'actual' });
+      addQuality({ field: f, source: assessorSource, type: 'actual' });
     }
   }
 
   if (p.annual_tax != null) {
     const taxSource = (p.annual_tax_source as string) ?? 'county_auditor';
-    quality.push({ field: 'annual_tax', source: taxSource, type: taxSource === 'computed_from_millage' ? 'computed' : 'actual' });
+    addQuality({ field: 'annual_tax', source: taxSource, type: taxSource === 'computed_from_millage' ? 'computed' : 'actual' });
   }
 
   // Mortgage sources
   for (const m of mortgages) {
-    const src = (m.source as string) ?? 'recorder';
+    const src = (m.source as string) ?? (m.source_url as string) ?? 'recorder';
     sources.add(src);
   }
   if (mortgages.length > 0) {
-    quality.push({ field: 'liens', source: (mortgages[0].source as string) ?? 'recorder', type: 'actual' });
+    addQuality({ field: 'liens', source: (mortgages[0].source as string) ?? (mortgages[0].source_url as string) ?? 'recorder', type: 'actual' });
+    if (mortgages.some((m) => m.current_balance != null || m.estimated_current_balance != null)) {
+      const balanceRow = mortgages.find((m) => m.current_balance != null || m.estimated_current_balance != null);
+      const balanceSource = (balanceRow?.source as string) ?? (balanceRow?.source_url as string) ?? 'recorder';
+      addQuality({ field: 'liens.summary.openMortgageBalance', source: balanceSource, type: sourceImpliesFallback(balanceSource) ? 'fallback' : 'computed' });
+      addQuality({ field: 'liens.summary.estimatedEquity', source: 'mxre_engine', type: 'computed' });
+    }
   }
 
   // Rent sources
@@ -508,15 +523,23 @@ function buildMeta(
     sources.add(src);
   }
   if (rents.length > 0) {
-    quality.push({ field: 'rent', source: (rents[0].source as string) ?? 'scraped', type: 'actual' });
+    addQuality({ field: 'rent', source: (rents[0].source as string) ?? 'scraped', type: 'actual' });
   } else if (demographics) {
-    quality.push({ field: 'rent', source: (demographics.source as string) ?? 'rent_baselines', type: 'estimated' });
+    addQuality({ field: 'rent', source: (demographics.source as string) ?? 'rent_baselines', type: 'estimated' });
   }
 
   // Listing sources
   for (const l of listings) {
-    const src = (l.source as string) ?? 'listing_site';
+    const src = (l.listing_source as string) ?? (l.source as string) ?? 'listing_site';
     sources.add(src);
+  }
+  if (listings.length > 0) {
+    const latestListing = listings[0];
+    const listingSource = (latestListing.listing_source as string) ?? (latestListing.source as string) ?? 'listing_site';
+    addQuality({ field: 'market', source: listingSource, type: 'actual' });
+    if (latestListing.listing_agent_email || latestListing.listing_agent_phone || latestListing.listing_agent_name) {
+      addQuality({ field: 'market.agent', source: (latestListing.agent_contact_source as string) ?? listingSource, type: 'actual' });
+    }
   }
 
   // Sale sources
@@ -524,35 +547,125 @@ function buildMeta(
     const src = (s.source as string) ?? 'recorder';
     sources.add(src);
   }
+  if (sales.length > 0) {
+    addQuality({ field: 'sales', source: (sales[0].source as string) ?? 'recorder', type: 'actual' });
+  }
 
   // MLS sources
   for (const m of mls) {
     const src = (m.source as string) ?? 'mls';
     sources.add(src);
   }
+  if (mls.length > 0) {
+    addQuality({ field: 'market.history', source: (mls[0].source as string) ?? 'mls', type: 'actual' });
+  }
 
   // Demographics
   if (demographics) {
     sources.add('hud_fmr');
-    quality.push({ field: 'fmr', source: 'hud_fmr', type: 'actual' });
+    addQuality({ field: 'fmr', source: 'hud_fmr', type: 'actual' });
   }
 
   // Foreclosures
   if (foreclosures.length > 0) {
     sources.add('foreclosure_filings');
-    quality.push({ field: 'foreclosure', source: 'foreclosure_filings', type: 'actual' });
+    addQuality({ field: 'foreclosure', source: 'foreclosure_filings', type: 'actual' });
   }
 
   if (publicSignals.length > 0) {
     sources.add('indy_public_gis');
-    quality.push({ field: 'public_signals', source: 'indy_public_gis', type: 'actual' });
+    addQuality({ field: 'public_signals', source: 'indy_public_gis', type: 'actual' });
   }
 
   // Computed signals
-  quality.push({ field: 'signals', source: 'mxre_engine', type: 'computed' });
-  quality.push({ field: 'equity', source: 'mxre_engine', type: 'computed' });
+  addQuality({ field: 'signals', source: 'mxre_engine', type: 'computed' });
+  addQuality({ field: 'equity', source: 'mxre_engine', type: 'computed' });
 
-  return { dataSources: [...sources], dataQuality: quality };
+  return { dataSources: [...sources], dataQuality: quality, sourceMix: buildSourceMix(quality) };
+}
+
+function enrichQualityEntry(entry: DataQualityEntry): DataQualityEntry {
+  const provider = classifyProvider(entry.source);
+  const mxreNative = provider !== 'realestateapi' && provider !== 'zillow_api';
+  const type = sourceImpliesFallback(entry.source) && entry.type !== 'computed' ? 'fallback' : entry.type;
+  return {
+    ...entry,
+    type,
+    provider,
+    mxreNative,
+    confidence: entry.confidence ?? confidenceForQuality(provider, type),
+    observedAt: entry.observedAt ?? null,
+  };
+}
+
+function classifyProvider(source: string): DataQualityEntry['provider'] {
+  const lower = source.toLowerCase();
+  if (lower.includes('realestateapi') || lower.includes('real_estate_api') || lower.includes('reapi')) return 'realestateapi';
+  if (lower.includes('zillow_api') || lower.includes('zillow-api')) return 'zillow_api';
+  if (lower.includes('hud') || lower.includes('fmr')) return 'hud';
+  if (lower.includes('redfin') || lower.includes('realtor') || lower.includes('movoto') || lower.includes('zillow')) return 'listing_site';
+  if (lower.includes('assessor') || lower.includes('auditor') || lower.includes('recorder') || lower.includes('fidlar') || lower.includes('county') || lower.includes('public')) return 'public_record';
+  if (lower.includes('mxre')) return 'mxre';
+  return 'unknown';
+}
+
+function sourceImpliesFallback(source: string): boolean {
+  const provider = classifyProvider(source);
+  return provider === 'realestateapi' || provider === 'zillow_api';
+}
+
+function confidenceForQuality(provider: DataQualityEntry['provider'], type: DataQualityEntry['type']): number {
+  if (type === 'computed') return 80;
+  if (type === 'estimated') return 55;
+  if (provider === 'realestateapi' || provider === 'zillow_api') return 90;
+  if (provider === 'public_record' || provider === 'hud') return 95;
+  if (provider === 'listing_site') return 85;
+  if (provider === 'mxre') return 90;
+  return 60;
+}
+
+function buildSourceMix(quality: DataQualityEntry[]): SourceMix {
+  const sections: Record<string, SourceMixSection> = {};
+  const byProvider: Record<string, number> = {};
+  const sectionPriority = (type: DataQualityEntry['type']) => {
+    if (type === 'actual') return 4;
+    if (type === 'fallback') return 3;
+    if (type === 'computed') return 2;
+    return 1;
+  };
+
+  for (const entry of quality) {
+    const section = entry.field.split('.')[0] || entry.field;
+    const current = sections[section];
+    const provider = entry.provider ?? 'unknown';
+    byProvider[provider] = (byProvider[provider] ?? 0) + 1;
+    if (!current || sectionPriority(entry.type) > sectionPriority(current.type)) {
+      sections[section] = {
+        provider,
+        source: entry.source,
+        mxreNative: Boolean(entry.mxreNative),
+        type: entry.type,
+        confidence: entry.confidence ?? null,
+      };
+    }
+  }
+
+  const entries = Object.values(sections);
+  const total = entries.length || 1;
+  const mxreNative = entries.filter((entry) => entry.mxreNative).length;
+  const fallback = entries.filter((entry) => !entry.mxreNative).length;
+  const publicRecord = entries.filter((entry) => entry.provider === 'public_record' || entry.provider === 'hud').length;
+  const paidProvider = entries.filter((entry) => entry.provider === 'realestateapi' || entry.provider === 'zillow_api').length;
+
+  return {
+    policy: 'mxre_first_with_paid_fallback',
+    mxreNativePercent: Math.round((mxreNative / total) * 100),
+    fallbackPercent: Math.round((fallback / total) * 100),
+    publicRecordPercent: Math.round((publicRecord / total) * 100),
+    paidProviderPercent: Math.round((paidProvider / total) * 100),
+    bySection: sections,
+    byProvider,
+  };
 }
 
 function computeCompleteness(
