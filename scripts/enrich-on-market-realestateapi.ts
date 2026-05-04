@@ -314,19 +314,25 @@ async function upsertMortgages(propertyId: number, response: ReapiResponse) {
 
   await client.query("delete from mortgage_records where property_id = $1 and source_url = 'realestateapi'", [propertyId]);
 
+  const currentRows = mortgages.filter((row) => boolOrNull(row.open) !== false);
+  const currentAmountTotal = currentRows.reduce((sum, row) => sum + (numberOrNull(row.amount) ?? 0), 0);
+  const aggregateBalance = numberOrNull(response.estimatedMortgageBalance) ?? numberOrNull(response.openMortgageBalance);
+  const aggregatePayment = numberOrNull(response.estimatedMortgagePayment);
+
   for (const row of mortgages) {
+    const allocated = allocateMortgageEstimate(row, currentAmountTotal, aggregateBalance, aggregatePayment);
     await client.query(`
       insert into mortgage_records(
         property_id, document_type, recording_date, loan_amount, original_amount, lender_name, borrower_name,
         document_number, source_url, loan_type, open, position, interest_rate, interest_rate_type,
         lender_type, lender_code, loan_type_code, grantee_name, assumable, seq_no, term_months, term_type,
-        maturity_date, raw, created_at
+        maturity_date, estimated_current_balance, estimated_monthly_payment, raw, created_at
       )
       values (
         $1, $2, $3, $4, $4, $5, $6,
         $7, 'realestateapi', $8, $9, $10, $11, $12,
         $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22::jsonb, now()
+        $21, $22, $23, $24::jsonb, now()
       )
     `, [
       propertyId,
@@ -350,6 +356,8 @@ async function upsertMortgages(propertyId: number, response: ReapiResponse) {
       termToMonths(row.term, row.termType),
       stringOrNull(row.termType),
       dateOrNull(row.maturityDate),
+      allocated.estimatedCurrentBalance,
+      allocated.estimatedMonthlyPayment,
       JSON.stringify({ provider: "realestateapi", row }),
     ]);
   }
@@ -593,6 +601,25 @@ function normalizePurchaseMethod(value: unknown): string | null {
   if (text.includes("cash")) return "cash";
   if (text.includes("financ")) return "financed";
   return text;
+}
+
+function allocateMortgageEstimate(
+  row: Record<string, unknown>,
+  currentAmountTotal: number,
+  aggregateBalance: number | null,
+  aggregatePayment: number | null,
+) {
+  const open = boolOrNull(row.open) !== false;
+  const amount = numberOrNull(row.amount);
+  if (!open || !aggregateBalance || !amount || currentAmountTotal <= 0) {
+    return { estimatedCurrentBalance: null, estimatedMonthlyPayment: null };
+  }
+
+  const ratio = amount / currentAmountTotal;
+  return {
+    estimatedCurrentBalance: Math.round(aggregateBalance * ratio),
+    estimatedMonthlyPayment: aggregatePayment ? Math.round(aggregatePayment * ratio) : null,
+  };
 }
 
 function splitName(name: string | null) {
