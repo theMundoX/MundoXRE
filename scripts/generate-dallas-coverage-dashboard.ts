@@ -46,11 +46,19 @@ async function main() {
   const [listings] = await pg(`
     select count(*)::int as total,
            count(distinct property_id)::int as active_properties,
+           count(*) filter (where property_id is null)::int as unlinked_listings,
+           count(distinct listing_url)::int as distinct_listing_urls,
            count(*) filter (where mls_list_price is not null)::int as price,
            count(*) filter (where nullif(listing_agent_name,'') is not null)::int as agent_name,
            count(*) filter (where nullif(listing_agent_first_name,'') is not null and nullif(listing_agent_last_name,'') is not null)::int as first_last,
            count(*) filter (where nullif(listing_agent_phone,'') is not null)::int as phone,
-           count(*) filter (where nullif(listing_agent_email,'') is not null)::int as email,
+           count(*) filter (
+             where nullif(listing_agent_email,'') is not null
+               and (
+                 agent_contact_source = 'realestateapi'
+                 or agent_contact_confidence = 'public_profile_verified'
+               )
+           )::int as email,
            count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage,
            count(*) filter (where raw ? 'redfinDetail')::int as redfin_detail,
            count(*) filter (where raw #>> '{redfinDetail,publicRemarks}' is not null)::int as mls_description,
@@ -210,7 +218,7 @@ async function main() {
   </header>
   <main>
     <div class="grid">
-      <div class="card"><div class="label">Active Listings</div><div class="metric">${fmt(listings.total)}</div><div class="note">${fmt(listings.active_properties)} unique active properties. MLS/list price ${pct(listings.price, listings.total)}.</div></div>
+      <div class="card"><div class="label">Active Listings</div><div class="metric">${fmt(listings.total)}</div><div class="note">${fmt(listings.active_properties)} linked properties; ${fmt(listings.unlinked_listings)} active listings still need property matching. MLS/list price ${pct(listings.price, listings.total)}.</div></div>
       <div class="card"><div class="label">Parcel Universe</div><div class="metric">${fmt(parcels.total)}</div><div class="note">Dallas city rows in Dallas County.</div></div>
       <div class="card"><div class="label">Recorded Debt Signals</div><div class="metric">${fmt(recorder.debt_docs)}</div><div class="note">${fmt(recorder.mortgage_docs)} mortgages, ${fmt(recorder.lien_docs)} liens; ${fmt(recorder.linked_properties)} linked properties.</div></div>
       <div class="card"><div class="label">Fresh Rent/Floorplans</div><div class="metric">${fmt(floorplans.rows)}</div><div class="note">${fmt(rents.fresh_rows)} rent rows observed today; latest ${esc(rents.latest_observed)}.</div></div>
@@ -244,6 +252,7 @@ async function main() {
         <tr><td>Creative evaluated</td><td>${fmt(listings.creative_evaluated)} / ${fmt(listings.total)}</td><td>${pct(listings.creative_evaluated, listings.total)}</td><td>Every evaluated row stores <code>creative_finance_status</code>. <code>no_data</code> means description was checked and no clear signal was found.</td></tr>
         <tr><td>Creative hits</td><td>${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative</td><td>Signal yield ${pct(n(listings.creative_positive) + n(listings.creative_negative), listings.total)}</td><td>Coverage is the evaluated row above. MLS descriptions saved: ${fmt(listings.mls_description)}.</td></tr>
         <tr><td>Price-change tracking</td><td>${fmt(events.price_changed)} price changes / ${fmt(events.total)} events</td><td>-</td><td>Latest event: ${esc(events.latest_event)}.</td></tr>
+        <tr><td>Listing-property matching</td><td>${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows / ${fmt(listings.unlinked_listings)} unlinked rows</td><td>${pct(n(listings.total) - n(listings.unlinked_listings), listings.total)}</td><td>Unlinked rows are active listings that have not been matched to an MXRE <code>property_id</code>; they should not be counted as unique properties.</td></tr>
         <tr><td>Recorder source docs</td><td>${fmt(recorder.source_docs)}</td><td>-</td><td>Dallas County PublicSearch rows normalized into typed documents.</td></tr>
         <tr><td>Recorded liens/debt</td><td>${fmt(recorder.debt_docs)}</td><td>${pct(recorder.debt_docs, recorder.source_docs)}</td><td>${fmt(recorder.amount_docs)} rows include amount/balance data; ${fmt(recorder.payment_docs)} include estimated monthly payment.</td></tr>
         <tr><td>Recorder linked properties</td><td>${fmt(recorder.linked_properties)}</td><td>${pct(recorder.linked_properties, parcels.total)}</td><td>Still the biggest debt gap: linking needs legal/address-level matching beyond owner name.</td></tr>

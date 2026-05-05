@@ -35,7 +35,7 @@ type ListingRow = {
 type Candidate = {
   email: string;
   url: string;
-  confidence: "public_profile_verified" | "public_page_likely";
+  confidence: "public_profile_verified";
 };
 
 const stats = {
@@ -455,10 +455,9 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const hasName = text.includes(first) && text.includes(last);
   const hasPhone = Boolean(phone && pageDigits.includes(phone));
   const hasBrokerage = tokens.length > 0 && tokens.some(token => text.includes(token) || url.toLowerCase().includes(token));
-  const isListingPortal = /realtor\.com|zillow\.com|homes\.com|redfin\.com/i.test(url);
   const emails = extractEmails(html);
   if (emails.length > 0) stats.pages_with_email++;
-  if (!hasName || (!hasPhone && !hasBrokerage && !isListingPortal)) {
+  if (!hasName || !hasPhone || !hasBrokerage) {
     if (emails.length > 0) stats.rejected_identity++;
     return null;
   }
@@ -472,29 +471,7 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   return {
     email: personal,
     url,
-    confidence: hasPhone ? "public_profile_verified" : "public_page_likely",
-  };
-}
-
-function verifySyntheticPublicEmail(row: ListingRow, html: string, url: string): Candidate | null {
-  const name = splitName(row);
-  if (!name) return null;
-  const b = effectiveBrokerage(row)?.toLowerCase() ?? "";
-  if (!(/\breal\b/.test(b) || b.includes("real brokerage"))) return null;
-
-  const text = cleanText(html).toLowerCase();
-  const first = name.first.toLowerCase();
-  const last = name.last.toLowerCase();
-  const phone = normalizePhone(row.listing_agent_phone);
-  const pageDigits = text.replace(/\D/g, "");
-  if (!text.includes(first) || !text.includes(last)) return null;
-  if (phone && !pageDigits.includes(phone)) return null;
-  if (!text.includes("@joinreal.com") && !text.includes("joinreal.com email")) return null;
-
-  return {
-    email: `${first.replace(/[^a-z0-9]/g, "")}.${last.replace(/[^a-z0-9]/g, "")}@joinreal.com`,
-    url,
-    confidence: phone ? "public_profile_verified" : "public_page_likely",
+    confidence: "public_profile_verified",
   };
 }
 
@@ -558,14 +535,14 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     const seedHtml = await fetchText(seedUrl);
     if (!seedHtml) continue;
     stats.profile_pages++;
-    const seedCandidate = verifyEmailPage(seedHtml, row, seedUrl) ?? verifySyntheticPublicEmail(row, seedHtml, seedUrl);
+    const seedCandidate = verifyEmailPage(seedHtml, row, seedUrl);
     if (seedCandidate) return seedCandidate;
     for (const profileLink of extractBrokerageRosterLinks(seedUrl, seedHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
       await sleep(DELAY_MS);
       const profileHtml = await fetchText(profileLink);
       if (!profileHtml) continue;
       stats.profile_pages++;
-      const candidate = verifyEmailPage(profileHtml, row, profileLink) ?? verifySyntheticPublicEmail(row, profileHtml, profileLink);
+      const candidate = verifyEmailPage(profileHtml, row, profileLink);
       if (candidate) return candidate;
     }
   }
