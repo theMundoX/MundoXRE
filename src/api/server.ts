@@ -841,11 +841,19 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
   const marketConfig = resolveMarketConfig(c.req.param('market'));
   if (!marketConfig) return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
 
-  const updatedAfter = parseDateTimeParam(c.req.query('cursor'))
+  const decodedCursor = decodeChangeCursor(c.req.query('cursor'));
+  const updatedAfter = decodedCursor?.eventAt
     ?? parseDateTimeParam(c.req.query('updated_after'))
     ?? parseDateTimeParam(c.req.query('updatedAfter'))
     ?? parseDateTimeParam(c.req.query('since'))
     ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const cursorRecordVersion = decodedCursor?.recordVersion ?? null;
+  const eventCursorSql = cursorRecordVersion
+    ? `and (event_at > '${sqlString(updatedAfter)}'::timestamptz or (event_at = '${sqlString(updatedAfter)}'::timestamptz and record_version > '${sqlString(cursorRecordVersion)}'))`
+    : `and event_at > '${sqlString(updatedAfter)}'::timestamptz`;
+  const fallbackCursorSql = cursorRecordVersion
+    ? `("eventAt" > '${sqlString(updatedAfter)}'::timestamptz or ("eventAt" = '${sqlString(updatedAfter)}'::timestamptz and "recordVersion" > '${sqlString(cursorRecordVersion)}'))`
+    : `"eventAt" > '${sqlString(updatedAfter)}'::timestamptz`;
   const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 100, 1000);
   const queryLimit = limit + 1;
   const eventTypes = (c.req.query('event_types') ?? '')
@@ -875,8 +883,8 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
         underwriting_relevant as "underwritingRelevant"
       from property_events
       where market_key = '${sqlString(marketConfig.key)}'
-        and event_at > '${sqlString(updatedAfter)}'::timestamptz
         and underwriting_relevant = true
+        ${eventCursorSql}
         ${eventFilterSql}
       order by event_at asc, record_version asc
       limit ${queryLimit};
@@ -907,7 +915,7 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
       from listing_signal_events
       where state_code = '${marketConfig.state}'
         and upper(coalesce(city,'')) = '${marketConfig.cityUpper}'
-        and event_at > '${sqlString(updatedAfter)}'::timestamptz
+        and event_at >= '${sqlString(updatedAfter)}'::timestamptz
         ${eventFilterSql}
     ),
     active_listing_versions as (
@@ -919,8 +927,8 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
         l.state_code,
         l.zip,
         case
-          when l.first_seen_at > '${sqlString(updatedAfter)}'::timestamptz then 'listing_created'
-          when l.last_seen_at > '${sqlString(updatedAfter)}'::timestamptz then 'listing_refreshed'
+          when l.first_seen_at >= '${sqlString(updatedAfter)}'::timestamptz then 'listing_created'
+          when l.last_seen_at >= '${sqlString(updatedAfter)}'::timestamptz then 'listing_refreshed'
           else null
         end as event_type,
         coalesce(l.last_seen_at, l.first_seen_at, now()) as event_at,
@@ -936,44 +944,49 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
       from listing_signals l
       where l.state_code = '${marketConfig.state}'
         and upper(coalesce(l.city,'')) = '${marketConfig.cityUpper}'
-        and coalesce(l.last_seen_at, l.first_seen_at) > '${sqlString(updatedAfter)}'::timestamptz
+        and coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(updatedAfter)}'::timestamptz
     ),
     combined as (
       select * from listing_events
       union all
       select * from active_listing_versions where event_type is not null
+    ),
+    normalized as (
+      select
+        property_id as "mxreId",
+        nullif(listing_signal_id, 0) as "listingSignalId",
+        address,
+        city,
+        state_code as state,
+        zip,
+        event_type as "eventType",
+        event_at as "eventAt",
+        md5(coalesce(property_id::text,'') || '|' || coalesce(listing_signal_id::text,'') || '|' || event_type || '|' || event_at::text) as "recordVersion",
+        case
+          when event_type in ('price_changed', 'listing_price_changed') then array['market.listPrice']
+          when event_type in ('status_changed', 'listing_status_changed') then array['market.status']
+          when event_type in ('listing_created', 'listing_refreshed') then array['market']
+          else array[event_type]
+        end as "changedFields",
+        list_price as "listPrice",
+        previous_list_price as "previousListPrice",
+        case
+          when previous_list_price is not null and list_price is not null then list_price - previous_list_price
+          else null
+        end as "priceChange",
+        mls_status as "status",
+        previous_mls_status as "previousStatus",
+        listing_source as "listingSource",
+        listing_url as "listingUrl",
+        listing_agent_name as "listingAgentName",
+        listing_brokerage as "listingBrokerage",
+        true as "underwritingRelevant"
+      from combined
     )
-    select
-      property_id as "mxreId",
-      nullif(listing_signal_id, 0) as "listingSignalId",
-      address,
-      city,
-      state_code as state,
-      zip,
-      event_type as "eventType",
-      event_at as "eventAt",
-      md5(coalesce(property_id::text,'') || '|' || coalesce(listing_signal_id::text,'') || '|' || event_type || '|' || event_at::text) as "recordVersion",
-      case
-        when event_type in ('price_changed', 'listing_price_changed') then array['market.listPrice']
-        when event_type in ('status_changed', 'listing_status_changed') then array['market.status']
-        when event_type in ('listing_created', 'listing_refreshed') then array['market']
-        else array[event_type]
-      end as "changedFields",
-      list_price as "listPrice",
-      previous_list_price as "previousListPrice",
-      case
-        when previous_list_price is not null and list_price is not null then list_price - previous_list_price
-        else null
-      end as "priceChange",
-      mls_status as "status",
-      previous_mls_status as "previousStatus",
-      listing_source as "listingSource",
-      listing_url as "listingUrl",
-      listing_agent_name as "listingAgentName",
-      listing_brokerage as "listingBrokerage",
-      true as "underwritingRelevant"
-    from combined
-    order by event_at asc, "recordVersion" asc
+    select *
+    from normalized
+    where ${fallbackCursorSql}
+    order by "eventAt" asc, "recordVersion" asc
     limit ${queryLimit};
     `);
   }
@@ -981,11 +994,12 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
   const hasMore = rawRows.length > limit;
   const rows = rawRows.slice(0, limit);
   const lastRow = rows[rows.length - 1];
-  const nextCursor = lastRow?.eventAt instanceof Date
+  const nextUpdatedAfter = lastRow?.eventAt instanceof Date
     ? lastRow.eventAt.toISOString()
     : typeof lastRow?.eventAt === 'string'
       ? lastRow.eventAt
       : updatedAfter;
+  const nextCursor = lastRow ? encodeChangeCursor(nextUpdatedAfter, String(lastRow.recordVersion ?? '')) : c.req.query('cursor') ?? updatedAfter;
 
   return c.json({
     schemaVersion: 'mxre.bbc.changes.v1',
@@ -997,7 +1011,7 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
     hasMore,
     count: rows.length,
     nextCursor,
-    nextUpdatedAfter: nextCursor,
+    nextUpdatedAfter,
     results: rows,
     usage: {
       firstCall: '/v1/bbc/markets/{market}/changes?updated_after=2026-05-01T00:00:00.000Z&limit=500',
@@ -4796,6 +4810,23 @@ function parseDateTimeParam(value: string | undefined): string | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
+function encodeChangeCursor(eventAt: string, recordVersion: string): string {
+  return Buffer.from(JSON.stringify({ eventAt, recordVersion })).toString('base64url');
+}
+
+function decodeChangeCursor(value: string | undefined): { eventAt: string; recordVersion: string } | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as Record<string, unknown>;
+    const eventAt = parseDateTimeParam(typeof parsed.eventAt === 'string' ? parsed.eventAt : undefined);
+    const recordVersion = typeof parsed.recordVersion === 'string' ? parsed.recordVersion : '';
+    if (!eventAt || !recordVersion) return null;
+    return { eventAt, recordVersion };
+  } catch {
+    return null;
+  }
+}
+
 function sqlString(value: string): string {
   return value.replace(/'/g, "''");
 }
@@ -5639,7 +5670,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   </table>
   <h3>BBC Daily Search Example</h3>
   <h3>BBC Incremental Change Sync</h3>
-  <p>BBC should use the changes endpoint as the durable daily sync contract. First call it with <code>updated_after</code>; after that, store and reuse <code>nextCursor</code>. Returned rows are ordered oldest-to-newest so BBC can process them safely in sequence.</p>
+  <p>BBC should use the changes endpoint as the durable daily sync contract. First call it with <code>updated_after</code>; after that, store and reuse the opaque <code>nextCursor</code>. Returned rows are ordered oldest-to-newest so BBC can process them safely in sequence.</p>
   <pre>curl "https://api.mxre.mundox.ai/v1/bbc/markets/indianapolis/changes?updated_after=2026-05-01T00:00:00.000Z&limit=500" \
   -H "x-client-id: buy_box_club_sandbox" \
   -H "x-api-key: YOUR_SANDBOX_KEY"</pre>
@@ -5648,7 +5679,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   "market": "indianapolis",
   "updatedAfter": "2026-05-01T00:00:00.000Z",
   "hasMore": true,
-  "nextCursor": "2026-05-02T14:31:20.000Z",
+  "nextCursor": "eyJldmVudEF0IjoiMjAyNi0wNS0wMlQxNDozMToyMC4wMDBaIiwicmVjb3JkVmVyc2lvbiI6Ii4uLiJ9",
   "results": [
     {
       "mxreId": 50913586,
@@ -5848,7 +5879,7 @@ function buildOpenApiSpec() {
           parameters: [
             { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
             { name: 'updated_after', in: 'query', required: false, schema: { type: 'string', format: 'date-time' }, description: 'Initial lower bound for first sync.' },
-            { name: 'cursor', in: 'query', required: false, schema: { type: 'string', format: 'date-time' }, description: 'Use nextCursor from the previous response.' },
+            { name: 'cursor', in: 'query', required: false, schema: { type: 'string' }, description: 'Opaque cursor returned as nextCursor from the previous response.' },
             { name: 'since', in: 'query', required: false, deprecated: true, schema: { type: 'string', format: 'date-time' }, description: 'Legacy alias for updated_after.' },
             { name: 'event_types', in: 'query', required: false, schema: { type: 'string' }, example: 'price_changed,listing_created' },
             { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 100, maximum: 1000 } },
