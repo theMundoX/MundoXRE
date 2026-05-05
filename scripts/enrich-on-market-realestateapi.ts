@@ -21,6 +21,7 @@ const valueArg = (name: string) => {
 
 const dryRun = args.includes("--dry-run");
 const force = args.includes("--force");
+const cacheOnly = args.includes("--cache-only");
 const city = (valueArg("city") ?? "Indianapolis").toUpperCase();
 const state = (valueArg("state") ?? "IN").toUpperCase();
 const limit = Math.min(Math.max(Number(valueArg("limit") ?? "25"), 1), 1000);
@@ -47,6 +48,7 @@ const stats = {
   state,
   dryRun,
   force,
+  cacheOnly,
   queued: 0,
   candidates: 0,
   apiCalls: 0,
@@ -72,6 +74,8 @@ try {
         stats.normalized++;
         continue;
       }
+
+      if (cacheOnly) continue;
 
       const requestBody = buildRequest(candidate);
       if (dryRun) {
@@ -170,6 +174,27 @@ async function ensureQueue(): Promise<Candidate[]> {
 }
 
 async function loadCandidates(): Promise<Candidate[]> {
+  if (cacheOnly) {
+    const { rows } = await client.query<Candidate>(`
+      select
+        p.id as property_id,
+        p.address,
+        p.city,
+        p.state_code,
+        p.zip,
+        array['cache_only_renormalize']::text[] as reasons
+      from realestateapi_property_details r
+      join properties p on p.id = r.property_id
+      join listing_signals l on l.property_id = p.id and l.is_on_market = true
+      where p.state_code = $1
+        and upper(coalesce(p.city,'')) = $2
+      group by p.id, p.address, p.city, p.state_code, p.zip
+      order by p.id
+      limit $3
+    `, [state, city, limit]);
+    return rows;
+  }
+
   if (dryRun) {
     const { rows } = await client.query<Candidate>(`
       select
