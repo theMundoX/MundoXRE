@@ -24,7 +24,7 @@ const force = args.includes("--force");
 const cacheOnly = args.includes("--cache-only");
 const city = (valueArg("city") ?? "Indianapolis").toUpperCase();
 const state = (valueArg("state") ?? "IN").toUpperCase();
-const limit = Math.min(Math.max(Number(valueArg("limit") ?? "25"), 1), 1000);
+const limit = Math.min(Math.max(Number(valueArg("limit") ?? "25"), 1), 2500);
 const maxCalls = Math.min(Math.max(Number(valueArg("max-calls") ?? String(limit)), 0), limit);
 const staleDays = Math.max(Number(valueArg("stale-days") ?? "30"), 1);
 const reapiKey = process.env.REALESTATEAPI_KEY
@@ -437,7 +437,7 @@ async function upsertMortgages(propertyId: number, response: ReapiResponse) {
       stringOrNull(row.loanType),
       boolOrNull(row.open) ?? true,
       positionNumber(row.position) ?? numberOrNull(row.seqNo),
-      numberOrNull(row.interestRate),
+      boundedNumberOrNull(row.interestRate, 99.999),
       stringOrNull(row.interestRateType),
       stringOrNull(row.lenderType),
       stringOrNull(row.lenderCode),
@@ -486,7 +486,7 @@ async function upsertSales(propertyId: number, response: ReapiResponse) {
       boolOrNull(row.ownerIndividual),
       normalizePurchaseMethod(row.purchaseMethod),
       numberOrNull(row.downPayment),
-      numberOrNull(row.ltv),
+      boundedNumberOrNull(row.ltv, 999.99),
       stringOrNull(row.transactionType),
       numberOrNull(row.seqNo),
     ]);
@@ -523,7 +523,7 @@ async function upsertMlsHistory(propertyId: number, response: ReapiResponse) {
       stringOrNull(row.agentPhone),
       stringOrNull(row.agentOffice),
       numberOrNull(row.beds),
-      numberOrNull(row.baths),
+      boundedNumberOrNull(row.baths, 999.9),
       null,
       JSON.stringify({ provider: "realestateapi", row }),
     ]);
@@ -656,6 +656,13 @@ function numberOrNull(value: unknown): number | null {
   if (value == null || value === "") return null;
   const num = Number(value);
   return Number.isFinite(num) ? Math.round(num) : null;
+}
+
+function boundedNumberOrNull(value: unknown, maxAbs: number): number | null {
+  if (value == null || value === "") return null;
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  return Math.abs(num) <= maxAbs ? num : null;
 }
 
 function dbIntOrNull(value: unknown): number | null {
