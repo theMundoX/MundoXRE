@@ -202,6 +202,13 @@ async function main() {
       skip: SKIP_REDFIN_DETAILS,
     },
     {
+      name: "Link Dallas active listings to parcels",
+      command: ["npx", "tsx", "scripts/link-dallas-listings-to-parcels.ts", `--limit=${dryLimit("5000", "100")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      required: false,
+      supportsDryRun: true,
+      skip: SKIP_REDFIN_DETAILS,
+    },
+    {
       name: "Normalize Dallas listing agent contacts",
       command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--state=TX", "--city=DALLAS", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,

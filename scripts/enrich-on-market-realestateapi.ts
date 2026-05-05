@@ -40,8 +40,52 @@ if (!dryRun && maxCalls > 0 && !reapiKey) {
   throw new Error("Set REALESTATEAPI_KEY before making paid RealEstateAPI calls. Use --dry-run to preview queue.");
 }
 
-const client = new Client({ connectionString: databaseUrl });
-await client.connect();
+type Queryable = {
+  query<T = Record<string, unknown>>(query: string, params?: unknown[]): Promise<{ rows: T[] }>;
+  end(): Promise<void>;
+};
+
+function sqlLiteral(value: unknown): string {
+  if (value == null) return "null";
+  if (Array.isArray(value)) return `array[${value.map(sqlLiteral).join(",")}]`;
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "null";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function bindSql(query: string, params: unknown[] = []): string {
+  return params.reduceRight((sql, value, index) => {
+    const token = new RegExp(`\\$${index + 1}(?!\\d)`, "g");
+    return sql.replace(token, sqlLiteral(value));
+  }, query);
+}
+
+function makeClient(): Queryable {
+  if (/^https?:\/\//i.test(databaseUrl ?? "")) {
+    const endpoint = databaseUrl.replace(/\/$/, "");
+    const key = process.env.SUPABASE_SERVICE_KEY ?? "";
+    return {
+      async query<T = Record<string, unknown>>(query: string, params: unknown[] = []) {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: bindSql(query, params) }),
+          signal: AbortSignal.timeout(120_000),
+        });
+        if (!response.ok) throw new Error(`pg/query ${response.status}: ${await response.text()}`);
+        const body = await response.json();
+        return { rows: Array.isArray(body) ? body as T[] : [] };
+      },
+      async end() {},
+    };
+  }
+  return new Client({ connectionString: databaseUrl }) as unknown as Queryable;
+}
+
+const client = makeClient();
+if (!/^https?:\/\//i.test(databaseUrl ?? "")) {
+  await (client as unknown as Client).connect();
+}
 
 const stats = {
   city,
