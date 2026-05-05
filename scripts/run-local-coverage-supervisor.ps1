@@ -37,8 +37,13 @@ function Get-MarketCommand {
     "columbus" {
       return @{ File = "powershell.exe"; Args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts\run-columbus-overnight.ps1") }
     }
+    "dallas" {
+      $args = @("tsx", "scripts/refresh-dallas-market.ts")
+      if ($DryRun) { $args += "--dry-run" }
+      return @{ File = "npx.cmd"; Args = $args }
+    }
     default {
-      throw "Unsupported market '$MarketName'. Supported: indianapolis, west-chester, columbus."
+      throw "Unsupported market '$MarketName'. Supported: indianapolis, west-chester, columbus, dallas."
     }
   }
 }

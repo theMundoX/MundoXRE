@@ -49,6 +49,7 @@ Get-ChildItem C:\Users\msanc\mxre\logs\local-supervisor | Sort-Object LastWriteT
 - `indianapolis`
 - `west-chester`
 - `columbus`
+- `dallas`
 
 ## Role Split
 

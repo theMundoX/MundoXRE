@@ -71,11 +71,13 @@ async function loadConfig(): Promise<MarketRefreshConfig> {
 
 function run(command: string[]): Promise<number> {
   return new Promise((resolve) => {
-    const executable = process.platform === "win32" && command[0] === "npx"
-      ? "npx.cmd"
-      : command[0];
+    const usesLocalTsx = command[0] === "npx" && command[1] === "tsx";
+    const executable = usesLocalTsx ? process.execPath : command[0];
+    const childArgs = usesLocalTsx
+      ? [join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), ...command.slice(2)]
+      : command.slice(1);
 
-    const child = spawn(executable, command.slice(1), {
+    const child = spawn(executable, childArgs, {
       cwd: repoRoot,
       shell: false,
       stdio: "inherit",

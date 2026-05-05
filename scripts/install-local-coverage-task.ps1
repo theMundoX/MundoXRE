@@ -1,6 +1,6 @@
 param(
   [string]$Market = "indianapolis",
-  [string]$TaskName = "MXRE Local Coverage - Indianapolis",
+  [string]$TaskName = "",
   [string]$Repo = "C:\Users\msanc\mxre",
   [string]$At = "02:00"
 )
@@ -10,6 +10,11 @@ $ErrorActionPreference = "Stop"
 $scriptPath = Join-Path $Repo "scripts\run-local-coverage-supervisor.ps1"
 if (!(Test-Path $scriptPath)) {
   throw "Missing supervisor script: $scriptPath"
+}
+
+if ([string]::IsNullOrWhiteSpace($TaskName)) {
+  $title = (Get-Culture).TextInfo.ToTitleCase($Market.Replace("-", " "))
+  $TaskName = "MXRE Local Coverage - $title"
 }
 
 $action = New-ScheduledTaskAction `

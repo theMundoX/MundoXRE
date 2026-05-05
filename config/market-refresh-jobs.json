@@ -7,6 +7,13 @@
       "enabled": true,
       "required": true,
       "command": ["npx", "tsx", "scripts/refresh-indianapolis-market.ts"]
+    },
+    {
+      "id": "dallas-tx",
+      "label": "Dallas, TX",
+      "enabled": true,
+      "required": true,
+      "command": ["npx", "tsx", "scripts/refresh-dallas-market.ts"]
     }
   ]
 }
