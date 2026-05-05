@@ -57,7 +57,8 @@
       padding: 9px 12px;
       font-weight: 650;
     }
-    .tab.active { border-color: #2f9461; background: #123222; }
+    button { cursor: pointer; }
+    .tab.active, .filter.active { border-color: #2f9461; background: #123222; }
     .grid { display: grid; gap: 12px; }
     .kpis { grid-template-columns: repeat(6, minmax(150px, 1fr)); margin: 16px 0; }
     .two { grid-template-columns: 1.05fr 1.4fr; align-items: start; }
@@ -129,15 +130,15 @@
   </header>
   <main>
     <div class="tabs">
-      <button class="tab active">Overall</button>
-      <button class="tab">Single-family</button>
-      <button class="tab">Multi-family</button>
-      <button class="tab">Creative Finance</button>
-      <button class="tab">Price Drops</button>
-      <button class="tab">Data Quality</button>
+      <button class="tab active" data-view="overall">Overall</button>
+      <button class="tab" data-view="single_family">Single-family</button>
+      <button class="tab" data-view="multifamily">Multi-family</button>
+      <button class="tab" data-view="creative">Creative Finance</button>
+      <button class="tab" data-view="price_drops">Price Drops</button>
+      <button class="tab" data-view="data_quality">Data Quality</button>
     </div>
 
-    <section class="grid kpis">
+    <section class="grid kpis" id="kpis">
       <div class="card"><h3>Linked Active Listings</h3><div class="metric">1,813</div><div class="small">Rows matched to MXRE property records</div></div>
       <div class="card"><h3>Unique Properties</h3><div class="metric">1,683</div><div class="small">Deduped active property universe</div></div>
       <div class="card"><h3>Median List Price</h3><div class="metric">$259k</div><div class="small">Current linked on-market median</div></div>
@@ -148,51 +149,41 @@
 
     <section class="grid three">
       <div class="card">
-        <h2>Asset Class Breakdown</h2>
-        <div class="bar-row"><div>SFR</div><div class="bar-track"><div class="bar-fill" style="width:92%"></div></div><div>1,670</div></div>
-        <div class="bar-row"><div>MF</div><div class="bar-track"><div class="bar-fill" style="width:4%"></div></div><div>76</div></div>
-        <div class="bar-row"><div>Other</div><div class="bar-track"><div class="bar-fill" style="width:3.7%"></div></div><div>67</div></div>
-        <div class="sub">Tabs should switch the whole dashboard, not just the table.</div>
+        <h2 id="breakdown-title">Asset Class Breakdown</h2>
+        <div id="breakdown-bars"></div>
+        <div class="sub" id="breakdown-sub">Tabs should switch the whole dashboard, not just the table.</div>
       </div>
       <div class="card">
-        <h2>Coverage Quality</h2>
-        <div class="bar-row"><div>Identity</div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><div>100%</div></div>
-        <div class="bar-row"><div>Owner</div><div class="bar-track"><div class="bar-fill" style="width:99%"></div></div><div>99.4%</div></div>
-        <div class="bar-row"><div>Value</div><div class="bar-track"><div class="bar-fill" style="width:73%"></div></div><div>72.8%</div></div>
-        <div class="bar-row"><div>Sales</div><div class="bar-track"><div class="bar-fill" style="width:63%"></div></div><div>63.2%</div></div>
+        <h2 id="quality-title">Coverage Quality</h2>
+        <div id="quality-bars"></div>
       </div>
       <div class="card callout">
-        <h2>What This Becomes For BBC</h2>
-        <p class="sub">BBC users pick a market, set filters, save a recurring search, then BBC receives only the matching new/changed candidates. MXRE powers the market intelligence, enrichment quality, and event/change feed.</p>
-        <p class="small">Primary endpoints: markets, opportunities, changes, creative-finance listings, price-changes, completion, data-gaps.</p>
+        <h2 id="context-title">What This Becomes For BBC</h2>
+        <p class="sub" id="context-copy">BBC users pick a market, set filters, save a recurring search, then BBC receives only the matching new/changed candidates. MXRE powers the market intelligence, enrichment quality, and event/change feed.</p>
+        <p class="small" id="context-endpoints">Primary endpoints: markets, opportunities, changes, creative-finance listings, price-changes, completion, data-gaps.</p>
       </div>
     </section>
 
     <div class="toolbar">
       <input class="search" value="Search address, zip, owner, agent, or parcel..." readonly>
       <div class="filters">
-        <button class="filter">$150k-$350k</button>
-        <button class="filter">2-4 doors</button>
-        <button class="filter">40%+ equity</button>
-        <button class="filter">Price drops</button>
+        <button class="filter" data-filter="price">$150k-$350k</button>
+        <button class="filter" data-filter="doors">2-4 doors</button>
+        <button class="filter" data-filter="equity">40%+ equity</button>
+        <button class="filter" data-filter="drops">Price drops</button>
       </div>
     </div>
 
     <section class="grid two">
       <div class="card">
-        <div class="section-head"><h2>Top Zip Codes</h2><span class="pill">active listings</span></div>
-        <div class="bar-row"><div>46201</div><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><div>164</div></div>
-        <div class="bar-row"><div>46239</div><div class="bar-track"><div class="bar-fill" style="width:87%"></div></div><div>142</div></div>
-        <div class="bar-row"><div>46203</div><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div><div>139</div></div>
-        <div class="bar-row"><div>46205</div><div class="bar-track"><div class="bar-fill" style="width:75%"></div></div><div>123</div></div>
-        <div class="bar-row"><div>46219</div><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><div>95</div></div>
-        <div class="bar-row"><div>46218</div><div class="bar-track"><div class="bar-fill" style="width:56%"></div></div><div>92</div></div>
+        <div class="section-head"><h2 id="rollup-title">Top Zip Codes</h2><span class="pill" id="rollup-label">active listings</span></div>
+        <div id="zip-rollup"></div>
       </div>
       <div class="card">
-        <div class="section-head"><h2>Opportunity List</h2><span class="pill">filterable report</span></div>
+        <div class="section-head"><h2 id="table-title">Opportunity List</h2><span class="pill" id="table-label">filterable report</span></div>
         <table>
           <thead><tr><th>Property</th><th>Price</th><th>Units</th><th>DOM</th><th>Contact</th><th>Signal</th></tr></thead>
-          <tbody>
+          <tbody id="opportunity-rows">
             <tr><td><strong>10480 Watkins Dr</strong><span class="small">46234 - Movoto</span></td><td>$399,900</td><td>-</td><td>5</td><td class="good">email + phone</td><td>Fresh listing</td></tr>
             <tr><td><strong>10614 Pokagon Way</strong><span class="small">46239 - SFR</span></td><td>$350,000</td><td>1</td><td>5</td><td>agent name</td><td>Needs contact</td></tr>
             <tr><td><strong>7936 Beaumont Green Pl</strong><span class="small">46250 - Duplex</span></td><td>$506,990</td><td>2</td><td>14</td><td class="good">email + phone</td><td>MF candidate</td></tr>
@@ -204,10 +195,280 @@
     </section>
 
     <section class="grid three" style="margin-top:12px">
-      <div class="card"><h2>Creative Finance Report</h2><div class="metric good">12</div><div class="sub">Rows have supporting listing description text. Negative language is scored separately as zero.</div></div>
-      <div class="card"><h2>Price Change Report</h2><div class="metric warn">Live</div><div class="sub">Example: 5532 Aspen Wood Ln dropped 10.54%; failed deals can be re-underwritten.</div></div>
-      <div class="card"><h2>Data Gaps Report</h2><div class="metric bad">1,547</div><div class="sub">On-market rows needing some enrichment. Used internally to decide RealEstateAPI/RapidAPI/public refresh order.</div></div>
+      <div class="card" id="report-card-a"></div>
+      <div class="card" id="report-card-b"></div>
+      <div class="card" id="report-card-c"></div>
     </section>
   </main>
+  <script>
+    const fmt = new Intl.NumberFormat('en-US');
+    const money = (value) => value == null ? '-' : '$' + fmt.format(value);
+    const pct = (value) => value + '%';
+    const cls = (tone) => tone ? ` class="${tone}"` : '';
+
+    const views = {
+      overall: {
+        title: 'Overall Market',
+        kpis: [
+          ['Linked Active Listings', '1,813', 'Rows matched to MXRE property records'],
+          ['Unique Properties', '1,683', 'Deduped active property universe'],
+          ['Median List Price', '$259k', 'Current linked on-market median'],
+          ['Readiness Score', '89.1%', 'Identity, ownership, value, physical, sales', 'warn'],
+          ['Agent Email', '22.2%', '403 / 1,813 listing rows'],
+          ['Creative Finance', '12', 'Positive rows after false-positive cleanup', 'good'],
+        ],
+        breakdownTitle: 'Asset Class Breakdown',
+        breakdown: [['SFR', 1670], ['MF', 76], ['Other', 67]],
+        breakdownSub: 'This view is the whole on-market opportunity universe linked to MXRE properties.',
+        qualityTitle: 'Coverage Quality',
+        quality: [['Identity', '100%', 100], ['Owner', '99.4%', 99], ['Value', '72.8%', 73], ['Sales', '63.2%', 63]],
+        contextTitle: 'What This Becomes For BBC',
+        contextCopy: 'BBC users pick a market, set filters, save a recurring search, then BBC receives only the matching new/changed candidates. MXRE powers the market intelligence, enrichment quality, and event/change feed.',
+        contextEndpoints: 'Primary endpoints: markets, opportunities, changes, creative-finance listings, price-changes, completion, data-gaps.',
+        rollupTitle: 'Top Zip Codes',
+        rollupLabel: 'active listings',
+        zips: [['46201', 164], ['46239', 142], ['46203', 139], ['46205', 123], ['46219', 95], ['46218', 92]],
+        tableTitle: 'Opportunity List',
+        tableLabel: 'filterable report',
+        rows: [
+          ['10480 Watkins Dr', '46234 - Movoto', 399900, '-', 5, 'email + phone', 'Fresh listing', 'good', ''],
+          ['10614 Pokagon Way', '46239 - SFR', 350000, 1, 5, 'agent name', 'Needs contact', '', ''],
+          ['7936 Beaumont Green Pl', '46250 - Duplex', 506990, 2, 14, 'email + phone', 'MF candidate', 'good', ''],
+          ['3309 Ruckle St', '46205 - creative finance', 254900, 1, 3, 'email + phone', 'Seller financing', 'good', 'good'],
+          ['5532 Aspen Wood Ln', '46239 - price drop', 304990, 1, 85, 'missing', '-$35,930', '', 'warn'],
+        ],
+        reports: [
+          ['Creative Finance Report', '12', 'Rows have supporting listing description text. Negative language is scored separately as zero.', 'good'],
+          ['Price Change Report', 'Live', 'Price drops can trigger BBC re-underwriting for deals that previously failed.', 'warn'],
+          ['Data Gaps Report', '1,547', 'On-market rows needing some enrichment, prioritized by missing field and source.', 'bad'],
+        ],
+      },
+      single_family: {
+        title: 'Single-family',
+        kpis: [
+          ['Active SFR Rows', '1,670', 'Current linked single-family listings'],
+          ['Unique SFR Properties', '1,558', 'Deduped active property universe'],
+          ['Median List Price', '$259k', 'Single-family median'],
+          ['Agent Email', '22.6%', '377 / 1,670 rows'],
+          ['Creative Finance', '2', 'Positive SFR rows'],
+          ['Contact Complete', '22.6%', 'Email and phone present'],
+        ],
+        breakdownTitle: 'Single-family Segments',
+        breakdown: [['SFR', 1558], ['Condo', 68], ['Land/res', 44]],
+        breakdownSub: 'BBC can expose SFR filters without mixing duplex or apartment signals.',
+        qualityTitle: 'SFR Coverage',
+        quality: [['Agent name', '35.3%', 35], ['Phone', '35.5%', 36], ['Email', '22.6%', 23], ['Creative', '2 rows', 5]],
+        contextTitle: 'SFR Use Case',
+        contextCopy: 'This is the daily saved-search surface for investors looking for regular houses. BBC should filter by price, zip, DOM, equity once available, and price-change recency.',
+        contextEndpoints: 'Use /opportunities?asset=single_family plus /changes for daily sync.',
+        rollupTitle: 'SFR Zip Focus',
+        rollupLabel: 'single-family rows',
+        zips: [['46201', 151], ['46239', 141], ['46203', 127], ['46205', 113], ['46218', 89], ['46227', 88]],
+        tableTitle: 'Single-family Candidates',
+        tableLabel: 'asset=single_family',
+        rows: [
+          ['10614 Pokagon Way', '46239 - SFR', 350000, 1, 5, 'agent name', 'Fresh listing', '', ''],
+          ['10242 Eagleton Pl', '46239 - SFR', 315000, 1, 3, 'agent name', 'Fresh listing', '', ''],
+          ['8816 Waterside Dr', '46278 - SFR', 1550000, 1, 234, 'email + phone', 'Luxury / stale DOM', 'good', 'warn'],
+          ['3309 Ruckle St', '46205 - SFR', 254900, 1, 3, 'email + phone', 'Seller financing', 'good', 'good'],
+          ['5532 Aspen Wood Ln', '46239 - SFR', 304990, 1, 85, 'missing', '-10.54% price drop', '', 'warn'],
+        ],
+        reports: [
+          ['SFR Active Rows', '1,670', 'BBC can request this exact view with asset=single_family.', 'good'],
+          ['SFR Creative Finance', '2', 'Seller-finance/subject-to language found in SFR listing remarks.', 'good'],
+          ['SFR Contact Gap', '1,293', 'Rows without agent email; RealEstateAPI then RapidAPI waterfall applies.', 'warn'],
+        ],
+      },
+      multifamily: {
+        title: 'Multi-family',
+        kpis: [
+          ['Active MF Rows', '76', 'Small/commercial multifamily listings'],
+          ['Unique MF Properties', '64', 'Deduped active property universe'],
+          ['Median List Price', '$258k', 'Current MF median'],
+          ['Agent Email', '25.0%', '19 / 76 rows'],
+          ['Creative Finance', '2', 'Positive MF rows'],
+          ['Rent Snapshot Coverage', '0.07%', 'Still a major apartment-data gap'],
+        ],
+        breakdownTitle: 'Unit Count Bands',
+        breakdown: [['2-4', 67], ['5-10', 5], ['11-20', 2], ['21+', 2]],
+        breakdownSub: 'This is where users should drill into duplexes separately from larger apartment deals.',
+        qualityTitle: 'MF Coverage',
+        quality: [['Phone', '36.8%', 37], ['Email', '25.0%', 25], ['Rent snapshots', '0.07%', 1], ['Location scores', 'partial', 30]],
+        contextTitle: 'Multifamily Analyst View',
+        contextCopy: 'This tab should focus on unit count, price per door, rent per door, rent gap, agent contact, and whether the property is a small duplex or larger apartment asset.',
+        contextEndpoints: 'Use /opportunities?asset=multifamily&min_units=&max_units= plus data-gaps for missing rents.',
+        rollupTitle: 'MF Zip Focus',
+        rollupLabel: 'multifamily rows',
+        zips: [['46225', 14], ['46201', 13], ['46205', 8], ['46222', 7], ['46203', 6], ['46218', 5]],
+        tableTitle: 'Multifamily Candidates',
+        tableLabel: 'asset=multifamily',
+        rows: [
+          ['7936 Beaumont Green Pl', '46250 - Duplex', 506990, 2, 14, 'email + phone', 'MF candidate', 'good', ''],
+          ['1525 Kennington St', '46225 - Duplex', 475000, 2, 59, 'missing', 'Near bus / high crime score', '', 'warn'],
+          ['151 Bakemeyer St', '46225 - Duplex', 299900, 2, 32, 'missing', 'Needs agent enrichment', '', 'warn'],
+          ['409 N Centennial St', '46222 - Duplex', 140000, 2, 60, 'missing', 'Bus route 3 nearby', '', 'warn'],
+          ['2226 Admiral Dr', '46219 - Duplex', 239950, 2, 18, 'phone', 'Seller financing', '', 'good'],
+        ],
+        reports: [
+          ['2-4 Door Focus', '67', 'Main current MF inventory is still duplex/small multifamily.', 'good'],
+          ['Bigger MF Gap', '4', 'Larger assets require stronger commercial listing/parcels coverage.', 'warn'],
+          ['Rent Data Gap', 'High', 'Property websites/floorplans/rent snapshots are the next meaningful unlock.', 'bad'],
+        ],
+      },
+      creative: {
+        title: 'Creative Finance',
+        kpis: [
+          ['Positive Listings', '12', 'False positives cleaned'],
+          ['Negative Listings', '2', 'Explicit cash/conventional/no-finance language'],
+          ['With Description', '100%', 'Every flagged row has supporting text'],
+          ['Median Price', '$239,950', 'Creative report median'],
+          ['With Phone', '5', 'Phone contact present'],
+          ['With Full Contact', '1', 'Email and phone present'],
+        ],
+        breakdownTitle: 'Detected Terms',
+        breakdown: [['subject-to', 5], ['seller financing', 5], ['owner financing', 1], ['contract deed', 1]],
+        breakdownSub: 'Negative terms are not counted as opportunities; they remain visible for QA.',
+        qualityTitle: 'Creative Finance QA',
+        quality: [['Description', '100%', 100], ['False positive guard', 'active', 100], ['Phone', '42%', 42], ['Email', '8%', 8]],
+        contextTitle: 'How BBC Uses This',
+        contextCopy: 'BBC should expose this as a clickable report. Users need the full listing description beside the score so they can verify the language before calling the agent.',
+        contextEndpoints: 'Use /v1/bbc/markets/indianapolis/creative-finance-listings?status=positive.',
+        rollupTitle: 'Creative Zip Focus',
+        rollupLabel: 'positive rows',
+        zips: [['46205', 2], ['46239', 2], ['46219', 2], ['46201', 1], ['46225', 1], ['46222', 1]],
+        tableTitle: 'Creative Finance Listings',
+        tableLabel: 'status=positive',
+        rows: [
+          ['3309 Ruckle St', 'Seller financing + creative financing', 254900, 1, 3, 'email + phone', 'Open to seller financing', 'good', 'good'],
+          ['5624 S Keystone Ave', 'Seller financing / contract deed', 239950, 1, 41, 'phone', 'Contract for deed', '', 'good'],
+          ['1424 Finley Ave', 'Owner financing', 99900, 1, 36, 'phone', 'Owner financing offers', '', 'good'],
+          ['2226 Admiral Dr', 'Duplex fire rehab', 239950, 2, 18, 'phone', 'Seller financing possible', '', 'good'],
+          ['1901 S Meridian St', 'Mixed-use land', 490000, 1, 71, 'missing', 'Subject-to term detected', '', 'good'],
+        ],
+        reports: [
+          ['Positive Report', '12', 'All rows now have supporting remarks/description text.', 'good'],
+          ['Negative QA', '2', 'Cash/conventional-only rows scored zero, not positive.', 'warn'],
+          ['Best Next Action', 'Call list', 'Prioritize rows with phone/email and clear financing language.', 'good'],
+        ],
+      },
+      price_drops: {
+        title: 'Price Drops',
+        kpis: [
+          ['Tracked Drops', 'Live', 'From listing signal events'],
+          ['Largest Sample Drop', '-$50k', '333 Massachusetts Ave #702'],
+          ['Largest % Sample', '-10.54%', '5532 Aspen Wood Ln'],
+          ['Re-underwrite Queue', 'Yes', 'Failed BBC deals can re-enter'],
+          ['Agent Coverage', 'Mixed', 'Some rows still missing contact'],
+          ['Sync Method', 'Cursor', 'Use changes endpoint daily'],
+        ],
+        breakdownTitle: 'Drop Bands',
+        breakdown: [['<$10k', 18], ['$10k-$25k', 14], ['$25k-$50k', 5], ['$50k+', 1]],
+        breakdownSub: 'This report should become a re-underwriting trigger, not just a dashboard stat.',
+        qualityTitle: 'Price Drop Quality',
+        quality: [['Event date', '100%', 100], ['Old/new price', '100%', 100], ['Agent', 'partial', 42], ['BBC sync', 'ready', 100]],
+        contextTitle: 'BBC Re-underwriting Loop',
+        contextCopy: 'If BBC rejected a deal yesterday, a material price drop today should make it eligible for re-score instead of being permanently ignored.',
+        contextEndpoints: 'Use /price-changes and /changes?event_types=price_changed.',
+        rollupTitle: 'Recent Drop Examples',
+        rollupLabel: 'sample rows',
+        zips: [['46204', 1], ['46239', 2], ['46220', 1], ['46228', 1], ['46208', 1]],
+        tableTitle: 'Price Change Report',
+        tableLabel: 'recent events',
+        rows: [
+          ['333 Massachusetts Ave #702', '46204 - Condo', 1450000, '-', 97, 'missing', '-$50,000 / -3.33%', '', 'warn'],
+          ['5532 Aspen Wood Ln', '46239 - SFR', 304990, 1, 85, 'missing', '-$35,930 / -10.54%', '', 'warn'],
+          ['5305 Fall Creek Rd', '46220 - SFR', 799900, 1, 46, 'agent name', '-$35,100 / -4.20%', '', 'warn'],
+          ['3320 W 58th St', '46228 - SFR', 349900, 1, 31, 'missing', '-$35,100 / -9.12%', '', 'warn'],
+          ['3242 N Capitol Ave', '46208 - SFR', 315000, 1, 68, 'agent name', '-$35,000 / -10.00%', '', 'warn'],
+        ],
+        reports: [
+          ['Price Drop Feed', 'Live', 'Event rows can power BBC daily reconsideration logic.', 'good'],
+          ['Material Drop Filter', 'Needed', 'BBC should define threshold, for example 5% or $10k.', 'warn'],
+          ['Change Cursor', 'Ready', 'Store nextCursor per market and poll daily.', 'good'],
+        ],
+      },
+      data_quality: {
+        title: 'Data Quality',
+        kpis: [
+          ['On-market Gap Rows', '1,547', 'Rows needing some enrichment'],
+          ['Readiness Score', '89.1%', 'City scope'],
+          ['Core Complete', '72.8%', 'Identity + class + owner + value'],
+          ['Underwriting Complete', '46.9%', 'Core + physical + transaction'],
+          ['Missing Market Value', '148,986', 'Across city/metro parcel scope'],
+          ['Mortgage Gap', 'High', 'Still fallback dependent'],
+        ],
+        breakdownTitle: 'Gap Categories',
+        breakdown: [['Agent email', 1547], ['Agent phone', 1547], ['Mortgage balance', 900], ['Location scores', 1547], ['Rent data', 800]],
+        breakdownSub: 'This view tells MXRE what script/source should run next.',
+        qualityTitle: 'Completion Layers',
+        quality: [['Identity', '100%', 100], ['Classification', '100%', 100], ['Valuation', '72.8%', 73], ['Transaction', '63.2%', 63], ['Underwriting', '46.9%', 47]],
+        contextTitle: 'Internal MXRE Control Panel',
+        contextCopy: 'This is mostly for you and admins, not normal BBC users. It explains why a market is or is not ready and what enrichment should run next.',
+        contextEndpoints: 'Use /completion and /data-gaps.',
+        rollupTitle: 'County Completion',
+        rollupLabel: 'parcel rows',
+        zips: [['Marion', 538162], ['Hendricks', 5168], ['Boone', 1833], ['Hancock', 984], ['Hamilton', 900], ['Johnson', 235]],
+        tableTitle: 'Critical Missing Data Rows',
+        tableLabel: 'sample gaps',
+        rows: [
+          ['3946 N College Ave', '46205 - Duplex', 470000, 2, 0, 'missing', 'agent + mortgage balance + rents', '', 'bad'],
+          ['346 N Summit St', '46201 - Duplex', 389900, 2, 0, 'missing', 'agent + mortgage balance + rents', '', 'bad'],
+          ['909 N Temple Ave', '46201 - Duplex', 344900, 2, 0, 'missing', 'mortgage records + agent', '', 'bad'],
+          ['134 W 30th St', '46208 - SFR', 299500, 1, 0, 'missing', 'ownership + value + agent', '', 'bad'],
+          ['1805 Southeastern Ave', '46201 - Duplex', 299000, 2, 0, 'missing', 'agent + mortgage balance + rents', '', 'bad'],
+        ],
+        reports: [
+          ['Data Gaps', '1,547', 'Clickable report showing property-by-property missing fields.', 'bad'],
+          ['Next Source', 'Waterfall', 'RealEstateAPI for agent/mortgage; RapidAPI for descriptions/contact fallback.', 'warn'],
+          ['Market Gate', '89.1%', 'Markets under target can stay hidden from BBC production users.', 'warn'],
+        ],
+      },
+    };
+
+    function render(viewKey) {
+      const view = views[viewKey] || views.overall;
+      document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('active', button.dataset.view === viewKey));
+      document.getElementById('kpis').innerHTML = view.kpis.map(([title, value, sub, tone]) => `
+        <div class="card"><h3>${title}</h3><div${cls(tone)}><div class="metric">${value}</div></div><div class="small">${sub}</div></div>
+      `).join('');
+      document.getElementById('breakdown-title').textContent = view.breakdownTitle;
+      renderBars('breakdown-bars', view.breakdown);
+      document.getElementById('breakdown-sub').textContent = view.breakdownSub;
+      document.getElementById('quality-title').textContent = view.qualityTitle;
+      renderQuality(view.quality);
+      document.getElementById('context-title').textContent = view.contextTitle;
+      document.getElementById('context-copy').textContent = view.contextCopy;
+      document.getElementById('context-endpoints').textContent = view.contextEndpoints;
+      document.getElementById('rollup-title').textContent = view.rollupTitle;
+      document.getElementById('rollup-label').textContent = view.rollupLabel;
+      renderBars('zip-rollup', view.zips);
+      document.getElementById('table-title').textContent = view.tableTitle;
+      document.getElementById('table-label').textContent = view.tableLabel;
+      document.getElementById('opportunity-rows').innerHTML = view.rows.map(([address, meta, price, units, dom, contact, signal, contactTone, signalTone]) => `
+        <tr><td><strong>${address}</strong><span class="small">${meta}</span></td><td>${money(price)}</td><td>${units}</td><td>${dom || '-'}</td><td${cls(contactTone)}>${contact}</td><td${cls(signalTone)}>${signal}</td></tr>
+      `).join('');
+      ['report-card-a', 'report-card-b', 'report-card-c'].forEach((id, index) => {
+        const [title, value, sub, tone] = view.reports[index];
+        document.getElementById(id).innerHTML = `<h2>${title}</h2><div class="metric ${tone || ''}">${value}</div><div class="sub">${sub}</div>`;
+      });
+    }
+
+    function renderBars(id, rows) {
+      const max = Math.max(...rows.map(([, value]) => value), 1);
+      document.getElementById(id).innerHTML = rows.map(([label, value]) => `
+        <div class="bar-row"><div>${label}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(3, value / max * 100)}%"></div></div><div>${fmt.format(value)}</div></div>
+      `).join('');
+    }
+
+    function renderQuality(rows) {
+      document.getElementById('quality-bars').innerHTML = rows.map(([label, text, value]) => `
+        <div class="bar-row"><div>${label}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(3, value)}%"></div></div><div>${text}</div></div>
+      `).join('');
+    }
+
+    document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => render(button.dataset.view)));
+    document.querySelectorAll('.filter').forEach((button) => button.addEventListener('click', () => button.classList.toggle('active')));
+    render('overall');
+  </script>
 </body>
 </html>
