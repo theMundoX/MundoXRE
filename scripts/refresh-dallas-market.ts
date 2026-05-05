@@ -271,6 +271,13 @@ async function main() {
       supportsDryRun: true,
       skip: SKIP_AUDITS,
     },
+    {
+      name: "Regenerate Dallas coverage dashboard",
+      command: ["npx", "tsx", "scripts/generate-dallas-coverage-dashboard.ts"],
+      required: false,
+      supportsDryRun: true,
+      skip: SKIP_AUDITS,
+    },
   ];
 
   for (const step of steps) {
