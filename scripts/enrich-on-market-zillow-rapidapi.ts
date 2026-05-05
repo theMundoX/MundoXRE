@@ -23,6 +23,27 @@ type Contact = {
   sourceEndpoint: string;
 };
 
+type DetailSummary = {
+  zpid: string | null;
+  price: number | null;
+  zestimate: number | null;
+  rentZestimate: number | null;
+  homeStatus: string | null;
+  homeType: string | null;
+  daysOnZillow: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  livingArea: number | null;
+  yearBuilt: number | null;
+  lastSoldPrice: number | null;
+  raw: unknown;
+};
+
+type Enrichment = {
+  contact: Contact | null;
+  detail: DetailSummary | null;
+};
+
 const args = process.argv.slice(2);
 const valueArg = (name: string) => {
   const prefix = `--${name}=`;
@@ -83,15 +104,16 @@ try {
         continue;
       }
 
-      const contact = await lookupContact(candidate);
-      if (!contact) continue;
+      const enrichment = await lookupContact(candidate);
+      if (!enrichment) continue;
+      const contact = enrichment.contact;
       if (contact.name) stats.foundName++;
       if (contact.email) stats.foundEmail++;
       if (contact.phone) stats.foundPhone++;
       if (contact.brokerage) stats.foundBrokerage++;
 
-      if (contact.name || contact.email || contact.phone || contact.brokerage) {
-        await updateListing(candidate.property_id, contact);
+      if (contact?.name || contact?.email || contact?.phone || contact?.brokerage || enrichment.detail) {
+        await updateListing(candidate.property_id, enrichment);
         stats.updated++;
       }
       await sleep(250);
@@ -123,9 +145,14 @@ async function loadCandidates(): Promise<Candidate[]> {
       and upper(coalesce(p.city,'')) = $2
       and (
         $3::boolean = true
+        or coalesce(l.raw, '{}'::jsonb)->'zillow_rapidapi_detail' is null
+      )
+      and (
+        $3::boolean = true
         or nullif(l.listing_agent_email,'') is null
         or nullif(l.listing_agent_phone,'') is null
         or nullif(l.listing_agent_name,'') is null
+        or nullif(l.listing_brokerage,'') is null
       )
     order by p.id, l.last_seen_at desc nulls last, l.updated_at desc nulls last
     limit $4
@@ -133,10 +160,13 @@ async function loadCandidates(): Promise<Candidate[]> {
   return rows;
 }
 
-async function lookupContact(candidate: Candidate): Promise<Contact | null> {
+async function lookupContact(candidate: Candidate): Promise<Enrichment | null> {
   if (provider === "realestate101") {
     const detail = await rapidGet("/api/property-details/byaddress", { address: requestLabel(candidate) });
-    return extractContact(detail, "property_details_byaddress");
+    return {
+      contact: extractContact(detail, "property_details_byaddress"),
+      detail: summarizeRealEstate101(detail),
+    };
   }
 
   const detail = await propertyLookup(candidate);
@@ -155,7 +185,7 @@ async function lookupContact(candidate: Candidate): Promise<Contact | null> {
     contact = mergeContact(contact, extractContact(profile, "agent_contact"));
   }
 
-  return contact;
+  return { contact, detail: summarizeGenericDetail(detail) };
 }
 
 async function propertyLookup(candidate: Candidate): Promise<Record<string, unknown>> {
@@ -191,7 +221,9 @@ async function rapidGet(path: string, params: Record<string, string>): Promise<R
   return JSON.parse(text) as Record<string, unknown>;
 }
 
-async function updateListing(propertyId: number, contact: Contact) {
+async function updateListing(propertyId: number, enrichment: Enrichment) {
+  const contact = enrichment.contact;
+  const detail = enrichment.detail;
   await client.query(`
     update listing_signals
     set
@@ -201,6 +233,8 @@ async function updateListing(propertyId: number, contact: Contact) {
       listing_agent_email = coalesce(nullif(listing_agent_email,''), $5),
       listing_agent_phone = coalesce(nullif(listing_agent_phone,''), $6),
       listing_brokerage = coalesce(nullif(listing_brokerage,''), $7),
+      mls_list_price = coalesce(mls_list_price, $10),
+      days_on_market = coalesce(days_on_market, $11),
       agent_contact_source = case
         when $5::text is not null or $6::text is not null then $8
         else agent_contact_source
@@ -209,26 +243,61 @@ async function updateListing(propertyId: number, contact: Contact) {
         when $5::text is not null or $6::text is not null then 'medium'
         else agent_contact_confidence
       end,
-      raw = jsonb_set(coalesce(raw, '{}'::jsonb), '{zillow_rapidapi_contact}', $9::jsonb, true),
+      raw = jsonb_set(
+        jsonb_set(coalesce(raw, '{}'::jsonb), '{zillow_rapidapi_contact}', $9::jsonb, true),
+        '{zillow_rapidapi_detail}',
+        $12::jsonb,
+        true
+      ),
       updated_at = now()
     where property_id = $1
       and is_on_market = true
   `, [
     propertyId,
-    contact.name,
-    contact.firstName,
-    contact.lastName,
-    contact.email,
-    contact.phone,
-    contact.brokerage,
+    contact?.name ?? null,
+    contact?.firstName ?? null,
+    contact?.lastName ?? null,
+    contact?.email ?? null,
+    contact?.phone ?? null,
+    contact?.brokerage ?? null,
     `zillow_api_${provider}`,
     JSON.stringify({
       provider: `zillow_api_${provider}`,
-      sourceEndpoint: contact.sourceEndpoint,
-      screenName: contact.screenName,
+      sourceEndpoint: contact?.sourceEndpoint ?? null,
+      screenName: contact?.screenName ?? null,
       observedAt: new Date().toISOString(),
     }),
+    detail?.price ?? null,
+    detail?.daysOnZillow ?? null,
+    JSON.stringify({
+      provider: `zillow_api_${provider}`,
+      sourceEndpoint: detail ? "property_details_byaddress" : null,
+      observedAt: new Date().toISOString(),
+      ...detail,
+      raw: detail?.raw ?? null,
+    }),
   ]);
+
+  if (detail) {
+    await client.query(`
+      update properties
+      set
+        estimated_value = coalesce(estimated_value, $2),
+        bedrooms = coalesce(bedrooms, $3),
+        bathrooms_full = coalesce(bathrooms_full, $4),
+        living_sqft = coalesce(living_sqft, $5),
+        year_built = coalesce(year_built, $6),
+        updated_at = now()
+      where id = $1
+    `, [
+      propertyId,
+      detail.zestimate,
+      detail.bedrooms,
+      detail.bathrooms,
+      detail.livingArea,
+      detail.yearBuilt,
+    ]);
+  }
 }
 
 function extractContact(payload: unknown, sourceEndpoint: string): Contact | null {
@@ -264,8 +333,62 @@ function mergeContact(a: Contact | null, b: Contact | null): Contact | null {
   return merged;
 }
 
+function summarizeRealEstate101(payload: unknown): DetailSummary | null {
+  if (!payload || typeof payload !== "object") return null;
+  const root = payload as Record<string, unknown>;
+  const property = root.property && typeof root.property === "object"
+    ? root.property as Record<string, unknown>
+    : root;
+  return {
+    zpid: findFirstString(payload, ["zpid", "property.zpid"]),
+    price: numberOrNull(property.price),
+    zestimate: numberOrNull(property.zestimate),
+    rentZestimate: numberOrNull(property.rentZestimate),
+    homeStatus: stringOrNull(property.homeStatus),
+    homeType: stringOrNull(property.homeType),
+    daysOnZillow: numberOrNull(property.daysOnZillow),
+    bedrooms: numberOrNull(property.bedrooms),
+    bathrooms: numberOrNull(property.bathrooms),
+    livingArea: numberOrNull((property.livingArea as Record<string, unknown> | undefined)?.value ?? property.livingArea),
+    yearBuilt: numberOrNull(property.yearBuilt),
+    lastSoldPrice: numberOrNull(property.lastSoldPrice),
+    raw: payload,
+  };
+}
+
+function summarizeGenericDetail(payload: unknown): DetailSummary | null {
+  if (!payload || typeof payload !== "object") return null;
+  return {
+    zpid: findFirstString(payload, ["zpid", "property.zpid", "data.zpid", "homeInfo.zpid"]),
+    price: numberOrNull(findFirstValue(payload, ["price", "data.price", "property.price"])),
+    zestimate: numberOrNull(findFirstValue(payload, ["zestimate", "data.financials.zestimate", "property.zestimate"])),
+    rentZestimate: numberOrNull(findFirstValue(payload, ["rentZestimate", "data.financials.rent_zestimate", "property.rentZestimate"])),
+    homeStatus: stringOrNull(findFirstValue(payload, ["homeStatus", "data.status", "property.homeStatus"])),
+    homeType: stringOrNull(findFirstValue(payload, ["homeType", "property.homeType", "data.home_type"])),
+    daysOnZillow: numberOrNull(findFirstValue(payload, ["daysOnZillow", "data.days_on_zillow", "property.daysOnZillow"])),
+    bedrooms: numberOrNull(findFirstValue(payload, ["bedrooms", "data.bedrooms", "property.bedrooms"])),
+    bathrooms: numberOrNull(findFirstValue(payload, ["bathrooms", "data.bathrooms", "property.bathrooms"])),
+    livingArea: numberOrNull(findFirstValue(payload, ["livingArea", "data.living_area", "property.livingArea"])),
+    yearBuilt: numberOrNull(findFirstValue(payload, ["yearBuilt", "data.year_built", "property.yearBuilt"])),
+    lastSoldPrice: numberOrNull(findFirstValue(payload, ["lastSoldPrice", "data.financials.last_sold_price", "property.lastSoldPrice"])),
+    raw: payload,
+  };
+}
+
 function scoreContact(contact: Contact): number {
   return (contact.email ? 10 : 0) + (contact.phone ? 5 : 0) + (contact.name ? 3 : 0) + (contact.brokerage ? 2 : 0);
+}
+
+function stringOrNull(value: unknown): string | null {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text.length > 0 ? text : null;
+}
+
+function numberOrNull(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? Math.round(num) : null;
 }
 
 function collectObjects(value: unknown, depth = 0): Record<string, unknown>[] {
@@ -303,14 +426,20 @@ function firstPhone(obj: Record<string, unknown>): string | null {
 }
 
 function findFirstString(payload: unknown, paths: string[]): string | null {
+  const value = findFirstValue(payload, paths);
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  return null;
+}
+
+function findFirstValue(payload: unknown, paths: string[]): unknown {
   for (const path of paths) {
     const value = path.split(".").reduce<unknown>((acc, key) => {
       if (!acc || typeof acc !== "object" || Array.isArray(acc)) return undefined;
       return (acc as Record<string, unknown>)[key];
     }, payload);
-    if (typeof value === "string" || typeof value === "number") return String(value);
+    if (value != null) return value;
   }
-  return null;
+  return undefined;
 }
 
 function findAgentScreenName(payload: unknown): string | null {
