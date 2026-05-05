@@ -981,7 +981,11 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
   const hasMore = rawRows.length > limit;
   const rows = rawRows.slice(0, limit);
   const lastRow = rows[rows.length - 1];
-  const nextCursor = lastRow?.eventAt ? new Date(String(lastRow.eventAt)).toISOString() : updatedAfter;
+  const nextCursor = lastRow?.eventAt instanceof Date
+    ? lastRow.eventAt.toISOString()
+    : typeof lastRow?.eventAt === 'string'
+      ? lastRow.eventAt
+      : updatedAfter;
 
   return c.json({
     schemaVersion: 'mxre.bbc.changes.v1',
