@@ -86,6 +86,14 @@ async function main() {
        and state_code = 'TX'
        and upper(coalesce(city,'')) like '%DALLAS%';
   `);
+  const [countyParcels] = await pg(`
+    select count(*)::int as total,
+           count(*) filter (where parcel_id is not null and parcel_id <> '')::int as parcel_id,
+           count(distinct upper(coalesce(city,'')))::int as cities
+      from properties
+     where county_id = 7
+       and state_code = 'TX';
+  `);
 
   const [events] = await pg(`
     select count(*)::int as total,
@@ -219,7 +227,7 @@ async function main() {
   <main>
     <div class="grid">
       <div class="card"><div class="label">Active Listings</div><div class="metric">${fmt(listings.total)}</div><div class="note">${fmt(listings.active_properties)} linked properties; ${fmt(listings.unlinked_listings)} active listings still need property matching. MLS/list price ${pct(listings.price, listings.total)}.</div></div>
-      <div class="card"><div class="label">Parcel Universe</div><div class="metric">${fmt(parcels.total)}</div><div class="note">Dallas city rows in Dallas County.</div></div>
+      <div class="card"><div class="label">Parcel Universe</div><div class="metric">${fmt(parcels.total)}</div><div class="note">Dallas city situs rows. Full Dallas County loaded: ${fmt(countyParcels.total)} parcels across ${fmt(countyParcels.cities)} city labels.</div></div>
       <div class="card"><div class="label">Recorded Debt Signals</div><div class="metric">${fmt(recorder.debt_docs)}</div><div class="note">${fmt(recorder.mortgage_docs)} mortgages, ${fmt(recorder.lien_docs)} liens; ${fmt(recorder.linked_properties)} linked properties.</div></div>
       <div class="card"><div class="label">Fresh Rent/Floorplans</div><div class="metric">${fmt(floorplans.rows)}</div><div class="note">${fmt(rents.fresh_rows)} rent rows observed today; latest ${esc(rents.latest_observed)}.</div></div>
     </div>
@@ -253,6 +261,7 @@ async function main() {
         <tr><td>Creative hits</td><td>${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative</td><td>Signal yield ${pct(n(listings.creative_positive) + n(listings.creative_negative), listings.total)}</td><td>Coverage is the evaluated row above. MLS descriptions saved: ${fmt(listings.mls_description)}.</td></tr>
         <tr><td>Price-change tracking</td><td>${fmt(events.price_changed)} price changes / ${fmt(events.total)} events</td><td>-</td><td>Latest event: ${esc(events.latest_event)}.</td></tr>
         <tr><td>Listing-property matching</td><td>${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows / ${fmt(listings.unlinked_listings)} unlinked rows</td><td>${pct(n(listings.total) - n(listings.unlinked_listings), listings.total)}</td><td>Unlinked rows are active listings that have not been matched to an MXRE <code>property_id</code>; they should not be counted as unique properties.</td></tr>
+        <tr><td>County parcel universe</td><td>${fmt(countyParcels.total)} Dallas County parcels</td><td>${pct(countyParcels.parcel_id, countyParcels.total)}</td><td>The headline parcel card is the Dallas city situs subset, not all Dallas County cities.</td></tr>
         <tr><td>Recorder source docs</td><td>${fmt(recorder.source_docs)}</td><td>-</td><td>Dallas County PublicSearch rows normalized into typed documents.</td></tr>
         <tr><td>Recorded liens/debt</td><td>${fmt(recorder.debt_docs)}</td><td>${pct(recorder.debt_docs, recorder.source_docs)}</td><td>${fmt(recorder.amount_docs)} rows include amount/balance data; ${fmt(recorder.payment_docs)} include estimated monthly payment.</td></tr>
         <tr><td>Recorder linked properties</td><td>${fmt(recorder.linked_properties)}</td><td>${pct(recorder.linked_properties, parcels.total)}</td><td>Still the biggest debt gap: linking needs legal/address-level matching beyond owner name.</td></tr>
