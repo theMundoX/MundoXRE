@@ -63,10 +63,10 @@ try {
   stats.candidates = candidates.length;
 
   for (const candidate of candidates) {
-    if (stats.apiCalls >= maxCalls && !dryRun) break;
+    if (!cacheOnly && stats.apiCalls >= maxCalls && !dryRun) break;
     try {
       await markQueueRunning(candidate.property_id, candidate.reasons);
-      const cached = force ? null : await loadFreshCache(candidate.property_id);
+      const cached = cacheOnly ? await loadAnyCache(candidate.property_id) : (force ? null : await loadFreshCache(candidate.property_id));
       if (cached) {
         stats.cached++;
         if (!dryRun) await normalizeAndStore(candidate, cached.response_body as ReapiResponse, cached.request_body as Record<string, unknown>);
@@ -252,6 +252,20 @@ async function loadFreshCache(propertyId: number) {
   return rows[0] ?? null;
 }
 
+async function loadAnyCache(propertyId: number) {
+  const { rows } = await client.query<{
+    request_body: Record<string, unknown>;
+    response_body: ReapiResponse;
+  }>(`
+    select request_body, response_body
+    from realestateapi_property_details
+    where property_id = $1
+    order by fetched_at desc nulls last, updated_at desc nulls last
+    limit 1
+  `, [propertyId]);
+  return rows[0] ?? null;
+}
+
 function buildRequest(candidate: Candidate) {
   const label = [candidate.address, candidate.city, candidate.state_code, candidate.zip].filter(Boolean).join(", ");
   return {
@@ -363,7 +377,7 @@ async function upsertMortgages(propertyId: number, response: ReapiResponse) {
       propertyId,
       stringOrNull(row.deedType) || "mortgage",
       dateOrNull(row.recordingDate) ?? dateOrNull(row.documentDate),
-      numberOrNull(row.amount),
+      dbIntOrNull(row.amount),
       stringOrNull(row.lenderName),
       stringOrNull(row.granteeName),
       stringOrNull(row.documentNumber),
@@ -381,8 +395,8 @@ async function upsertMortgages(propertyId: number, response: ReapiResponse) {
       termToMonths(row.term, row.termType),
       stringOrNull(row.termType),
       dateOrNull(row.maturityDate),
-      allocated.estimatedCurrentBalance,
-      allocated.estimatedMonthlyPayment,
+      dbIntOrNull(allocated.estimatedCurrentBalance),
+      dbIntOrNull(allocated.estimatedMonthlyPayment),
       JSON.stringify({ provider: "realestateapi", row }),
     ]);
   }
@@ -589,6 +603,13 @@ function numberOrNull(value: unknown): number | null {
   if (value == null || value === "") return null;
   const num = Number(value);
   return Number.isFinite(num) ? Math.round(num) : null;
+}
+
+function dbIntOrNull(value: unknown): number | null {
+  const num = numberOrNull(value);
+  if (num == null) return null;
+  if (num > 2_147_483_647 || num < -2_147_483_648) return null;
+  return num;
 }
 
 function boolOrNull(value: unknown): boolean | null {

@@ -9,6 +9,7 @@
  * Usage:
  *   npx tsx scripts/refresh-indianapolis-listings.ts
  *   npx tsx scripts/refresh-indianapolis-listings.ts --skip-agents
+ *   npx tsx scripts/refresh-indianapolis-listings.ts --skip-reapi
  *   npx tsx scripts/refresh-indianapolis-listings.ts --skip-quality
  */
 
@@ -24,6 +25,7 @@ const args = process.argv.slice(2);
 const hasFlag = (name: string) => args.includes(`--${name}`);
 
 const SKIP_AGENTS = hasFlag("skip-agents");
+const SKIP_REAPI = hasFlag("skip-reapi");
 const SKIP_QUALITY = hasFlag("skip-quality");
 
 interface Step {
@@ -54,6 +56,20 @@ const steps: Step[] = [
     name: "Refresh Indianapolis multi-source listing signals",
     command: ["npx", "tsx", "scripts/daily-listing-scan.ts", "--state", "IN", "--cities", "Indianapolis"],
     required: false,
+  },
+  {
+    name: "Backfill active listings with RealEstateAPI PropertyDetail",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/enrich-on-market-realestateapi.ts",
+      "--city=Indianapolis",
+      "--state=IN",
+      "--limit=1000",
+      "--max-calls=1000",
+    ],
+    required: false,
+    skip: SKIP_REAPI,
   },
   {
     name: "Backfill listing agent contact fields",
