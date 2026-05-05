@@ -18,7 +18,6 @@ import { normalizeListing, crossReferenceListings } from "../src/rent-tracker/no
 import { upsertListingSignals, type ListingSignal } from "../src/db/queries.js";
 import { getDb } from "../src/db/client.js";
 import { initProxies } from "../src/utils/proxy.js";
-import { execSync } from "child_process";
 
 // ─── Config ─────────────────────────────────────────────────────────
 
@@ -348,28 +347,30 @@ async function runParallel(
 
 // ─── Address Match ──────────────────────────────────────────────────
 
-function runAddressMatch() {
+async function runAddressMatch() {
   console.log("\nRunning SQL address match to link listing_signals to properties...");
 
   const sql = `UPDATE listing_signals ls SET property_id = p.id FROM properties p JOIN counties c ON c.id = p.county_id WHERE ls.property_id IS NULL AND ls.state_code = c.state_code AND UPPER(TRIM(ls.city)) = UPPER(TRIM(p.city)) AND UPPER(TRIM(ls.address)) = UPPER(TRIM(p.address));`;
-  const dbHost = process.env.DB_HOST ?? process.env.MXRE_PG_HOST;
+  const pgUrl = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+  const pgKey = process.env.SUPABASE_SERVICE_KEY ?? "";
 
-  if (!dbHost) {
-    console.log("Address match skipped: DB_HOST is not set.");
+  if (!pgUrl || !pgKey) {
+    console.log("Address match skipped: SUPABASE_URL/SUPABASE_SERVICE_KEY is not set.");
     return;
   }
 
   try {
-    const cmd = `ssh -i /tmp/mxre_db_key -o StrictHostKeyChecking=no root@${dbHost} "docker exec -i supabase-db psql -U postgres -d postgres -c \\"${sql}\\""`;
-    const output = execSync(cmd, { encoding: "utf-8", timeout: 300_000 });
-    console.log("Address match result:", output.trim());
+    const response = await fetch(pgUrl, {
+      method: "POST",
+      headers: { apikey: pgKey, Authorization: `Bearer ${pgKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: sql }),
+      signal: AbortSignal.timeout(300_000),
+    });
+    if (!response.ok) throw new Error(`pg/query ${response.status}: ${await response.text()}`);
+    console.log("Address match result:", await response.text());
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Address match failed:", msg);
-    console.log("You can run it manually with:");
-    console.log(
-      `  ssh -i /tmp/mxre_db_key -o StrictHostKeyChecking=no root@${dbHost} "docker exec -i supabase-db psql -U postgres -d postgres -c \\"${sql}\\""`,
-    );
   }
 }
 
@@ -451,7 +452,7 @@ async function main() {
 
   // Address match
   if (!opts.dryRun && !opts.skipMatch && totalUpserted > 0) {
-    runAddressMatch();
+    await runAddressMatch();
   }
 
   console.log("\nDone.");

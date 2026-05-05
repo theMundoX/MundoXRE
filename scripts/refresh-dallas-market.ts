@@ -187,6 +187,14 @@ async function main() {
       skip: SKIP_CLASSIFY,
     },
     {
+      name: "Refresh Dallas Redfin listing signals",
+      command: ["npx", "tsx", "scripts/ingest-listings-fast.ts", "--state", "TX", "--county", "Dallas", "--concurrency", dryLimit("3", "1"), ...(DRY_RUN ? ["--dry-run", "--skip-match"] : [])],
+      required: false,
+      supportsDryRun: true,
+      skip: SKIP_REDFIN_DETAILS,
+      timeoutMs: DRY_RUN ? 10 * 60_000 : 45 * 60_000,
+    },
+    {
       name: "Enrich Dallas Redfin listing detail pages",
       command: ["npx", "tsx", "scripts/enrich-redfin-detail-pages.ts", "--state=TX", "--city=DALLAS", `--limit=${dryLimit("5000", "5")}`, `--delay-ms=${dryLimit("500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
@@ -227,6 +235,13 @@ async function main() {
       supportsDryRun: true,
       skip: SKIP_RECORDER,
       timeoutMs: 20 * 60_000,
+    },
+    {
+      name: "Normalize Dallas public recorder rows",
+      command: ["npx", "tsx", "scripts/normalize-dallas-publicsearch-recorder.ts", ...(DRY_RUN ? ["--dry-run"] : [])],
+      required: false,
+      supportsDryRun: true,
+      skip: SKIP_RECORDER,
     },
     {
       name: "Score Dallas creative finance signals",
