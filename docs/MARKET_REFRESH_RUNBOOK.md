@@ -35,10 +35,28 @@ RealEstateAPI, RapidAPI, or other paid fallback commands to
 `scripts/refresh-dallas-market.ts` unless the runbook and command flags make
 that explicit.
 
+Paid fallback is now explicit and capped:
+
+```powershell
+npm run market:dallas:refresh -- --include-paid --paid-max-calls=100
+```
+
+This runs the normal public refresh first, then calls paid enrichment only for
+active linked properties selected by remaining gaps. RealEstateAPI Property
+Detail is queried one property at a time from the MXRE property address and
+writes the cached full response, mortgages, sales history, MLS history, and
+agent fields back to that same `property_id`. Zillow/RapidAPI fallback is also
+property-scoped and writes listing/contact/detail data back to active listings
+for the same `property_id`.
+
+Never run paid fallback without a daily `--paid-max-calls` cap. If a listing is
+not linked to a `property_id`, link or resolve it first; do not spend paid calls
+on ambiguous property identity.
+
 Known Dallas gaps to work down before paid fallback:
 
-- Agent email: public search currently has 0 verified emails and must not
-  fabricate missing contacts.
+- Agent email: public search only counts emails that appear on a public page
+  tied to the same agent identity. Do not fabricate or pattern-guess emails.
 - Recorder/debt: `scripts/ingest-recorder-tx.ts --county=Dallas` targets the
   Dallas County Clerk publicsearch.us portal, but should stay bounded because
   browser scraping can be slow or stale.

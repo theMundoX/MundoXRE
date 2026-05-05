@@ -10,6 +10,7 @@
  *   npx tsx scripts/refresh-dallas-market.ts
  *   npx tsx scripts/refresh-dallas-market.ts --dry-run
  *   npx tsx scripts/refresh-dallas-market.ts --skip-rents
+ *   npx tsx scripts/refresh-dallas-market.ts --include-paid --paid-max-calls=100
  */
 
 import "dotenv/config";
@@ -33,6 +34,8 @@ const SKIP_RECORDER = hasFlag("skip-recorder");
 const SKIP_CREATIVE = hasFlag("skip-creative");
 const SKIP_RENTS = hasFlag("skip-rents");
 const SKIP_AUDITS = hasFlag("skip-audits");
+const INCLUDE_PAID = hasFlag("include-paid");
+const PAID_MAX_CALLS = Math.max(0, Number(args.find(a => a.startsWith("--paid-max-calls="))?.split("=")[1] ?? "0"));
 const dryLimit = (value: string, dryValue: string) => DRY_RUN ? dryValue : value;
 const RECORDER_DAYS = dryLimit("7", "1");
 
@@ -173,6 +176,7 @@ async function main() {
   console.log("MXRE Dallas, TX market refresh");
   console.log("=".repeat(48));
   console.log(`Dry run: ${DRY_RUN}`);
+  console.log(`Paid fallback: ${INCLUDE_PAID ? `enabled, max calls ${PAID_MAX_CALLS}` : "disabled"}`);
   console.log(`Started: ${startedAt.toISOString()}`);
   console.log(`Result log: ${resultPath}`);
 
@@ -256,6 +260,34 @@ async function main() {
       required: false,
       supportsDryRun: true,
       skip: SKIP_CREATIVE,
+    },
+    {
+      name: "Paid Dallas Property Detail enrichment",
+      command: [
+        "npx", "tsx", "scripts/enrich-on-market-realestateapi.ts",
+        "--state=TX", "--city=Dallas",
+        `--limit=${dryLimit(String(Math.max(PAID_MAX_CALLS, 1)), "5")}`,
+        `--max-calls=${dryLimit(String(PAID_MAX_CALLS), "0")}`,
+        ...(DRY_RUN ? ["--dry-run"] : []),
+      ],
+      required: false,
+      supportsDryRun: true,
+      skip: !INCLUDE_PAID,
+      timeoutMs: 60 * 60_000,
+    },
+    {
+      name: "Paid Dallas Zillow/RapidAPI listing fallback",
+      command: [
+        "npx", "tsx", "scripts/enrich-on-market-zillow-rapidapi.ts",
+        "--state=TX", "--city=Dallas",
+        `--limit=${dryLimit(String(Math.max(PAID_MAX_CALLS, 1)), "5")}`,
+        `--max-calls=${dryLimit(String(PAID_MAX_CALLS), "0")}`,
+        ...(DRY_RUN ? ["--dry-run"] : []),
+      ],
+      required: false,
+      supportsDryRun: true,
+      skip: !INCLUDE_PAID,
+      timeoutMs: 60 * 60_000,
     },
     {
       name: "Refresh Dallas multifamily rent snapshots",

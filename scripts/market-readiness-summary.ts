@@ -47,14 +47,30 @@ async function main() {
     select count(*)::int as active_listing_count,
            count(distinct listing_source)::int as listing_source_count,
            array_agg(distinct listing_source order by listing_source) filter (where listing_source is not null) as listing_sources,
+           count(*) filter (where property_id is null)::int as unlinked_listing_count,
            count(*) filter (where nullif(listing_agent_name,'') is not null)::int as agent_name_count,
            count(*) filter (where nullif(listing_agent_phone,'') is not null)::int as agent_phone_count,
-           count(*) filter (where nullif(listing_agent_email,'') is not null)::int as agent_email_count,
+           count(*) filter (
+             where nullif(listing_agent_email,'') is not null
+               and (
+                 agent_contact_source = 'realestateapi'
+                 or agent_contact_confidence = 'public_profile_verified'
+               )
+           )::int as agent_email_count,
            count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage_count,
            count(*) filter (where creative_finance_status = 'positive')::int as creative_finance_count,
            count(*) filter (where raw ? 'redfinDetail')::int as redfin_detail_count
       from listing_signals
      where ${listingWhere};
+  `);
+
+  const [debt] = await pg(`
+    select count(*)::int as debt_records,
+           count(*) filter (where coalesce(loan_amount, original_amount, estimated_current_balance, 0) > 0)::int as amount_records,
+           count(*) filter (where coalesce(estimated_monthly_payment, 0) > 0)::int as payment_records
+      from mortgage_records mr
+      join properties p on p.id = mr.property_id
+     where ${propWhere.replaceAll("city", "p.city").replaceAll("county_id", "p.county_id").replaceAll("state_code", "p.state_code")};
   `);
 
   const [mf] = await pg(`
@@ -77,6 +93,11 @@ async function main() {
   const active = Number(listings.active_listing_count ?? 0);
   const parcelCount = Number(parcels.parcel_count ?? 0);
   const mfCount = Number(mf.multifamily_complex_count ?? 0);
+  const sourceCount = Number(listings.listing_source_count ?? 0);
+  const unlinkedListingCount = Number(listings.unlinked_listing_count ?? 0);
+  const agentEmailPct = pct(listings.agent_email_count, active);
+  const debtRecords = Number(debt.debt_records ?? 0);
+  const debtAmountRecords = Number(debt.amount_records ?? 0);
 
   console.log(JSON.stringify({
     market: `${CITY}, ${STATE}`,
@@ -86,6 +107,8 @@ async function main() {
       source_count: Number(listings.listing_source_count ?? 0),
       sources: listings.listing_sources ?? [],
       redfin_detail_rows: Number(listings.redfin_detail_count ?? 0),
+      unlinked_listing_count: unlinkedListingCount,
+      pct_linked_rows: pct(active - unlinkedListingCount, active),
     },
     agent_coverage: {
       name: Number(listings.agent_name_count ?? 0),
@@ -120,12 +143,28 @@ async function main() {
       pct_floorplans: pct(mf.complexes_with_floorplans, mfCount),
       pct_rent_snapshot: pct(mf.complexes_with_rent_snapshots, mfCount),
     },
+    debt_coverage: {
+      records: debtRecords,
+      amount_records: debtAmountRecords,
+      payment_records: Number(debt.payment_records ?? 0),
+      pct_amount: pct(debtAmountRecords, debtRecords),
+    },
     readiness: {
-      dashboard_api_ready: active > 0 && parcelCount > 0 && Number(parcels.classified_count ?? 0) > 0,
+      dashboard_api_ready:
+        active > 0
+        && parcelCount > 0
+        && Number(parcels.classified_count ?? 0) > 0
+        && sourceCount > 1
+        && unlinkedListingCount === 0
+        && agentEmailPct >= 50
+        && (debtRecords === 0 || debtAmountRecords > 0),
       remaining_gaps: [
         active === 0 ? `active listing ingestion did not return ${CITY}, ${STATE} rows` : null,
+        sourceCount <= 1 ? "active listing coverage is source-limited; add authoritative/paid listing source" : null,
+        unlinkedListingCount > 0 ? `${unlinkedListingCount.toLocaleString()} active listing rows are not linked to property_id` : null,
         Number(listings.agent_phone_count ?? 0) === 0 ? "agent phone coverage is empty" : null,
-        Number(listings.agent_email_count ?? 0) === 0 ? "verified public agent email coverage is empty" : null,
+        agentEmailPct < 50 ? `verified agent email coverage is low (${agentEmailPct}%)` : null,
+        debtRecords > 0 && debtAmountRecords === 0 ? "recorded debt rows exist but loan/balance/payment amounts are missing" : null,
         Number(mf.complexes_with_rent_snapshots ?? 0) === 0 ? "multifamily rent snapshots are empty" : null,
       ].filter(Boolean),
     },
