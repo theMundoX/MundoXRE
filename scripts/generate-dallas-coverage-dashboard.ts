@@ -24,6 +24,7 @@ async function pg<T extends Row = Row>(query: string): Promise<T[]> {
 const n = (value: unknown) => Number(value ?? 0);
 const fmt = (value: unknown) => Math.round(n(value)).toLocaleString();
 const money = (value: unknown) => n(value) > 0 ? `$${Math.round(n(value)).toLocaleString()}` : "-";
+const moneyOr = (value: unknown, fallback: string) => n(value) > 0 ? money(value) : fallback;
 const pct = (value: unknown, total: unknown) => {
   const denominator = n(total);
   if (denominator <= 0) return "0.00%";
@@ -126,15 +127,21 @@ async function main() {
     select count(distinct rs.property_id)::int as properties,
            count(*)::int as rows,
            count(*) filter (where rs.observed_at >= now() - interval '1 day')::int as fresh_rows,
+           count(*) filter (where coalesce(rs.effective_rent, rs.asking_rent) > 0)::int as rent_amount_rows,
+           count(*) filter (where rs.rent_per_door > 0)::int as rent_per_door_rows,
+           count(*) filter (where rs.total_monthly_rent > 0)::int as total_monthly_rows,
            max(rs.observed_at)::text as latest_observed,
            percentile_cont(0.5) within group (order by coalesce(rs.effective_rent, rs.asking_rent))::numeric as median_rent,
            percentile_cont(0.5) within group (order by rs.rent_per_door)::numeric as median_rent_per_door,
-           sum(coalesce(rs.total_monthly_rent, coalesce(rs.effective_rent, rs.asking_rent) * greatest(coalesce(rs.estimated_unit_count, 1), 1), 0))::numeric as total_monthly_rent
+           sum(coalesce(rs.total_monthly_rent, 0))::numeric as reported_total_monthly_rent
       from rent_snapshots rs
       join properties p on p.id = rs.property_id
      where p.county_id = 7
        and p.state_code = 'TX'
-       and upper(coalesce(p.city,'')) like '%DALLAS%';
+       and upper(coalesce(p.city,'')) like '%DALLAS%'
+       and rs.floorplan_id is not null
+       and coalesce(rs.raw->>'source', '') <> 'estimated'
+       and coalesce(rs.raw->>'source', '') <> 'estimated_v2_fixed';
   `);
 
   const lienSamples = await pg(`
@@ -159,6 +166,8 @@ async function main() {
            rs.sqft,
            coalesce(rs.effective_rent, rs.asking_rent)::numeric as rent,
            rs.rent_per_door,
+           rs.estimated_unit_count,
+           rs.rent_unit_basis,
            rs.total_monthly_rent,
            rs.observed_at::text as observed_at
       from rent_snapshots rs
@@ -168,6 +177,9 @@ async function main() {
      where p.county_id = 7
        and p.state_code = 'TX'
        and upper(coalesce(p.city,'')) like '%DALLAS%'
+       and rs.floorplan_id is not null
+       and coalesce(rs.raw->>'source', '') <> 'estimated'
+       and coalesce(rs.raw->>'source', '') <> 'estimated_v2_fixed'
      order by rs.observed_at desc nulls last
      limit 12;
   `);
@@ -228,16 +240,16 @@ async function main() {
     <section class="panel">
       <h2>Coverage Detail</h2>
       <table>
-        <tr><th>Metric</th><th>Count</th><th>Coverage</th><th>Notes</th></tr>
+        <tr><th>Metric</th><th>Count</th><th>Coverage / Yield</th><th>Notes</th></tr>
         <tr><td>Creative evaluated</td><td>${fmt(listings.creative_evaluated)} / ${fmt(listings.total)}</td><td>${pct(listings.creative_evaluated, listings.total)}</td><td>Every evaluated row stores <code>creative_finance_status</code>. <code>no_data</code> means description was checked and no clear signal was found.</td></tr>
-        <tr><td>Creative hits</td><td>${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative</td><td>${pct(n(listings.creative_positive) + n(listings.creative_negative), listings.total)}</td><td>This is signal yield, not coverage. MLS descriptions saved: ${fmt(listings.mls_description)}.</td></tr>
+        <tr><td>Creative hits</td><td>${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative</td><td>Signal yield ${pct(n(listings.creative_positive) + n(listings.creative_negative), listings.total)}</td><td>Coverage is the evaluated row above. MLS descriptions saved: ${fmt(listings.mls_description)}.</td></tr>
         <tr><td>Price-change tracking</td><td>${fmt(events.price_changed)} price changes / ${fmt(events.total)} events</td><td>-</td><td>Latest event: ${esc(events.latest_event)}.</td></tr>
         <tr><td>Recorder source docs</td><td>${fmt(recorder.source_docs)}</td><td>-</td><td>Dallas County PublicSearch rows normalized into typed documents.</td></tr>
         <tr><td>Recorded liens/debt</td><td>${fmt(recorder.debt_docs)}</td><td>${pct(recorder.debt_docs, recorder.source_docs)}</td><td>${fmt(recorder.amount_docs)} rows include amount/balance data; ${fmt(recorder.payment_docs)} include estimated monthly payment.</td></tr>
         <tr><td>Recorder linked properties</td><td>${fmt(recorder.linked_properties)}</td><td>${pct(recorder.linked_properties, parcels.total)}</td><td>Still the biggest debt gap: linking needs legal/address-level matching beyond owner name.</td></tr>
         <tr><td>Apartment websites</td><td>${fmt(rent.website_properties)}</td><td>-</td><td>Public/free discovery only.</td></tr>
         <tr><td>Floorplans</td><td>${fmt(floorplans.rows)} rows / ${fmt(floorplans.properties)} properties</td><td>-</td><td>By bed type where source pages expose it.</td></tr>
-        <tr><td>Rent snapshots</td><td>${fmt(rents.rows)} rows / ${fmt(rents.properties)} properties</td><td>-</td><td>Median rent ${money(rents.median_rent)}; median rent per door ${money(rents.median_rent_per_door)}; total monthly rent basis ${money(rents.total_monthly_rent)}.</td></tr>
+        <tr><td>Rent snapshots</td><td>${fmt(rents.rent_amount_rows)} rent rows / ${fmt(rents.properties)} properties</td><td>${pct(rents.rent_amount_rows, rents.rows)}</td><td>Public apartment sites usually report per-unit floorplan rent. Whole-building monthly rent is only shown when the source reports unit counts: ${fmt(rents.total_monthly_rows)} rows, ${money(rents.reported_total_monthly_rent)} reported total/mo.</td></tr>
       </table>
     </section>
 
@@ -250,8 +262,8 @@ async function main() {
       </div>
       <div class="panel">
         <h2>Rent / Floorplan Samples</h2>
-        <table><tr><th>Complex</th><th>Floorplan</th><th>Unit</th><th>Rent</th><th>Total/mo</th><th>Observed</th></tr>
-          ${rentSamples.map(r => `<tr><td>${esc(r.complex_name)}<div class="note">${esc(r.address)}</div></td><td>${esc(r.floorplan)}</td><td>${esc(r.beds)} bd / ${esc(r.baths)} ba / ${esc(r.sqft)} sf</td><td>${money(r.rent)}</td><td>${money(r.total_monthly_rent)}</td><td>${esc(r.observed_at)}</td></tr>`).join("")}
+        <table><tr><th>Complex</th><th>Floorplan</th><th>Unit</th><th>Per-unit rent</th><th>Total/mo</th><th>Observed</th></tr>
+          ${rentSamples.map(r => `<tr><td>${esc(r.complex_name)}<div class="note">${esc(r.address)}</div></td><td>${esc(r.floorplan)}</td><td>${esc(r.beds)} bd / ${esc(r.baths)} ba / ${esc(r.sqft)} sf</td><td>${money(r.rent)}<div class="note">${esc(r.rent_unit_basis || "per_unit")}</div></td><td>${moneyOr(r.total_monthly_rent, "Unit count not reported")}<div class="note">${n(r.estimated_unit_count) > 0 ? `${fmt(r.estimated_unit_count)} units` : ""}</div></td><td>${esc(r.observed_at)}</td></tr>`).join("")}
         </table>
       </div>
     </section>
