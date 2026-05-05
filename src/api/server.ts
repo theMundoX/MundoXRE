@@ -2535,12 +2535,33 @@ const creativeFinanceListingsHandler = async (c: Context) => {
            creative_finance_observed_at as "creativeFinanceObservedAt",
            first_seen_at as "firstSeenAt",
            last_seen_at as "lastSeenAt",
+           nullif(coalesce(
+             raw #>> '{redfinDetail,publicRemarks}',
+             raw #>> '{redfinDetail,description}',
+             raw #>> '{publicRemarks}',
+             raw #>> '{remarks}',
+             raw #>> '{description}',
+             raw #>> '{listingDescription}',
+             raw #>> '{mls,remarks}',
+             raw #>> '{mls,description}',
+             ''
+           ), '') as "listingDescription",
+           nullif(coalesce(
+             raw #>> '{redfinDetail,publicRemarks}',
+             raw #>> '{publicRemarks}',
+             raw #>> '{remarks}',
+             raw #>> '{mls,remarks}',
+             ''
+           ), '') as "publicRemarks",
            left(coalesce(
              raw #>> '{redfinDetail,publicRemarks}',
              raw #>> '{redfinDetail,description}',
              raw #>> '{publicRemarks}',
              raw #>> '{remarks}',
              raw #>> '{description}',
+             raw #>> '{listingDescription}',
+             raw #>> '{mls,remarks}',
+             raw #>> '{mls,description}',
              ''
            ), 700) as "publicRemarksSnippet"
          from active
@@ -5652,7 +5673,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Required</td><td>BBC-normalized lookup by MXRE id.</td><td>Use for safe re-sync after BBC stores <code>mxreId</code>.</td></tr>
     <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Required</td><td>Cursor-based changed market records since <code>updated_after</code> or <code>cursor</code>.</td><td>Use for daily sync and reconsidering failed deals. Store <code>nextCursor</code> per market; loop while <code>hasMore=true</code>.</td></tr>
     <tr><td><code>POST /v1/bbc/search-runs</code></td><td>Required</td><td>Delta-based saved-search execution.</td><td>Send filters plus <code>excludeMxreIds</code>; MXRE returns new/changed candidates.</td></tr>
-    <tr><td><code>GET /v1/bbc/markets/{market}/creative-finance-listings</code></td><td>Optional report</td><td>Creative finance listings identified daily from MLS/listing remarks.</td><td>Use for the dedicated BBC creative finance screen. Stable response: <code>mxre.bbc.creativeFinanceListings.v1</code>.</td></tr>
+    <tr><td><code>GET /v1/bbc/markets/{market}/creative-finance-listings</code></td><td>Optional report</td><td>Creative finance listings identified daily from MLS/listing remarks.</td><td>Use for the dedicated BBC creative finance screen. Display <code>listingDescription</code> or <code>publicRemarks</code> so users can read the source language. Stable response: <code>mxre.bbc.creativeFinanceListings.v1</code>.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/price-changes</code></td><td>Optional report</td><td>MLS/listing price-change report.</td><td>Use for re-underwriting failed deals after price drops.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/readiness</code></td><td>Optional admin</td><td>Market readiness and coverage.</td><td>Use in BBC admin diagnostics.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/completion</code></td><td>Optional admin</td><td>Coverage/completion breakdown.</td><td>Use in MXRE/BBC admin dashboards.</td></tr>
@@ -5688,6 +5709,26 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
       "recordVersion": "...",
       "changedFields": ["market.listPrice"],
       "underwritingRelevant": true
+    }
+  ]
+}</pre>
+  <h3>Creative Finance Report Usage</h3>
+  <p>BBC should use <code>GET /v1/bbc/markets/{market}/creative-finance-listings</code> for a dedicated report of active listings where MXRE detected positive or negative creative-finance language. The UI should show <code>listingDescription</code> or <code>publicRemarks</code> next to the score/terms so users can verify the context themselves.</p>
+  <pre>curl "https://api.mxre.mundox.ai/v1/bbc/markets/indianapolis/creative-finance-listings?status=positive&limit=25" \
+  -H "x-client-id: buy_box_club_sandbox" \
+  -H "x-api-key: YOUR_SANDBOX_KEY"</pre>
+  <pre>{
+  "schemaVersion": "mxre.bbc.creativeFinanceListings.v1",
+  "results": [
+    {
+      "mxreId": 50913586,
+      "address": "123 Main St",
+      "creativeFinanceScore": 92,
+      "creativeFinanceStatus": "positive",
+      "creativeFinanceTerms": ["seller financing"],
+      "listingDescription": "Seller financing available...",
+      "publicRemarks": "Seller financing available...",
+      "publicRemarksSnippet": "Seller financing available..."
     }
   ]
 }</pre>
@@ -5980,7 +6021,7 @@ function buildOpenApiSpec() {
       '/v1/bbc/markets/{market}/creative-finance-listings': {
         get: {
           summary: 'BBC creative finance listings',
-          description: 'Stable BBC endpoint for daily MLS/listing remarks that indicate seller, owner, subject-to, or other creative finance signals. Negative language such as no owner financing is scored separately instead of treated as an opportunity.',
+          description: 'Stable BBC endpoint for daily MLS/listing remarks that indicate seller, owner, subject-to, or other creative finance signals. Negative language such as no owner financing is scored separately instead of treated as an opportunity. Each row includes listingDescription/publicRemarks when MXRE has captured the source listing text so BBC can display the exact context to users.',
           parameters: [
             { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
             { name: 'status', in: 'query', schema: { type: 'string', enum: ['positive', 'negative', 'all'], default: 'positive' } },
@@ -5995,7 +6036,7 @@ function buildOpenApiSpec() {
             { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
             { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
           ],
-          responses: { '200': { description: 'mxre.bbc.creativeFinanceListings.v1 report with summary, zip rollups, term rollups, and listing rows.' } },
+          responses: { '200': { description: 'mxre.bbc.creativeFinanceListings.v1 report with summary, zip rollups, term rollups, and listing rows including listingDescription/publicRemarks.' } },
         },
       },
       '/v1/markets/{market}/reports/creative-finance': {
