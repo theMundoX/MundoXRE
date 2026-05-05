@@ -39,6 +39,9 @@ if (!databaseUrl) throw new Error("Set MXRE_DIRECT_PG_URL, MXRE_PG_URL, DATABASE
 if (!dryRun && maxCalls > 0 && !reapiKey) {
   throw new Error("Set REALESTATEAPI_KEY before making paid RealEstateAPI calls. Use --dry-run to preview queue.");
 }
+if (!dryRun && maxCalls > 0 && reapiKey && !isValidHeaderValue(reapiKey)) {
+  throw new Error("REALESTATEAPI_KEY is present but is not a valid HTTP header value. Reset the environment variable; do not run paid calls with this value.");
+}
 
 type Queryable = {
   query<T = Record<string, unknown>>(query: string, params?: unknown[]): Promise<{ rows: T[] }>;
@@ -80,6 +83,10 @@ function makeClient(): Queryable {
     };
   }
   return new Client({ connectionString: databaseUrl }) as unknown as Queryable;
+}
+
+function isValidHeaderValue(value: string): boolean {
+  return value.trim().length >= 10 && !/[\u0000-\u001f\u007f]/.test(value);
 }
 
 const client = makeClient();
