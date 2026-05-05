@@ -43,6 +43,94 @@ const INDIANAPOLIS_METRO_COUNTY_IDS = [
   797572, // Tipton
 ];
 
+const DATA_GAP_DICTIONARY: Record<string, { label: string; meaning: string; primarySource: string }> = {
+  parcel_identity: {
+    label: 'Parcel identity',
+    meaning: 'Missing parcel ID, address, or county linkage.',
+    primarySource: 'county_assessor_refresh',
+  },
+  asset_classification: {
+    label: 'Asset classification',
+    meaning: 'Missing usable asset class/subtype/property use.',
+    primarySource: 'county_assessor_refresh',
+  },
+  ownership: {
+    label: 'Ownership',
+    meaning: 'Missing owner or company name.',
+    primarySource: 'county_assessor_refresh',
+  },
+  valuation: {
+    label: 'Valuation',
+    meaning: 'Missing market, assessed, or taxable value.',
+    primarySource: 'county_assessor_refresh',
+  },
+  physical_facts: {
+    label: 'Physical facts',
+    meaning: 'Missing usable square footage, lot size, or year built facts.',
+    primarySource: 'county_assessor_refresh',
+  },
+  sales_history: {
+    label: 'Sales history',
+    meaning: 'Missing sale history or last sale fields.',
+    primarySource: 'recorder_refresh',
+  },
+  mortgage_records: {
+    label: 'Mortgage records',
+    meaning: 'No recorded mortgage/lien rows connected to this property.',
+    primarySource: 'recorder_refresh_or_paid_fallback',
+  },
+  mortgage_balance: {
+    label: 'Mortgage balance',
+    meaning: 'Mortgage rows exist, but no usable amount or estimated balance is available.',
+    primarySource: 'realestateapi_property_detail',
+  },
+  agent_name: {
+    label: 'Agent name',
+    meaning: 'Active listing is missing listing agent name.',
+    primarySource: 'realestateapi_property_detail',
+  },
+  agent_email: {
+    label: 'Agent email',
+    meaning: 'Active listing is missing listing agent email.',
+    primarySource: 'realestateapi_then_rapidapi_zillow',
+  },
+  agent_phone: {
+    label: 'Agent phone',
+    meaning: 'Active listing is missing listing agent phone.',
+    primarySource: 'realestateapi_then_rapidapi_zillow',
+  },
+  brokerage: {
+    label: 'Brokerage',
+    meaning: 'Active listing is missing listing brokerage.',
+    primarySource: 'realestateapi_property_detail',
+  },
+  listing_url: {
+    label: 'Listing URL',
+    meaning: 'Active listing is missing source URL.',
+    primarySource: 'listing_detail_refresh',
+  },
+  property_website: {
+    label: 'Property website',
+    meaning: 'Multifamily/apartment property is missing its public property website.',
+    primarySource: 'apartment_website_discovery',
+  },
+  floorplans: {
+    label: 'Floorplans',
+    meaning: 'Multifamily/apartment property is missing bed/bath floorplan rows.',
+    primarySource: 'property_website_rent_scraper',
+  },
+  rent_snapshot: {
+    label: 'Rent snapshots',
+    meaning: 'Multifamily/apartment property is missing current asking/effective rent snapshots.',
+    primarySource: 'property_website_rent_scraper',
+  },
+  location_scores: {
+    label: 'Location scores',
+    meaning: 'Missing crime/transit/location intelligence scoring.',
+    primarySource: 'location_intelligence_refresh',
+  },
+};
+
 const MARKET_CONFIGS: Record<string, {
   key: string;
   aliases: string[];
@@ -151,6 +239,7 @@ const BBC_MARKET_ENDPOINTS = [
   '/v1/bbc/property/{mxreId}',
   '/v1/markets/{market}/readiness',
   '/v1/markets/{market}/completion',
+  '/v1/markets/{market}/data-gaps',
   '/v1/markets/{market}/opportunities',
   '/v1/markets/{market}/price-changes',
 ];
@@ -330,6 +419,7 @@ app.use('*', async (c, next) => {
     (previewsEnabled(c) && (
       c.req.path === '/dashboard' ||
       c.req.path === '/preview/market-dashboard' ||
+      c.req.path === '/preview/data-gaps' ||
       c.req.path === '/preview/west-chester-dashboard'
     ))
   ) return next();
@@ -3040,6 +3130,289 @@ app.get('/v1/markets/:market/completion', async (c) => {
   });
 });
 
+app.get('/v1/markets/:market/data-gaps', async (c) => {
+  const market = c.req.param('market').toLowerCase();
+  if (!['indianapolis', 'indy'].includes(market)) {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const scope = getIndianapolisScope(c.req.query('scope'));
+  const page = Math.max(1, parsePositiveInt(c.req.query('page')) ?? 1);
+  const limit = Math.min(250, Math.max(1, parsePositiveInt(c.req.query('limit')) ?? 100));
+  const offset = (page - 1) * limit;
+  const asset = (c.req.query('asset') ?? 'all').toLowerCase();
+  const gap = (c.req.query('gap') ?? 'all').toLowerCase();
+  const onMarket = (c.req.query('on_market') ?? 'all').toLowerCase();
+  const zip = c.req.query('zip')?.trim();
+  const minUnits = parsePositiveInt(c.req.query('min_units'));
+  const maxUnits = parsePositiveInt(c.req.query('max_units'));
+  const minPrice = parsePositiveInt(c.req.query('min_price'));
+  const maxPrice = parsePositiveInt(c.req.query('max_price'));
+  const q = c.req.query('q')?.trim();
+
+  const assetSql = (() => {
+    const haystack = `lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, ''))`;
+    if (asset === 'single_family') {
+      return `and coalesce(p.total_units, 0) <= 1
+        and ${haystack} not like '%multi%'
+        and ${haystack} not like '%apartment%'
+        and ${haystack} not like '%duplex%'
+        and ${haystack} not like '%triplex%'
+        and ${haystack} not like '%fourplex%'`;
+    }
+    if (asset === 'multifamily') {
+      return `and (
+        coalesce(p.total_units, 0) >= 2
+        or p.asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
+        or ${haystack} like '%multi%'
+        or ${haystack} like '%apartment%'
+        or ${haystack} like '%duplex%'
+        or ${haystack} like '%triplex%'
+        or ${haystack} like '%fourplex%'
+      )`;
+    }
+    if (asset === 'small_multifamily') {
+      return `and (
+        p.asset_type = 'small_multifamily'
+        or coalesce(p.total_units, 0) between 2 and 4
+        or ${haystack} like '%duplex%'
+        or ${haystack} like '%triplex%'
+        or ${haystack} like '%fourplex%'
+      )`;
+    }
+    if (asset === 'commercial_multifamily') {
+      return `and (
+        p.asset_type in ('apartment', 'commercial_multifamily')
+        or coalesce(p.total_units, 0) >= 5
+        or ${haystack} like '%apartment%'
+      )`;
+    }
+    return '';
+  })();
+
+  const filtersSql = [
+    assetSql,
+    zip ? `and p.zip = '${sqlString(zip.slice(0, 10))}'` : '',
+    minUnits !== null ? `and coalesce(p.total_units, 0) >= ${minUnits}` : '',
+    maxUnits !== null ? `and coalesce(p.total_units, 0) <= ${maxUnits}` : '',
+    q ? `and (p.address ilike '%${sqlString(q)}%' or p.parcel_id ilike '%${sqlString(q)}%' or p.owner_name ilike '%${sqlString(q)}%')` : '',
+  ].filter(Boolean).join('\n        ');
+
+  const postFiltersSql = [
+    onMarket === 'true' || onMarket === 'active' ? 'and is_on_market = true' : '',
+    onMarket === 'false' || onMarket === 'off_market' ? 'and coalesce(is_on_market, false) = false' : '',
+    minPrice !== null ? `and coalesce(mls_list_price, market_value, assessed_value, 0) >= ${minPrice}` : '',
+    maxPrice !== null ? `and coalesce(mls_list_price, market_value, assessed_value, 0) <= ${maxPrice}` : '',
+    gap !== 'all' ? `and '${sqlString(gap)}' = any(missing_fields)` : '',
+  ].filter(Boolean).join('\n      ');
+
+  const [report] = await queryPg<Record<string, unknown>>(`
+    with base as (
+      select
+        p.*,
+        coalesce(c.county_name, 'Unknown') as county_name,
+        case
+          when p.asset_type in ('commercial_multifamily', 'apartment') or coalesce(p.total_units, 0) >= 5 then 'commercial_multifamily'
+          when p.asset_type = 'small_multifamily' or coalesce(p.total_units, 0) between 2 and 4
+            or lower(coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_use, '')) like '%duplex%'
+            or lower(coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_use, '')) like '%triplex%'
+            or lower(coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_use, '')) like '%fourplex%' then 'small_multifamily'
+          when p.asset_type in ('single_family', 'residential') or coalesce(p.total_units, 0) <= 1 then 'single_family'
+          else coalesce(nullif(p.asset_type, ''), 'unknown')
+        end as asset_group
+      from properties p
+      left join counties c on c.id = p.county_id
+      where ${scope.whereSql}
+        ${filtersSql}
+    ),
+    enriched as (
+      select
+        b.*,
+        l.id as listing_id,
+        coalesce(l.is_on_market, false) as is_on_market,
+        l.mls_list_price,
+        l.days_on_market,
+        l.listing_source,
+        l.listing_url,
+        l.listing_agent_name,
+        l.listing_agent_first_name,
+        l.listing_agent_last_name,
+        l.listing_agent_email,
+        l.listing_agent_phone,
+        l.listing_brokerage,
+        l.agent_contact_source,
+        l.agent_contact_confidence,
+        l.last_seen_at as listing_last_seen_at,
+        exists(select 1 from sale_history sh where sh.property_id = b.id) as has_sale_history,
+        exists(select 1 from mortgage_records m where m.property_id = b.id) as has_mortgage_record,
+        exists(
+          select 1
+          from mortgage_records m
+          where m.property_id = b.id
+            and lower(coalesce(m.document_type, '')) not like '%release%'
+            and lower(coalesce(m.document_type, '')) not like '%satisfaction%'
+            and lower(coalesce(m.document_type, '')) not like '%assignment%'
+            and lower(coalesce(m.document_type, '')) not like '%deed%'
+            and (m.open = true or m.maturity_date::date > current_date)
+            and coalesce(m.estimated_current_balance, m.loan_amount, m.original_amount, 0) > 0
+        ) as has_mortgage_balance,
+        exists(select 1 from property_websites pw where pw.property_id = b.id and pw.active = true) as has_property_website,
+        exists(select 1 from floorplans fp where fp.property_id = b.id) as has_floorplans,
+        exists(select 1 from rent_snapshots rs where rs.property_id = b.id) as has_rent_snapshot,
+        exists(select 1 from property_location_scores pls where pls.property_id = b.id) as has_location_scores
+      from base b
+      left join lateral (
+        select *
+        from listing_signals l
+        where l.property_id = b.id
+        order by l.is_on_market desc, l.last_seen_at desc nulls last, l.first_seen_at desc nulls last
+        limit 1
+      ) l on true
+    ),
+    flags as (
+      select
+        *,
+        array_remove(array[
+          case when parcel_id is null or parcel_id = '' or address is null or address = '' or county_id is null then 'parcel_identity' end,
+          case when asset_group = 'unknown' or (asset_type is null and asset_subtype is null and property_type is null and property_use is null) then 'asset_classification' end,
+          case when owner_name is null and company_name is null and owner1_last is null then 'ownership' end,
+          case when coalesce(market_value, assessed_value, taxable_value, 0) <= 0 then 'valuation' end,
+          case when year_built is null and coalesce(total_sqft, living_sqft, land_sqft, lot_sqft, 0) <= 0 then 'physical_facts' end,
+          case when not has_sale_history and last_sale_date is null and coalesce(last_sale_price, 0) <= 0 and sale_year is null then 'sales_history' end,
+          case when not has_mortgage_record then 'mortgage_records' end,
+          case when has_mortgage_record and not has_mortgage_balance then 'mortgage_balance' end,
+          case when is_on_market and listing_agent_name is null and (listing_agent_first_name is null or listing_agent_last_name is null) then 'agent_name' end,
+          case when is_on_market and listing_agent_email is null then 'agent_email' end,
+          case when is_on_market and listing_agent_phone is null then 'agent_phone' end,
+          case when is_on_market and listing_brokerage is null then 'brokerage' end,
+          case when is_on_market and listing_url is null then 'listing_url' end,
+          case when asset_group in ('small_multifamily', 'commercial_multifamily') and not has_property_website then 'property_website' end,
+          case when asset_group in ('small_multifamily', 'commercial_multifamily') and not has_floorplans then 'floorplans' end,
+          case when asset_group in ('small_multifamily', 'commercial_multifamily') and not has_rent_snapshot then 'rent_snapshot' end,
+          case when not has_location_scores then 'location_scores' end
+        ], null) as missing_fields
+      from enriched
+    ),
+    filtered as (
+      select *
+      from flags
+      where cardinality(missing_fields) > 0
+      ${postFiltersSql}
+    ),
+    counted as (
+      select *, count(*) over()::int as total_count
+      from filtered
+      order by
+        is_on_market desc,
+        cardinality(missing_fields) desc,
+        coalesce(mls_list_price, market_value, assessed_value, 0) desc,
+        id
+      limit ${limit}
+      offset ${offset}
+    )
+    select
+      coalesce(max(total_count), 0)::int as total_count,
+      jsonb_build_object(
+        'parcel_identity', count(*) filter (where 'parcel_identity' = any(missing_fields)),
+        'asset_classification', count(*) filter (where 'asset_classification' = any(missing_fields)),
+        'ownership', count(*) filter (where 'ownership' = any(missing_fields)),
+        'valuation', count(*) filter (where 'valuation' = any(missing_fields)),
+        'physical_facts', count(*) filter (where 'physical_facts' = any(missing_fields)),
+        'sales_history', count(*) filter (where 'sales_history' = any(missing_fields)),
+        'mortgage_records', count(*) filter (where 'mortgage_records' = any(missing_fields)),
+        'mortgage_balance', count(*) filter (where 'mortgage_balance' = any(missing_fields)),
+        'agent_name', count(*) filter (where 'agent_name' = any(missing_fields)),
+        'agent_email', count(*) filter (where 'agent_email' = any(missing_fields)),
+        'agent_phone', count(*) filter (where 'agent_phone' = any(missing_fields)),
+        'brokerage', count(*) filter (where 'brokerage' = any(missing_fields)),
+        'listing_url', count(*) filter (where 'listing_url' = any(missing_fields)),
+        'property_website', count(*) filter (where 'property_website' = any(missing_fields)),
+        'floorplans', count(*) filter (where 'floorplans' = any(missing_fields)),
+        'rent_snapshot', count(*) filter (where 'rent_snapshot' = any(missing_fields)),
+        'location_scores', count(*) filter (where 'location_scores' = any(missing_fields))
+      ) as returned_gap_counts,
+      coalesce(jsonb_agg(jsonb_build_object(
+        'mxreId', id,
+        'parcelId', parcel_id,
+        'address', address,
+        'city', city,
+        'state', state_code,
+        'zip', zip,
+        'county', county_name,
+        'assetGroup', asset_group,
+        'assetType', asset_type,
+        'assetSubtype', asset_subtype,
+        'unitCount', total_units,
+        'ownerName', owner_name,
+        'marketValue', market_value,
+        'assessedValue', assessed_value,
+        'lastSaleDate', last_sale_date,
+        'lastSalePrice', last_sale_price,
+        'onMarket', is_on_market,
+        'listPrice', mls_list_price,
+        'listingSource', listing_source,
+        'listingUrl', listing_url,
+        'listingLastSeenAt', listing_last_seen_at,
+        'agent', jsonb_build_object(
+          'name', listing_agent_name,
+          'firstName', listing_agent_first_name,
+          'lastName', listing_agent_last_name,
+          'email', listing_agent_email,
+          'phone', listing_agent_phone,
+          'brokerage', listing_brokerage,
+          'source', agent_contact_source,
+          'confidence', agent_contact_confidence
+        ),
+        'checks', jsonb_build_object(
+          'hasSaleHistory', has_sale_history,
+          'hasMortgageRecord', has_mortgage_record,
+          'hasMortgageBalance', has_mortgage_balance,
+          'hasPropertyWebsite', has_property_website,
+          'hasFloorplans', has_floorplans,
+          'hasRentSnapshot', has_rent_snapshot,
+          'hasLocationScores', has_location_scores
+        ),
+        'missingFields', missing_fields,
+        'missingCount', cardinality(missing_fields),
+        'completeness', greatest(0, round(((17 - cardinality(missing_fields))::numeric / 17) * 100))
+      ) order by is_on_market desc, cardinality(missing_fields) desc, coalesce(mls_list_price, market_value, assessed_value, 0) desc), '[]'::jsonb) as rows
+    from counted;
+  `);
+
+  const rows = ((report?.rows ?? []) as Array<Record<string, unknown>>).map((row) => {
+    const missingFields = Array.isArray(row.missingFields) ? row.missingFields.map(String) : [];
+    return {
+      ...row,
+      severity: inferGapSeverity(missingFields, Boolean(row.onMarket)),
+      nextBestSources: inferGapSources(missingFields, Boolean(row.onMarket)),
+    };
+  });
+
+  return c.json({
+    market: 'indianapolis',
+    geography: { state: 'IN', scope: scope.key, scope_label: scope.label, county_ids: scope.countyIds },
+    filters: {
+      page,
+      limit,
+      asset,
+      gap,
+      on_market: onMarket,
+      zip: zip ?? null,
+      min_units: minUnits,
+      max_units: maxUnits,
+      min_price: minPrice,
+      max_price: maxPrice,
+      q: q ?? null,
+    },
+    total: numberOrNull(report?.total_count) ?? rows.length,
+    count: rows.length,
+    returned_gap_counts: report?.returned_gap_counts ?? {},
+    gap_dictionary: DATA_GAP_DICTIONARY,
+    rows,
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/v1/markets/:market/multifamily/coverage', async (c) => {
   const market = c.req.param('market').toLowerCase();
   if (!['indianapolis', 'indy'].includes(market)) {
@@ -4339,6 +4712,35 @@ load().catch(err => {
 
 // ── Helpers ──────────────────────────────────────────────────
 
+app.get('/preview/data-gaps', async (c) => {
+  if (!previewsEnabled(c)) return c.json({ error: 'Preview disabled' }, 404);
+  const apiKey = getBrowserApiKey(c);
+  return c.html(`<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MXRE Data Gaps</title>
+<style>
+body{font-family:Inter,Arial,sans-serif;margin:0;background:#f6f7f9;color:#14171f}header{padding:18px 22px;background:#111827;color:white;display:flex;justify-content:space-between;gap:14px;align-items:center}main{padding:18px 22px}.controls{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr));gap:10px;margin-bottom:14px}select,input,button{height:36px;border:1px solid #cfd4dc;border-radius:6px;padding:0 10px;background:white}button{background:#111827;color:white;border:0;font-weight:700;cursor:pointer}.cards{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:10px;margin-bottom:14px}.card{background:white;border:1px solid #d8dde6;border-radius:8px;padding:12px}.label{font-size:12px;color:#6b7280}.value{font-size:24px;font-weight:800;margin-top:4px}table{width:100%;border-collapse:collapse;background:white;border:1px solid #d8dde6;border-radius:8px;overflow:hidden}th,td{font-size:13px;text-align:left;border-bottom:1px solid #e5e7eb;padding:9px;vertical-align:top}th{background:#f0f2f5;color:#374151;font-size:12px;text-transform:uppercase}.pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;margin:2px;background:#eef2ff;color:#3730a3}.critical{background:#fee2e2;color:#991b1b}.high{background:#ffedd5;color:#9a3412}.medium{background:#fef9c3;color:#854d0e}.muted{color:#6b7280}.nowrap{white-space:nowrap}.missing{max-width:360px}@media(max-width:1000px){.controls,.cards{grid-template-columns:1fr 1fr}table{display:block;overflow-x:auto}}
+</style></head><body>
+<header><div><strong>MXRE Property Data Gaps</strong><div class="muted">Property-by-property missing data and next source to fill it</div></div><a href="/preview/market-dashboard" style="color:white">Market dashboard</a></header>
+<main>
+<div class="controls">
+<select id="asset"><option value="all">All assets</option><option value="single_family">Single family</option><option value="multifamily">Multifamily</option><option value="small_multifamily">2-4 units</option><option value="commercial_multifamily">5+ units</option></select>
+<select id="gap"><option value="all">All gaps</option><option value="agent_email">Missing agent email</option><option value="agent_phone">Missing agent phone</option><option value="mortgage_balance">Missing mortgage balance</option><option value="mortgage_records">Missing mortgage records</option><option value="rent_snapshot">Missing rent snapshots</option><option value="floorplans">Missing floorplans</option><option value="valuation">Missing valuation</option></select>
+<select id="onMarket"><option value="all">All status</option><option value="true">On market only</option><option value="false">Off market only</option></select>
+<input id="zip" placeholder="ZIP"><input id="q" placeholder="Address / parcel / owner">
+<select id="limit"><option>50</option><option selected>100</option><option>250</option></select><button onclick="load()">Run report</button>
+</div>
+<div class="cards"><div class="card"><div class="label">Matching gaps</div><div class="value" id="total">-</div></div><div class="card"><div class="label">Returned</div><div class="value" id="count">-</div></div><div class="card"><div class="label">Agent email gaps</div><div class="value" id="agentEmail">-</div></div><div class="card"><div class="label">Mortgage balance gaps</div><div class="value" id="mortgageBalance">-</div></div><div class="card"><div class="label">Rent snapshot gaps</div><div class="value" id="rentSnapshot">-</div></div></div>
+<div id="status" class="muted">Loading...</div>
+<table><thead><tr><th>Property</th><th>Asset</th><th>Status</th><th>Value</th><th>Missing</th><th>Next sources</th><th>Agent</th></tr></thead><tbody id="rows"></tbody></table>
+</main>
+<script>
+const apiKey=${JSON.stringify(apiKey)},fmt=n=>Number(n||0).toLocaleString(),esc=v=>String(v??'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])),pill=(t,c='')=>'<span class="pill '+c+'">'+esc(t)+'</span>';
+async function load(){const params=new URLSearchParams({scope:'city',asset:asset.value,gap:gap.value,on_market:onMarket.value,limit:limit.value});if(zip.value.trim())params.set('zip',zip.value.trim());if(q.value.trim())params.set('q',q.value.trim());status.textContent='Loading report...';const res=await fetch('/v1/markets/indianapolis/data-gaps?'+params,{headers:{'x-api-key':apiKey,'x-client-id':'dashboard_preview'}});const data=await res.json();if(!res.ok){status.textContent=data.error||'Failed';return;}total.textContent=fmt(data.total);count.textContent=fmt(data.count);agentEmail.textContent=fmt(data.returned_gap_counts?.agent_email);mortgageBalance.textContent=fmt(data.returned_gap_counts?.mortgage_balance);rentSnapshot.textContent=fmt(data.returned_gap_counts?.rent_snapshot);status.textContent='Generated '+new Date(data.generated_at).toLocaleString();rows.innerHTML=(data.rows||[]).map(r=>{const a=r.agent||{};return '<tr><td><strong>'+esc(r.address)+'</strong><div class="muted">'+esc(r.city)+', '+esc(r.state)+' '+esc(r.zip)+' | '+esc(r.parcelId)+' | MXRE '+esc(r.mxreId)+'</div></td><td>'+esc(r.assetGroup)+'<div class="muted">'+esc(r.assetSubtype||r.assetType||'')+' | units '+esc(r.unitCount??'')+'</div></td><td>'+pill(r.severity,r.severity)+'<div class="muted">'+(r.onMarket?'on market':'off market')+'</div></td><td class="nowrap">$'+fmt(r.listPrice||r.marketValue||r.assessedValue)+'</td><td class="missing">'+(r.missingFields||[]).map(x=>pill(x)).join(' ')+'</td><td>'+(r.nextBestSources||[]).map(x=>pill(x)).join(' ')+'</td><td>'+esc(a.name||'')+'<div class="muted">'+esc(a.email||'')+' '+esc(a.phone||'')+'</div><div class="muted">'+esc(a.brokerage||'')+'</div></td></tr>';}).join('');}
+load().catch(err=>{status.textContent=String(err);});
+</script></body></html>`);
+});
+
 function numberOrNull(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim() !== '') {
@@ -4378,6 +4780,63 @@ function sqlString(value: string): string {
 
 function normalizeRecord(value: unknown): Record<string, unknown> {
   return (value && typeof value === 'object' && !Array.isArray(value)) ? value as Record<string, unknown> : {};
+}
+
+function inferGapSeverity(missingFields: string[], onMarket: boolean): 'critical' | 'high' | 'medium' {
+  const missing = new Set(missingFields);
+  if (
+    missing.has('parcel_identity')
+    || missing.has('ownership')
+    || missing.has('valuation')
+    || missing.has('mortgage_balance')
+    || (onMarket && (missing.has('agent_email') || missing.has('agent_phone')))
+  ) {
+    return 'critical';
+  }
+  if (
+    missing.has('asset_classification')
+    || missing.has('sales_history')
+    || missing.has('mortgage_records')
+    || (onMarket && (missing.has('agent_name') || missing.has('brokerage') || missing.has('listing_url')))
+  ) {
+    return 'high';
+  }
+  return 'medium';
+}
+
+function inferGapSources(missingFields: string[], onMarket: boolean): string[] {
+  const sources = new Set<string>();
+  const add = (source: string) => sources.add(source);
+  const missing = new Set(missingFields);
+
+  if (
+    missing.has('parcel_identity')
+    || missing.has('asset_classification')
+    || missing.has('ownership')
+    || missing.has('valuation')
+    || missing.has('physical_facts')
+  ) add('county_assessor_refresh');
+
+  if (missing.has('sales_history') || missing.has('mortgage_records')) add('recorder_refresh');
+  if (missing.has('mortgage_balance')) add(onMarket ? 'realestateapi_property_detail' : 'recorder_refresh_or_paid_fallback');
+
+  if (
+    missing.has('agent_name')
+    || missing.has('agent_email')
+    || missing.has('agent_phone')
+    || missing.has('brokerage')
+    || missing.has('listing_url')
+  ) {
+    add('realestateapi_property_detail');
+    add('rapidapi_zillow_fallback');
+    if (missing.has('agent_email') || missing.has('agent_phone')) add('brokerage_web_search');
+  }
+
+  if (missing.has('property_website')) add('apartment_website_discovery');
+  if (missing.has('floorplans') || missing.has('rent_snapshot')) add('property_website_rent_scraper');
+  if (missing.has('location_scores')) add('crime_transit_location_refresh');
+
+  return Array.from(sources);
 }
 
 function normalizeAutocompleteQuery(value: string): string {
@@ -5122,6 +5581,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td><code>GET /v1/bbc/markets</code></td><td>BBC-safe list of available coverage markets. By default, markets below the readiness target are hidden.</td><td><code>includeBelowTarget=true</code> admin/debug only</td></tr>
     <tr><td><code>GET /v1/markets/{market}/readiness</code></td><td>Market readiness and coverage status.</td><td><code>market=indianapolis</code>, <code>columbus</code>, <code>west-chester</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/completion</code></td><td>Completion metrics for parcels, underwriting fields, rents, listings.</td><td><code>scope=city|core|metro</code></td></tr>
+    <tr><td><code>GET /v1/markets/{market}/data-gaps</code></td><td>Property-by-property missing data report with severity and next best enrichment source.</td><td><code>asset</code>, <code>gap</code>, <code>on_market</code>, <code>zip</code>, <code>q</code>, <code>page</code>, <code>limit</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/opportunities</code></td><td>Filterable active listing/opportunity table.</td><td><code>asset</code>, <code>zip</code>, <code>min_price</code>, <code>max_price</code>, <code>creative=positive</code>, <code>page</code>, <code>limit</code></td></tr>
     <tr><td><code>GET /v1/bbc/markets/{market}/creative-finance-listings</code></td><td>BBC-stable creative finance listings detected daily from MLS/listing public remarks.</td><td><code>status</code>, <code>asset</code>, <code>zip</code>, <code>since</code>, <code>until</code>, <code>page</code>, <code>limit</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/reports/creative-finance</code></td><td>Internal/admin creative finance report alias.</td><td><code>limit</code>, <code>offset</code></td></tr>
@@ -5143,6 +5603,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td><code>GET /v1/markets/{market}/price-changes</code></td><td>Optional report</td><td>MLS/listing price-change report.</td><td>Use for re-underwriting failed deals after price drops.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/readiness</code></td><td>Optional admin</td><td>Market readiness and coverage.</td><td>Use in BBC admin diagnostics.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/completion</code></td><td>Optional admin</td><td>Coverage/completion breakdown.</td><td>Use in MXRE/BBC admin dashboards.</td></tr>
+    <tr><td><code>GET /v1/markets/{market}/data-gaps</code></td><td>Optional admin</td><td>Property-level missing data report.</td><td>Use in MXRE dashboard to decide what enrichment script/source should run next.</td></tr>
   </table>
   <h3>Minimum BBC Integration</h3>
   <table>
@@ -5501,6 +5962,28 @@ function buildOpenApiSpec() {
             { name: 'scope', in: 'query', schema: { type: 'string', enum: ['city', 'core', 'metro'] } },
           ],
           responses: { '200': { description: 'Completion metrics for parcel identity, underwriting, rents, and market data.' } },
+        },
+      },
+      '/v1/markets/{market}/data-gaps': {
+        get: {
+          summary: 'Property-level data gaps report',
+          description: 'Admin/MXRE dashboard report showing each property with missing fields, severity, and recommended enrichment sources.',
+          parameters: [
+            { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
+            { name: 'scope', in: 'query', schema: { type: 'string', enum: ['city', 'core', 'metro'], default: 'city' } },
+            { name: 'asset', in: 'query', schema: { type: 'string', enum: ['all', 'single_family', 'multifamily', 'small_multifamily', 'commercial_multifamily'], default: 'all' } },
+            { name: 'gap', in: 'query', schema: { type: 'string', example: 'agent_email' } },
+            { name: 'on_market', in: 'query', schema: { type: 'string', enum: ['all', 'true', 'false'], default: 'all' } },
+            { name: 'zip', in: 'query', schema: { type: 'string' } },
+            { name: 'q', in: 'query', schema: { type: 'string', description: 'Address, parcel, or owner contains search.' } },
+            { name: 'min_units', in: 'query', schema: { type: 'integer' } },
+            { name: 'max_units', in: 'query', schema: { type: 'integer' } },
+            { name: 'min_price', in: 'query', schema: { type: 'number' } },
+            { name: 'max_price', in: 'query', schema: { type: 'number' } },
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 100, maximum: 250 } },
+          ],
+          responses: { '200': { description: 'Rows with missingFields, severity, nextBestSources, and source-specific checks.' } },
         },
       },
       '/v1/coverage': {
