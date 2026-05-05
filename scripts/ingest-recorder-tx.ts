@@ -27,9 +27,11 @@ const fromDate = getArg("from");
 const toDate = getArg("to");
 const daysBack = parseInt(getArg("days") || "7", 10);
 const runAll = args.includes("--all");
+const dryRun = args.includes("--dry-run");
+const maxDocs = Math.max(1, parseInt(getArg("max-docs") || "1000000", 10));
 
 if (!countyFilter && !runAll) {
-  console.log("Usage: npx tsx scripts/ingest-recorder-tx.ts --county=Dallas [--from=2024-01-01] [--to=2024-12-31] [--days=7]");
+  console.log("Usage: npx tsx scripts/ingest-recorder-tx.ts --county=Dallas [--from=2024-01-01] [--to=2024-12-31] [--days=7] [--max-docs=1000] [--dry-run]");
   console.log("       npx tsx scripts/ingest-recorder-tx.ts --all --days=730");
   console.log("\nAvailable counties:");
   for (const c of PUBLICSEARCH_COUNTIES) console.log(`  ${c.county_name} — ${c.base_url}`);
@@ -108,7 +110,9 @@ async function ingestCounty(
   const batch: Array<Record<string, unknown>> = [];
   const BATCH_SIZE = 50;
 
+  let seen = 0;
   for await (const doc of adapter.fetchDocuments(config, startDate, endDate)) {
+    seen++;
     if (await isDuplicate(doc)) { duplicates++; continue; }
 
     const classified = classifyDocType(doc.document_type);
@@ -129,17 +133,28 @@ async function ingestCounty(
     });
 
     if (batch.length >= BATCH_SIZE) {
+      if (dryRun) {
+        inserted += batch.length;
+        batch.length = 0;
+        if (seen >= maxDocs) break;
+        continue;
+      }
       const { error } = await db.from("mortgage_records").insert(batch);
       if (error) console.error(`Batch error: ${error.message}`);
       else inserted += batch.length;
       batch.length = 0;
     }
+    if (seen >= maxDocs) break;
   }
 
   if (batch.length > 0) {
-    const { error } = await db.from("mortgage_records").insert(batch);
-    if (error) console.error(`Final batch error: ${error.message}`);
-    else inserted += batch.length;
+    if (dryRun) {
+      inserted += batch.length;
+    } else {
+      const { error } = await db.from("mortgage_records").insert(batch);
+      if (error) console.error(`Final batch error: ${error.message}`);
+      else inserted += batch.length;
+    }
   }
 
   return { inserted, duplicates, unmatched };
@@ -149,6 +164,7 @@ async function main() {
   console.log(`\nMXRE Recorder Ingest — Texas publicsearch.us`);
   console.log(`${"─".repeat(55)}`);
   console.log(`Date range: ${startDate} to ${endDate}\n`);
+  console.log(`Dry run: ${dryRun}; max docs per county: ${maxDocs.toLocaleString()}\n`);
 
   const countiesToRun = runAll
     ? PUBLICSEARCH_COUNTIES

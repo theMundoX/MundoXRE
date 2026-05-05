@@ -29,9 +29,12 @@ const SKIP_CLASSIFY = hasFlag("skip-classify");
 const SKIP_REDFIN_DETAILS = hasFlag("skip-redfin-details");
 const SKIP_AGENT_CONTACTS = hasFlag("skip-agent-contacts");
 const SKIP_AGENT_EMAILS = hasFlag("skip-agent-emails");
+const SKIP_RECORDER = hasFlag("skip-recorder");
 const SKIP_CREATIVE = hasFlag("skip-creative");
 const SKIP_RENTS = hasFlag("skip-rents");
 const SKIP_AUDITS = hasFlag("skip-audits");
+const dryLimit = (value: string, dryValue: string) => DRY_RUN ? dryValue : value;
+const RECORDER_DAYS = dryLimit("7", "1");
 
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
@@ -42,6 +45,7 @@ type Step = {
   required: boolean;
   supportsDryRun: boolean;
   skip?: boolean;
+  timeoutMs?: number;
 };
 
 type StepResult = {
@@ -75,7 +79,7 @@ async function pg(query: string): Promise<Record<string, unknown>[]> {
   }
 }
 
-function run(command: string[]): Promise<number> {
+function run(command: string[], timeoutMs?: number): Promise<number> {
   return new Promise((resolve) => {
     const usesLocalTsx = command[0] === "npx" && command[1] === "tsx";
     const executable = usesLocalTsx ? process.execPath : command[0];
@@ -88,8 +92,27 @@ function run(command: string[]): Promise<number> {
       stdio: "inherit",
       env: process.env,
     });
-    child.on("close", (code) => resolve(code ?? 1));
-    child.on("error", () => resolve(1));
+    let timeout: NodeJS.Timeout | null = null;
+    let settled = false;
+    const finish = (code: number) => {
+      if (settled) return;
+      settled = true;
+      if (timeout) clearTimeout(timeout);
+      resolve(code);
+    };
+    if (timeoutMs && timeoutMs > 0) {
+      timeout = setTimeout(() => {
+        console.error(`Step timed out after ${Math.round(timeoutMs / 1000)}s: ${command.join(" ")}`);
+        child.kill("SIGTERM");
+        setTimeout(() => {
+          if (!child.killed) child.kill("SIGKILL");
+        }, 5_000).unref();
+        finish(124);
+      }, timeoutMs);
+      timeout.unref();
+    }
+    child.on("close", (code) => finish(code ?? 1));
+    child.on("error", () => finish(1));
   });
 }
 
@@ -118,7 +141,7 @@ async function runStep(step: Step, results: StepResult[]) {
 
   console.log(`\nRUN ${step.name}`);
   console.log(`$ ${step.command.join(" ")}`);
-  const exitCode = await run(step.command);
+  const exitCode = await run(step.command, step.timeoutMs);
   const stepFinishedAt = new Date();
   const status = exitCode === 0 ? "ok" : "failed";
 
@@ -158,42 +181,63 @@ async function main() {
   const steps: Step[] = [
     {
       name: "Classify Dallas parcel asset types",
-      command: ["npx", "tsx", "scripts/classify-market-assets.ts", "--state=TX", "--city=DALLAS", "--county_id=7", "--batch-size=2500", ...(DRY_RUN ? ["--dry-run"] : [])],
+      command: ["npx", "tsx", "scripts/classify-market-assets.ts", "--state=TX", "--city=DALLAS", "--county_id=7", `--batch-size=${dryLimit("2500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: true,
       supportsDryRun: true,
       skip: SKIP_CLASSIFY,
     },
     {
       name: "Enrich Dallas Redfin listing detail pages",
-      command: ["npx", "tsx", "scripts/enrich-redfin-detail-pages.ts", "--state=TX", "--city=DALLAS", "--limit=5000", "--delay-ms=500", ...(DRY_RUN ? ["--dry-run"] : [])],
+      command: ["npx", "tsx", "scripts/enrich-redfin-detail-pages.ts", "--state=TX", "--city=DALLAS", `--limit=${dryLimit("5000", "5")}`, `--delay-ms=${dryLimit("500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_REDFIN_DETAILS,
     },
     {
       name: "Normalize Dallas listing agent contacts",
-      command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--state=TX", "--city=DALLAS", "--limit=5000", ...(DRY_RUN ? ["--dry-run"] : [])],
+      command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--state=TX", "--city=DALLAS", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AGENT_CONTACTS,
     },
     {
       name: "Search public Dallas agent email profiles",
-      command: ["npx", "tsx", "scripts/enrich-agent-emails-public.ts", "--state=TX", "--city=DALLAS", "--limit=500", "--delay-ms=1500", ...(DRY_RUN ? ["--dry-run"] : [])],
+      command: [
+        "npx", "tsx", "scripts/enrich-agent-emails-public.ts",
+        "--state=TX", "--city=DALLAS",
+        `--limit=${dryLimit("500", "5")}`,
+        `--delay-ms=${dryLimit("1500", "250")}`,
+        `--max-search-queries=${dryLimit("6", "2")}`,
+        `--max-search-links=${dryLimit("10", "4")}`,
+        `--max-direct-profile-urls=${dryLimit("4", "1")}`,
+        `--max-profile-links-per-page=${dryLimit("6", "3")}`,
+        `--fetch-timeout-ms=${dryLimit("8000", "3000")}`,
+        `--row-timeout-ms=${dryLimit("45000", "15000")}`,
+        ...(DRY_RUN ? ["--dry-run", "--disable-duckduckgo"] : []),
+      ],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AGENT_EMAILS,
+      timeoutMs: DRY_RUN ? 5 * 60_000 : 90 * 60_000,
+    },
+    {
+      name: "Ingest Dallas County recorded deeds and mortgages",
+      command: ["npx", "tsx", "scripts/ingest-recorder-tx.ts", "--county=Dallas", `--days=${RECORDER_DAYS}`, `--max-docs=${dryLimit("1000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      required: false,
+      supportsDryRun: true,
+      skip: SKIP_RECORDER,
+      timeoutMs: 20 * 60_000,
     },
     {
       name: "Score Dallas creative finance signals",
-      command: ["npx", "tsx", "scripts/score-creative-finance-signals.ts", "--state=TX", "--city=DALLAS", "--limit=5000", ...(DRY_RUN ? ["--dry-run"] : [])],
+      command: ["npx", "tsx", "scripts/score-creative-finance-signals.ts", "--state=TX", "--city=DALLAS", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_CREATIVE,
     },
     {
       name: "Refresh Dallas multifamily rent snapshots",
-      command: ["npx", "tsx", "scripts/scrape-rents-bulk.ts", "--city", "Dallas", "--state", "TX", "--county_id", "7", "--limit", "250", ...(DRY_RUN ? ["--dry-run"] : [])],
+      command: ["npx", "tsx", "scripts/scrape-rents-bulk.ts", "--city=Dallas", "--state=TX", "--county_id=7", `--limit=${dryLimit("250", "5")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_RENTS,

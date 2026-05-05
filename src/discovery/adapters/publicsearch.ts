@@ -42,6 +42,8 @@ export class PublicSearchAdapter {
     });
     const stealth = getStealthConfig();
     this.context = await this.browser.newContext(stealth);
+    this.context.setDefaultTimeout(15_000);
+    this.context.setDefaultNavigationTimeout(30_000);
     await this.context.addInitScript(STEALTH_INIT_SCRIPT);
   }
 
@@ -129,16 +131,17 @@ export class PublicSearchAdapter {
     const url = `${config.base_url}results?department=RP&limit=250&offset=0&recordedDateRange=custom&recordedDateFrom=${date}&recordedDateTo=${date}&searchOcrText=false&searchType=quickSearch`;
 
     await waitForSlot(config.base_url);
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 });
+    page.setDefaultTimeout(15_000);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
 
     // Wait for results table to render
     try {
-      await page.waitForSelector("table tbody tr", { timeout: 15_000 });
+      await page.waitForSelector("table tbody tr, [class*='result'], text=/No Results|No records|0 Results/i", { timeout: 12_000 });
     } catch {
       // No results for this day
       return [];
     }
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(750);
 
     // Extract data from the rendered table
     const rawRows = await page.evaluate(() => {
@@ -212,14 +215,14 @@ export class PublicSearchAdapter {
       while (true) {
         const nextUrl = `${config.base_url}results?department=RP&limit=250&offset=${offset}&recordedDateRange=custom&recordedDateFrom=${date}&recordedDateTo=${date}&searchOcrText=false&searchType=quickSearch`;
         await waitForSlot(config.base_url);
-        await page.goto(nextUrl, { waitUntil: "networkidle", timeout: 30_000 });
+        await page.goto(nextUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
 
         try {
           await page.waitForSelector("table tbody tr", { timeout: 10_000 });
         } catch {
           break;
         }
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(500);
 
         const moreRows = await page.evaluate(() => {
           const rows = document.querySelectorAll("table tbody tr");

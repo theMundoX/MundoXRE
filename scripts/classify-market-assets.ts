@@ -31,6 +31,12 @@ async function pg(query: string): Promise<Record<string, unknown>[]> {
 async function updateBatched(label: string, setSql: string, whereSql: string) {
   console.log(`\n${label}`);
   let total = 0;
+
+  if (DRY_RUN) {
+    console.log(`  dry-run only; skipped heavy candidate scan`);
+    return;
+  }
+
   while (true) {
     const rows = await pg(`
       with target as (
@@ -50,7 +56,7 @@ async function updateBatched(label: string, setSql: string, whereSql: string) {
     const count = Number(rows[0]?.updated ?? 0);
     total += count;
     process.stdout.write(`\r  updated ${total.toLocaleString()}   `);
-    if (count === 0 || DRY_RUN) break;
+    if (count === 0) break;
   }
   console.log();
 }

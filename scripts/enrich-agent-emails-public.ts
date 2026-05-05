@@ -7,9 +7,12 @@ const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit=
 const DELAY_MS = Math.max(750, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? "2500", 10));
 const MAX_SEARCH_QUERIES = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-queries="))?.split("=")[1] ?? "8", 10));
 const MAX_SEARCH_LINKS = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-links="))?.split("=")[1] ?? "12", 10));
+const MAX_DIRECT_PROFILE_URLS = Math.max(0, parseInt(process.argv.find(a => a.startsWith("--max-direct-profile-urls="))?.split("=")[1] ?? "6", 10));
+const MAX_PROFILE_LINKS_PER_PAGE = Math.max(0, parseInt(process.argv.find(a => a.startsWith("--max-profile-links-per-page="))?.split("=")[1] ?? "6", 10));
 const FETCH_TIMEOUT_MS = Math.max(2_500, parseInt(process.argv.find(a => a.startsWith("--fetch-timeout-ms="))?.split("=")[1] ?? "8000", 10));
 const ROW_TIMEOUT_MS = Math.max(5_000, parseInt(process.argv.find(a => a.startsWith("--row-timeout-ms="))?.split("=")[1] ?? "45000", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
+const DISABLE_DUCKDUCKGO = process.argv.includes("--disable-duckduckgo");
 const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 const STATE = arg("state")?.toUpperCase();
@@ -36,8 +39,13 @@ type Candidate = {
 };
 
 const stats = {
+  direct_profile_urls: 0,
+  homepage_urls: 0,
   search_pages: 0,
   search_links: 0,
+  duckduckgo_links: 0,
+  bing_links: 0,
+  search_pages_without_links: 0,
   profile_pages: 0,
   pages_with_email: 0,
   rejected_identity: 0,
@@ -134,11 +142,21 @@ function slug(value: string): string {
 
 function rawString(row: ListingRow, keys: string[]): string | null {
   for (const key of keys) {
-    const value = row.raw?.[key];
+    const value = key.split(".").reduce<unknown>((current, part) => {
+      if (current && typeof current === "object" && !Array.isArray(current)) return (current as Record<string, unknown>)[part];
+      return undefined;
+    }, row.raw);
     if (typeof value === "string" && value.trim()) return value.trim();
     if (typeof value === "number") return String(value);
   }
   return null;
+}
+
+function effectiveBrokerage(row: ListingRow): string | null {
+  const rawBrokerage = rawString(row, ["redfinDetail.listingBrokerage", "listingBrokerage", "brokerageName", "brokerName"]);
+  const current = row.listing_brokerage?.trim() ?? null;
+  if (rawBrokerage && (!current || /^(ntreis|mls|mls grid|actris)$/i.test(current))) return rawBrokerage;
+  return current ?? rawBrokerage;
 }
 
 function brokerageDomainHints(brokerage: string | null): string[] {
@@ -173,7 +191,7 @@ function brokerageDomainHints(brokerage: string | null): string[] {
 }
 
 function brokerageSeedUrls(row: ListingRow): string[] {
-  const b = row.listing_brokerage?.toLowerCase() ?? "";
+  const b = effectiveBrokerage(row)?.toLowerCase() ?? "";
   const name = splitName(row);
   const urls: string[] = [];
   if (!name) return urls;
@@ -210,7 +228,7 @@ function directProfileUrls(row: ListingRow): string[] {
   const last = slug(name.last);
   const full = slug(name.full);
   const urls: string[] = [];
-  for (const domain of brokerageDomainHints(row.listing_brokerage)) {
+  for (const domain of brokerageDomainHints(effectiveBrokerage(row))) {
     urls.push(
       `https://www.${domain}/agents/${full}`,
       `https://www.${domain}/agent/${full}`,
@@ -231,7 +249,7 @@ function directProfileUrls(row: ListingRow): string[] {
 }
 
 function homepageUrls(row: ListingRow): string[] {
-  return brokerageDomainHints(row.listing_brokerage)
+  return brokerageDomainHints(effectiveBrokerage(row))
     .flatMap(domain => [`https://www.${domain}/`, `https://${domain}/`])
     .filter((url, index, all) => all.indexOf(url) === index);
 }
@@ -243,6 +261,15 @@ function extractEmails(html: string): string[] {
   const matches = decoded.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
   return [...new Set(matches.map(email => email.toLowerCase()))]
     .filter(email => !email.endsWith(".png") && !email.endsWith(".jpg") && !email.includes("example.com"));
+}
+
+function isGenericOrHostedEmail(email: string): boolean {
+  const [local, domain = ""] = email.toLowerCase().split("@");
+  if (!local || !domain) return true;
+  if (["info", "contact", "hello", "admin", "office", "support", "sales", "team", "homes", "realestate", "realtor", "filler"].includes(local)) return true;
+  if (/^(no-?reply|donotreply|webmaster|privacy|marketing|leads?)$/.test(local)) return true;
+  if (/(godaddy|example|sentry|wixpress|squarespace|wordpress|cloudflare)\./i.test(domain)) return true;
+  return false;
 }
 
 function sameSiteUrl(baseUrl: string, href: string): string | null {
@@ -341,15 +368,58 @@ function extractLinksFromDuckDuckGo(html: string): string[] {
     .slice(0, 8);
 }
 
-function extractLinksFromBing(html: string): string[] {
-  const decodedHtml = html
+function decodeHtml(value: string): string {
+  return value
     .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"');
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#x2F;/gi, "/")
+    .replace(/&#x3A;/gi, ":")
+    .replace(/&#x3D;/gi, "=");
+}
+
+function normalizeSearchResultUrl(value: string): string | null {
+  const decoded = decodeHtml(value).trim();
+  if (!decoded) return null;
+  try {
+    const url = new URL(decoded);
+    if (/bing\.com$/i.test(url.hostname) || /\.bing\.com$/i.test(url.hostname)) {
+      const target = url.searchParams.get("u") ?? url.searchParams.get("url");
+      if (target) {
+        if (/^a1[a-z0-9_-]+$/i.test(target)) {
+          try {
+            return normalizeSearchResultUrl(Buffer.from(target.slice(2), "base64url").toString("utf8"));
+          } catch {
+            return null;
+          }
+        }
+        return normalizeSearchResultUrl(target);
+      }
+      return null;
+    }
+    url.hash = "";
+    return /^https?:$/i.test(url.protocol) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractLinksFromBing(html: string): string[] {
+  const decodedHtml = decodeHtml(html);
   const links: string[] = [];
-  for (const match of decodedHtml.matchAll(/<h2[^>]*>\s*<a[^>]+href="([^"]+)"/gi)) links.push(match[1]);
-  for (const match of decodedHtml.matchAll(/<a[^>]+href="(https?:\/\/[^"]+)"/gi)) links.push(match[1]);
+  for (const match of decodedHtml.matchAll(/<li[^>]+class=["'][^"']*\bb_algo\b[^"']*["'][\s\S]*?<a[^>]+href=["']([^"']+)["']/gi)) {
+    const url = normalizeSearchResultUrl(match[1]);
+    if (url) links.push(url);
+  }
+  for (const match of decodedHtml.matchAll(/<h2[^>]*>[\s\S]*?<a[^>]+href=["']([^"']+)["']/gi)) {
+    const url = normalizeSearchResultUrl(match[1]);
+    if (url) links.push(url);
+  }
+  for (const match of decodedHtml.matchAll(/<a[^>]+href=["'](https?:\/\/[^"']+)["']/gi)) {
+    const url = normalizeSearchResultUrl(match[1]);
+    if (url) links.push(url);
+  }
   return [...new Set(links)]
-    .filter(url => /^https?:\/\//i.test(url))
     .filter(url => !/bing\.com|microsoft\.com|facebook\.com|instagram\.com|linkedin\.com/i.test(url))
     .slice(0, 8);
 }
@@ -380,7 +450,7 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const last = name.last.toLowerCase();
   const phone = normalizePhone(row.listing_agent_phone);
   const pageDigits = text.replace(/\D/g, "");
-  const tokens = brokerageTokens(row.listing_brokerage);
+  const tokens = brokerageTokens(effectiveBrokerage(row));
 
   const hasName = text.includes(first) && text.includes(last);
   const hasPhone = Boolean(phone && pageDigits.includes(phone));
@@ -392,10 +462,11 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
     if (emails.length > 0) stats.rejected_identity++;
     return null;
   }
-  const personal = emails.find(email => {
+  const personalEmails = emails.filter(email => !isGenericOrHostedEmail(email));
+  const personal = personalEmails.find(email => {
     const local = email.split("@")[0].replace(/[^a-z]/g, "");
     return local.includes(first.replace(/[^a-z]/g, "")) || local.includes(last.replace(/[^a-z]/g, ""));
-  }) ?? emails[0];
+  }) ?? null;
   if (!personal) return null;
 
   return {
@@ -408,7 +479,7 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
 function verifySyntheticPublicEmail(row: ListingRow, html: string, url: string): Candidate | null {
   const name = splitName(row);
   if (!name) return null;
-  const b = row.listing_brokerage?.toLowerCase() ?? "";
+  const b = effectiveBrokerage(row)?.toLowerCase() ?? "";
   if (!(/\breal\b/.test(b) || b.includes("real brokerage"))) return null;
 
   const text = cleanText(html).toLowerCase();
@@ -489,7 +560,7 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     stats.profile_pages++;
     const seedCandidate = verifyEmailPage(seedHtml, row, seedUrl) ?? verifySyntheticPublicEmail(row, seedHtml, seedUrl);
     if (seedCandidate) return seedCandidate;
-    for (const profileLink of extractBrokerageRosterLinks(seedUrl, seedHtml, row)) {
+    for (const profileLink of extractBrokerageRosterLinks(seedUrl, seedHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
       await sleep(DELAY_MS);
       const profileHtml = await fetchText(profileLink);
       if (!profileHtml) continue;
@@ -499,10 +570,11 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     }
   }
 
-  const profileUrls = directProfileUrls(row);
+  const profileUrls = directProfileUrls(row).slice(0, MAX_DIRECT_PROFILE_URLS);
+  stats.direct_profile_urls += profileUrls.length;
   if (profileUrls.length === 0) {
     stats.no_direct_brokerage_hint++;
-    if (row.listing_brokerage) brokerageSamples.add(row.listing_brokerage);
+    if (effectiveBrokerage(row)) brokerageSamples.add(effectiveBrokerage(row)!);
   }
   for (const profileUrl of profileUrls) {
     await sleep(DELAY_MS);
@@ -513,7 +585,9 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     if (candidate) return candidate;
   }
 
-  for (const homeUrl of homepageUrls(row)) {
+  const homeUrls = homepageUrls(row);
+  stats.homepage_urls += homeUrls.length;
+  for (const homeUrl of homeUrls) {
     await sleep(DELAY_MS);
     const homeHtml = await fetchText(homeUrl);
     if (!homeHtml) continue;
@@ -521,7 +595,7 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     const homeCandidate = verifyEmailPage(homeHtml, row, homeUrl);
     if (homeCandidate) return homeCandidate;
 
-    const profileLinks = extractLikelyProfileLinks(homeUrl, homeHtml, row);
+    const profileLinks = extractLikelyProfileLinks(homeUrl, homeHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE);
     for (const profileLink of profileLinks) {
       await sleep(DELAY_MS);
       const profileHtml = await fetchText(profileLink);
@@ -542,34 +616,42 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     [`site:${domain}`, mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
     [`site:${domain}`, address ? `"${address}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
     [`site:${domain}`, `"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
-    [`site:${domain}`, `"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "agent"].filter(Boolean).join(" "),
+    [`site:${domain}`, `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "agent"].filter(Boolean).join(" "),
   ]);
   const queries = [
     ...portalQueries,
-    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "email"].filter(Boolean).join(" "),
+    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
     [address ? `"${address}"` : "", `"${name.full}"`, "listing agent email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phone ? `"${phone}"` : "", "realtor email"].filter(Boolean).join(" "),
     [phoneText ? `"${phoneText}"` : "", "realtor email"].filter(Boolean).join(" "),
-    [`"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "email realtor agent"].filter(Boolean).join(" "),
-    [`"${name.full}"`, row.listing_brokerage ? `"${row.listing_brokerage}"` : "", "contact"].filter(Boolean).join(" "),
+    [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email realtor agent"].filter(Boolean).join(" "),
+    [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "contact"].filter(Boolean).join(" "),
     [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
   ].filter((query, index, all) => query && all.indexOf(query) === index);
 
   const links: string[] = [];
   for (const query of queries.slice(0, MAX_SEARCH_QUERIES)) {
-    const duckUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    const searchHtml = await fetchText(duckUrl);
-    if (searchHtml) {
-      stats.search_pages++;
-      links.push(...extractLinksFromDuckDuckGo(searchHtml));
+    if (!DISABLE_DUCKDUCKGO) {
+      const duckUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      const searchHtml = await fetchText(duckUrl);
+      if (searchHtml) {
+        stats.search_pages++;
+        const found = extractLinksFromDuckDuckGo(searchHtml);
+        stats.duckduckgo_links += found.length;
+        if (found.length === 0) stats.search_pages_without_links++;
+        links.push(...found);
+      }
+      await sleep(DELAY_MS);
     }
-    await sleep(DELAY_MS);
     const bingUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
     const bingHtml = await fetchText(bingUrl);
     if (bingHtml) {
       stats.search_pages++;
-      links.push(...extractLinksFromBing(bingHtml));
+      const found = extractLinksFromBing(bingHtml);
+      stats.bing_links += found.length;
+      if (found.length === 0) stats.search_pages_without_links++;
+      links.push(...found);
     }
     if (links.length >= MAX_SEARCH_LINKS * 2) break;
   }
@@ -624,7 +706,7 @@ async function main() {
     scanned++;
     const label = row.listing_agent_name || [row.listing_agent_first_name, row.listing_agent_last_name].filter(Boolean).join(" ") || `listing ${row.id}`;
     const started = Date.now();
-    console.log(`  [${scanned}/${rows.length}] checking ${label} (${row.listing_brokerage ?? "unknown brokerage"})`);
+    console.log(`  [${scanned}/${rows.length}] checking ${label} (${effectiveBrokerage(row) ?? "unknown brokerage"})`);
     await sleep(DELAY_MS);
     let candidate: Candidate | null = null;
     try {

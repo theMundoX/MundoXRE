@@ -83,6 +83,15 @@ function extractContact(raw: Record<string, unknown> | null) {
   return { email, phone: phone?.replace(/[^\d+]/g, "").replace(/^1(?=\d{10}$)/, "") ?? null };
 }
 
+function extractBrokerage(raw: Record<string, unknown> | null): string | null {
+  const text = valuesByKey(raw, /(^|\.)(listingBrokerage|brokerageName|brokerName|broker|officeName)$/i);
+  const value = text
+    .split(/\s{2,}|\|/)
+    .map(part => part.replace(/\s+/g, " ").trim())
+    .find(part => part.length >= 3 && !/^(ntreis|mls|mls grid|actris)$/i.test(part));
+  return value ?? null;
+}
+
 async function main() {
   console.log("MXRE - Listing agent contact enrichment");
   console.log(`Dry run: ${DRY_RUN}`);
@@ -117,12 +126,14 @@ async function main() {
   for (const row of rows) {
     const name = splitName(row.listing_agent_name);
     const contact = extractContact(row.raw);
+    const brokerage = extractBrokerage(row.raw);
     const first = row.listing_agent_first_name ?? name.first;
     const last = row.listing_agent_last_name ?? name.last;
     if ((!row.listing_agent_first_name || !row.listing_agent_last_name) && (first || last)) nameBackfilled++;
     if (contact.email) emails++;
     if (contact.phone) phones++;
-    if (!first && !last && !contact.email && !contact.phone) continue;
+    const shouldBackfillBrokerage = brokerage && (!row.listing_brokerage || /^(ntreis|mls|mls grid|actris)$/i.test(row.listing_brokerage));
+    if (!first && !last && !contact.email && !contact.phone && !shouldBackfillBrokerage) continue;
 
     updates.push(`
       update listing_signals
@@ -130,6 +141,10 @@ async function main() {
              listing_agent_last_name = coalesce(listing_agent_last_name, ${sqlString(last)}),
              listing_agent_email = coalesce(listing_agent_email, ${sqlString(contact.email)}),
              listing_agent_phone = coalesce(listing_agent_phone, ${sqlString(contact.phone)}),
+             listing_brokerage = case
+               when ${sqlString(brokerage)} is not null and (listing_brokerage is null or listing_brokerage ~* '^(ntreis|mls|mls grid|actris)$') then ${sqlString(brokerage)}
+               else listing_brokerage
+             end,
              agent_contact_source = case
                when ${sqlString(contact.email)} is not null or ${sqlString(contact.phone)} is not null then coalesce(agent_contact_source, 'listing_raw_payload')
                else agent_contact_source
@@ -152,6 +167,7 @@ async function main() {
     name_backfilled: nameBackfilled,
     raw_emails_found: emails,
     raw_phones_found: phones,
+    raw_brokerages_found: rows.filter(row => extractBrokerage(row.raw)).length,
     updated: DRY_RUN ? 0 : updates.length,
   }, null, 2));
 }
