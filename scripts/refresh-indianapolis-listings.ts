@@ -26,6 +26,7 @@ const hasFlag = (name: string) => args.includes(`--${name}`);
 
 const SKIP_AGENTS = hasFlag("skip-agents");
 const SKIP_REAPI = hasFlag("skip-reapi");
+const SKIP_RAPIDAPI = hasFlag("skip-rapidapi");
 const SKIP_QUALITY = hasFlag("skip-quality");
 
 interface Step {
@@ -70,6 +71,20 @@ const steps: Step[] = [
     ],
     required: false,
     skip: SKIP_REAPI,
+  },
+  {
+    name: "Backfill remaining active listing gaps with Zillow/RapidAPI",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/enrich-on-market-zillow-rapidapi.ts",
+      "--city=Indianapolis",
+      "--state=IN",
+      "--limit=1000",
+      "--max-calls=1000",
+    ],
+    required: false,
+    skip: SKIP_RAPIDAPI,
   },
   {
     name: "Backfill listing agent contact fields",
