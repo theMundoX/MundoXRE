@@ -330,20 +330,18 @@ async function updateListing(propertyId: number, enrichment: Enrichment) {
     }),
   ]);
 
-  if (detail) {
+  if (detail && !descriptionsOnly) {
     await client.query(`
       update properties
       set
-        estimated_value = coalesce(estimated_value, $2),
-        bedrooms = coalesce(bedrooms, $3),
-        bathrooms_full = coalesce(bathrooms_full, $4),
-        living_sqft = coalesce(living_sqft, $5),
-        year_built = coalesce(year_built, $6),
+        bedrooms = coalesce(bedrooms, $2),
+        bathrooms_full = coalesce(bathrooms_full, $3),
+        living_sqft = coalesce(living_sqft, $4),
+        year_built = coalesce(year_built, $5),
         updated_at = now()
       where id = $1
     `, [
       propertyId,
-      detail.zestimate,
       detail.bedrooms,
       detail.bathrooms,
       detail.livingArea,
@@ -465,12 +463,21 @@ function collectObjects(value: unknown, depth = 0): Record<string, unknown>[] {
   return [obj, ...Object.values(obj).flatMap((child) => collectObjects(child, depth + 1))];
 }
 
-function firstString(obj: Record<string, unknown>, keys: string[]): string | null {
+function firstString(obj: unknown, keys: string[]): string | null {
   for (const key of keys) {
-    const value = obj[key];
+    const value = getPath(obj, key);
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
+}
+
+function getPath(obj: unknown, path: string): unknown {
+  let current = obj;
+  for (const part of path.split(".")) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return null;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
 }
 
 function firstEmail(obj: Record<string, unknown>): string | null {
