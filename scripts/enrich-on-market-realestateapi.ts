@@ -132,6 +132,9 @@ async function ensureQueue(): Promise<Candidate[]> {
           $3::boolean = true
           or cache.id is null
           or cache.expires_at <= now()
+        )
+        and (
+          $3::boolean = true
           or nullif(l.listing_agent_email,'') is null
           or nullif(l.listing_agent_phone,'') is null
           or not exists (select 1 from mls_history mh where mh.property_id = p.id)
