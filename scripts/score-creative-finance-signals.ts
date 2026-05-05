@@ -167,7 +167,6 @@ async function main() {
     if (scored.status === "positive") positive++;
     if (scored.status === "negative") negative++;
     if (scored.status === "no_data") noData++;
-    if (scored.status === "no_data") continue;
 
     updates.push(`
       update listing_signals
