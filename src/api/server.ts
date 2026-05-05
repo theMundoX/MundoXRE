@@ -2542,6 +2542,10 @@ const creativeFinanceListingsHandler = async (c: Context) => {
              raw #>> '{remarks}',
              raw #>> '{description}',
              raw #>> '{listingDescription}',
+             raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
              raw #>> '{mls,remarks}',
              raw #>> '{mls,description}',
              ''
@@ -2550,6 +2554,10 @@ const creativeFinanceListingsHandler = async (c: Context) => {
              raw #>> '{redfinDetail,publicRemarks}',
              raw #>> '{publicRemarks}',
              raw #>> '{remarks}',
+             raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
              raw #>> '{mls,remarks}',
              ''
            ), '') as "publicRemarks",
@@ -2560,6 +2568,10 @@ const creativeFinanceListingsHandler = async (c: Context) => {
              raw #>> '{remarks}',
              raw #>> '{description}',
              raw #>> '{listingDescription}',
+             raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
              raw #>> '{mls,remarks}',
              raw #>> '{mls,description}',
              ''
