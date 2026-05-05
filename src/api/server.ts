@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Hono, type Context } from 'hono';
 import { serve } from '@hono/node-server';
+import { createRequire } from 'node:module';
 import { getDb } from '../db/client.js';
 import { buildPropertyResponse } from './transforms/build-response.js';
 import { getSourceRegistry } from '../config/source-registry.js';
@@ -8,6 +9,9 @@ import type { PropertySummary } from './types.js';
 
 const app = new Hono();
 const db = getDb();
+const require = createRequire(import.meta.url);
+const { Pool } = require('pg') as { Pool: new (config: Record<string, unknown>) => { query: (query: string) => Promise<{ rows: Record<string, unknown>[] }> } };
+let directPgPool: InstanceType<typeof Pool> | null = null;
 
 type ApiClient = {
   id: string;
@@ -48,40 +52,108 @@ const MARKET_CONFIGS: Record<string, {
   county: string;
   state: string;
   countyId: number;
+  status: 'live' | 'pilot' | 'building';
+  readinessTarget: number;
+  scope: 'city' | 'county' | 'metro';
+  publicLabel: string;
+  refreshCadence: string;
+  restrictions: string[];
 }> = {
   indianapolis: {
     key: 'indianapolis',
     aliases: ['indianapolis', 'indy'],
     label: 'Indianapolis',
+    publicLabel: 'Indianapolis, IN',
     city: 'Indianapolis',
     cityUpper: 'INDIANAPOLIS',
     county: 'Marion',
     state: 'IN',
     countyId: 797583,
+    status: 'live',
+    readinessTarget: 90,
+    scope: 'city',
+    refreshCadence: '4x daily listing/enrichment refresh on VPS; parcel and recorder refreshes run by market pipeline',
+    restrictions: [
+      'Indianapolis city rows are supported first; metro/core scope is available on selected analytics endpoints.',
+      'MXRE active listings drive paid fallback enrichment. RealEstateAPI and RapidAPI are not used as primary listing discovery.',
+      'Mortgage balance and agent contact fields may be blended from paid fallback sources when MXRE public data is incomplete.',
+    ],
   },
   columbus: {
     key: 'columbus',
     aliases: ['columbus', 'columbus-oh'],
     label: 'Columbus',
+    publicLabel: 'Columbus, OH',
     city: 'Columbus',
     cityUpper: 'COLUMBUS',
     county: 'Franklin',
     state: 'OH',
     countyId: 1698985,
+    status: 'pilot',
+    readinessTarget: 90,
+    scope: 'city',
+    refreshCadence: 'pipeline available; production daily refresh should be enabled after first coverage audit',
+    restrictions: [
+      'Pilot market. BBC should treat results as test/sandbox until readiness reaches live target.',
+      'Exact address lookup may work before full market-search coverage is complete.',
+    ],
   },
   westChester: {
     key: 'west-chester',
     aliases: ['west-chester', 'west-chester-pa', 'westchester'],
     label: 'West Chester',
+    publicLabel: 'West Chester, PA',
     city: 'West Chester',
     cityUpper: 'WEST CHESTER',
     county: 'Chester',
     state: 'PA',
     countyId: 817175,
+    status: 'pilot',
+    readinessTarget: 90,
+    scope: 'city',
+    refreshCadence: 'pipeline available; production daily refresh should be enabled after first coverage audit',
+    restrictions: [
+      'Pilot market. Treat Chester County / West Chester borough as the first coverage boundary.',
+      'Do not promise full metro coverage until county and listing coverage audits are marked live.',
+    ],
   },
 };
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
+const MARKET_DATA_DOMAINS = [
+  'parcel_identity',
+  'asset_classification',
+  'ownership',
+  'valuation_tax',
+  'sales_history',
+  'mortgage_liens',
+  'on_market_listings',
+  'agent_contacts',
+  'creative_finance_signals',
+  'rent_estimates',
+  'daily_change_tracking',
+];
+const MARKET_ASSET_CLASSES = [
+  { key: 'single_family', label: 'Single-family / condo / one-unit residential', unitRange: '1' },
+  { key: 'small_multifamily', label: 'Small multifamily', unitRange: '2-5' },
+  { key: 'commercial_multifamily', label: 'Commercial multifamily / apartment scale', unitRange: '6+' },
+  { key: 'land', label: 'Land', unitRange: null },
+  { key: 'industrial', label: 'Industrial', unitRange: null },
+  { key: 'retail', label: 'Retail', unitRange: null },
+  { key: 'office', label: 'Office', unitRange: null },
+  { key: 'mobile_home_rv', label: 'Mobile home / RV park', unitRange: null },
+];
+const BBC_MARKET_ENDPOINTS = [
+  '/v1/bbc/search-runs',
+  '/v1/bbc/markets/{market}/changes',
+  '/v1/bbc/markets/{market}/creative-finance-listings',
+  '/v1/bbc/property',
+  '/v1/bbc/property/{mxreId}',
+  '/v1/markets/{market}/readiness',
+  '/v1/markets/{market}/completion',
+  '/v1/markets/{market}/opportunities',
+  '/v1/markets/{market}/price-changes',
+];
 const BBC_EVENT_TYPES = new Set([
   'parcel_created',
   'parcel_updated',
@@ -362,6 +434,49 @@ app.get('/v1/docs/openapi.json', (c) => {
 app.get('/v1/platform/source-registry', (c) => {
   return c.json(getSourceRegistry());
 });
+
+const coverageMarketsHandler = async (c: Context) => {
+  const includeBuilding = c.req.query('includeBuilding') === 'true';
+  const includeBelowTarget = c.req.query('includeBelowTarget') === 'true';
+  const markets = await buildCoverageMarketRows();
+  const filtered = markets.filter((market) => {
+    if (!includeBuilding && market.status === 'building') return false;
+    if (!includeBelowTarget && market.meetsReadinessTarget !== true) return false;
+    return true;
+  });
+  return c.json({
+    schemaVersion: 'mxre.bbc.coverageMarkets.v1',
+    purpose: 'Machine-readable list of MXRE markets that Buy Box Club can safely expose or query.',
+    markets: filtered,
+    hiddenMarkets: markets
+      .filter((market) => !filtered.some((visible) => visible.marketId === market.marketId))
+      .map((market) => ({
+        marketId: market.marketId,
+        label: market.label,
+        status: market.status,
+        readinessScore: market.readinessScore,
+        readinessTarget: market.readinessTarget,
+        reason: market.meetsReadinessTarget === true ? 'hidden_by_filter' : 'below_readiness_target',
+      })),
+    defaultMarket: filtered[0]?.marketId ?? null,
+    statusDefinitions: {
+      live: 'Production-ready for BBC workflows, subject to field-level quality flags.',
+      pilot: 'Available for sandbox/admin testing; do not market as complete coverage yet.',
+      building: 'Pipeline exists or is planned, but not ready for BBC user-facing search.',
+    },
+    integrationRules: {
+      chooseMarketBy: ['marketId', 'city + state', 'alias'],
+      beforeSavedSearch: 'Call this endpoint and only enable BBC market search for markets returned in markets[]. By default, markets below their readiness target are excluded and defaultMarket is null when nothing qualifies.',
+      exactAddressLookup: 'BBC may call /v1/bbc/property for exact-address underwriting even when market status is pilot, but should obey quality.fallbackRecommended.',
+      adminInspection: 'MXRE admins can pass includeBelowTarget=true to inspect pilot/building markets, but BBC should not show those markets to normal users.',
+      stableContract: 'This endpoint and all /v1/bbc/* endpoints are versioned. Additive fields may appear; existing field names should not be removed without a new schemaVersion.',
+    },
+    generatedAt: new Date().toISOString(),
+  });
+};
+
+app.get('/v1/bbc/markets', coverageMarketsHandler);
+app.get('/v1/markets', coverageMarketsHandler);
 
 app.get('/v1/addresses/autocomplete', async (c) => {
   const q = normalizeAutocompleteQuery(c.req.query('q') ?? c.req.query('query') ?? '');
@@ -829,6 +944,12 @@ app.post('/v1/bbc/search-runs', async (c) => {
     filters.zips.length > 0 ? `and p.zip in (${filters.zips.map((zip) => `'${sqlString(zip)}'`).join(',')})` : '',
   ].filter(Boolean).join('\n        ');
   const creativeSql = filters.creativeOnly ? `and l.creative_finance_status = 'positive'` : '';
+  const equitySql = [
+    filters.minEquityPercent !== null ? `and equity_percent >= ${filters.minEquityPercent}` : '',
+    filters.maxEquityPercent !== null ? `and equity_percent <= ${filters.maxEquityPercent}` : '',
+    filters.minEstimatedEquity !== null ? `and estimated_equity >= ${filters.minEstimatedEquity}` : '',
+    filters.maxEstimatedEquity !== null ? `and estimated_equity <= ${filters.maxEstimatedEquity}` : '',
+  ].filter(Boolean).join('\n      ');
 
   const [result] = await queryPg<Record<string, unknown>>(`
     with normalized as (
@@ -849,6 +970,77 @@ app.post('/v1/bbc/search-runs', async (c) => {
       where p.state_code = '${marketConfig.state}'
         and upper(coalesce(p.city,'')) = '${marketConfig.cityUpper}'
     ),
+    debt_rows as (
+      select
+        m.property_id,
+        coalesce(nullif(m.loan_amount, 0), nullif(m.original_amount, 0))::numeric as original_amount,
+        nullif(m.estimated_current_balance, 0)::numeric as estimated_current_balance,
+        nullif(m.estimated_monthly_payment, 0)::numeric as estimated_monthly_payment,
+        nullif(m.interest_rate, 0)::numeric as interest_rate,
+        nullif(m.term_months, 0)::numeric as term_months,
+        m.recording_date,
+        m.maturity_date
+      from mortgage_records m
+      where (
+          coalesce(m.open, true) = true
+          or (m.maturity_date is not null and m.maturity_date::date > current_date)
+        )
+        and lower(coalesce(m.document_type, '')) not like '%deed%'
+        and lower(coalesce(m.document_type, '')) not like '%release%'
+        and lower(coalesce(m.document_type, '')) not like '%satisfaction%'
+        and lower(coalesce(m.document_type, '')) not like '%assignment%'
+    ),
+    debt_balances as (
+      select
+        property_id,
+        estimated_monthly_payment,
+        case
+          when estimated_current_balance is not null then estimated_current_balance
+          when original_amount is not null
+            and interest_rate is not null
+            and term_months is not null
+            and recording_date is not null
+            and (
+              case when interest_rate > 1 then interest_rate / 100 / 12 else interest_rate / 12 end
+            ) > 0
+          then greatest(0, round(
+            original_amount * power(
+              1 + (case when interest_rate > 1 then interest_rate / 100 / 12 else interest_rate / 12 end),
+              least(term_months, greatest(0, floor(extract(epoch from age(current_date, recording_date::date)) / 2629746)))
+            )
+            - (
+              original_amount
+              * (
+                (case when interest_rate > 1 then interest_rate / 100 / 12 else interest_rate / 12 end)
+                * power(1 + (case when interest_rate > 1 then interest_rate / 100 / 12 else interest_rate / 12 end), term_months)
+              )
+              / (
+                power(1 + (case when interest_rate > 1 then interest_rate / 100 / 12 else interest_rate / 12 end), term_months) - 1
+              )
+            )
+            * (
+              (
+                power(
+                  1 + (case when interest_rate > 1 then interest_rate / 100 / 12 else interest_rate / 12 end),
+                  least(term_months, greatest(0, floor(extract(epoch from age(current_date, recording_date::date)) / 2629746)))
+                ) - 1
+              )
+              / (case when interest_rate > 1 then interest_rate / 100 / 12 else interest_rate / 12 end)
+            )
+          ))
+          else original_amount
+        end as current_balance
+      from debt_rows
+    ),
+    debt as (
+      select
+        property_id,
+        sum(current_balance)::numeric as open_mortgage_balance,
+        sum(nullif(m.estimated_monthly_payment, 0))::numeric as estimated_mortgage_payment,
+        count(*)::int as open_mortgage_count
+      from debt_balances m
+      group by property_id
+    ),
     candidates as (
       select
         l.id as listing_id,
@@ -868,6 +1060,22 @@ app.post('/v1/bbc/search-runs', async (c) => {
         p.living_sqft,
         p.year_built,
         p.market_value,
+        p.assessed_value,
+        d.open_mortgage_balance,
+        d.estimated_mortgage_payment,
+        d.open_mortgage_count,
+        case
+          when l.is_on_market = true and l.mls_list_price > 0 then l.mls_list_price
+          when coalesce(p.market_value, 0) > 0 then p.market_value
+          when coalesce(p.assessed_value, 0) > 0 then p.assessed_value
+          else null
+        end as equity_basis_value,
+        case
+          when l.is_on_market = true and l.mls_list_price > 0 then 'list_price'
+          when coalesce(p.market_value, 0) > 0 then 'market_value'
+          when coalesce(p.assessed_value, 0) > 0 then 'assessed_value'
+          else null
+        end as equity_basis,
         l.is_on_market,
         l.mls_list_price,
         l.days_on_market,
@@ -887,6 +1095,7 @@ app.post('/v1/bbc/search-runs', async (c) => {
         greatest(coalesce(l.last_seen_at, '-infinity'::timestamptz), coalesce(l.first_seen_at, '-infinity'::timestamptz)) as changed_at
       from listing_signals l
       join normalized p on p.id = l.property_id
+      left join debt d on d.property_id = p.id
       where coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
         ${excludeSql}
         ${assetSql}
@@ -895,13 +1104,32 @@ app.post('/v1/bbc/search-runs', async (c) => {
         ${priceSql}
         ${creativeSql}
     ),
+    enriched as (
+      select
+        *,
+        case
+          when equity_basis_value is not null and open_mortgage_balance is not null then round(equity_basis_value - open_mortgage_balance)::bigint
+          else null
+        end as estimated_equity,
+        case
+          when equity_basis_value > 0 and open_mortgage_balance is not null then round(((equity_basis_value - open_mortgage_balance) / equity_basis_value) * 100, 1)
+          else null
+        end as equity_percent
+      from candidates
+    ),
+    filtered as (
+      select *
+      from enriched
+      where true
+      ${equitySql}
+    ),
     totals as (
       select
         count(*)::int as matched,
         ${excludedIds.length}::int as excluded_by_client,
         count(*) filter (where first_seen_at >= '${sqlString(since)}'::timestamptz)::int as new_count,
         count(*) filter (where first_seen_at < '${sqlString(since)}'::timestamptz and changed_at >= '${sqlString(since)}'::timestamptz)::int as changed_count
-      from candidates
+      from filtered
     )
     select
       (select row_to_json(totals) from totals) as summary,
@@ -946,8 +1174,15 @@ app.post('/v1/bbc/search-runs', async (c) => {
         listing_brokerage as "listingBrokerage",
         creative_finance_score as "creativeFinanceScore",
         creative_finance_status as "creativeFinanceStatus",
-        creative_finance_terms as "creativeFinanceTerms"
-      from candidates
+        creative_finance_terms as "creativeFinanceTerms",
+        open_mortgage_balance as "estimatedMortgageBalance",
+        estimated_mortgage_payment as "estimatedMortgagePayment",
+        open_mortgage_count as "openMortgageCount",
+        estimated_equity as "estimatedEquity",
+        equity_percent as "equityPercent",
+        equity_basis as "equityBasis",
+        equity_basis_value as "equityBasisValue"
+      from filtered
       order by changed_at desc
       limit ${limit}
        ) r) as results;
@@ -4225,6 +4460,154 @@ function buildAutocompleteResponse(query: string, limit: number, rows: Record<st
   };
 }
 
+async function buildCoverageMarketRows(): Promise<Array<Record<string, unknown>>> {
+  const markets = Object.values(MARKET_CONFIGS);
+  return Promise.all(markets.map(async (market) => {
+    let metrics: Record<string, unknown> = {};
+    try {
+      const [row] = await queryPg<Record<string, unknown>>(`
+        with parcels as (
+          select
+            count(*)::int as parcel_count,
+            count(*) filter (where parcel_id is not null and parcel_id <> '')::int as parcel_identity_count,
+            count(*) filter (where asset_type is not null or property_use is not null or property_type is not null)::int as classified_count,
+            count(*) filter (where owner_name is not null or company_name is not null or owner1_last is not null)::int as ownership_count,
+            count(*) filter (where coalesce(market_value, assessed_value, taxable_value, 0) > 0)::int as valuation_count,
+            count(*) filter (where coalesce(total_units, 0) >= 2 or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily'))::int as multifamily_count
+          from properties
+          where county_id = ${market.countyId}
+            and state_code = '${market.state}'
+            and upper(coalesce(city,'')) = '${market.cityUpper}'
+        ),
+        listings as (
+          select
+            count(*)::int as active_listing_count,
+            count(distinct property_id)::int as active_property_count,
+            count(*) filter (where nullif(listing_agent_name,'') is not null)::int as agent_name_count,
+            count(*) filter (where nullif(listing_agent_email,'') is not null)::int as agent_email_count,
+            count(*) filter (where nullif(listing_agent_phone,'') is not null)::int as agent_phone_count,
+            count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage_count,
+            count(*) filter (where creative_finance_status = 'positive')::int as creative_finance_count,
+            max(coalesce(last_seen_at, first_seen_at)) as latest_listing_seen,
+            array_agg(distinct listing_source order by listing_source) filter (where listing_source is not null) as listing_sources
+          from listing_signals
+          where is_on_market = true
+            and state_code = '${market.state}'
+            and upper(coalesce(city,'')) = '${market.cityUpper}'
+        ),
+        debt as (
+          select
+            count(*)::int as mortgage_record_count,
+            count(distinct m.property_id)::int as properties_with_mortgage_records,
+            count(*) filter (where coalesce(m.estimated_current_balance, m.loan_amount, m.original_amount, 0) > 0)::int as mortgage_amount_count,
+            max(m.recording_date) as latest_recording
+          from mortgage_records m
+          join properties p on p.id = m.property_id
+          where p.county_id = ${market.countyId}
+            and p.state_code = '${market.state}'
+            and upper(coalesce(p.city,'')) = '${market.cityUpper}'
+        ),
+        rents as (
+          select
+            count(*)::int as rent_snapshot_count,
+            count(distinct rs.property_id)::int as properties_with_rent_snapshots,
+            max(rs.observed_at) as latest_rent_observed
+          from rent_snapshots rs
+          join properties p on p.id = rs.property_id
+          where p.county_id = ${market.countyId}
+            and p.state_code = '${market.state}'
+            and upper(coalesce(p.city,'')) = '${market.cityUpper}'
+        )
+        select
+          row_to_json(parcels) as parcels,
+          row_to_json(listings) as listings,
+          row_to_json(debt) as debt,
+          row_to_json(rents) as rents
+        from parcels, listings, debt, rents;
+      `);
+      metrics = row ?? {};
+    } catch (error) {
+      console.warn(`[MXRE coverage markets] failed to build metrics for ${market.key}:`, error);
+      metrics = { error: error instanceof Error ? error.message : String(error) };
+    }
+
+    const parcels = normalizeRecord(metrics.parcels);
+    const listings = normalizeRecord(metrics.listings);
+    const debt = normalizeRecord(metrics.debt);
+    const rents = normalizeRecord(metrics.rents);
+    const parcelCount = numberOrNull(parcels.parcel_count) ?? 0;
+    const activeListingCount = numberOrNull(listings.active_listing_count) ?? 0;
+    const pctOf = (value: unknown, denominator: number): number => {
+      if (denominator <= 0) return 0;
+      return Math.round(((numberOrNull(value) ?? 0) / denominator) * 1000) / 10;
+    };
+    const readinessInputs = [
+      pctOf(parcels.parcel_identity_count, parcelCount),
+      pctOf(parcels.classified_count, parcelCount),
+      pctOf(parcels.ownership_count, parcelCount),
+      pctOf(parcels.valuation_count, parcelCount),
+      activeListingCount > 0 ? pctOf(listings.agent_phone_count, activeListingCount) : 0,
+      activeListingCount > 0 ? pctOf(listings.agent_email_count, activeListingCount) : 0,
+      parcelCount > 0 ? pctOf(debt.properties_with_mortgage_records, parcelCount) : 0,
+    ];
+    const readinessScore = readinessInputs.length > 0
+      ? Math.round((readinessInputs.reduce((sum, value) => sum + value, 0) / readinessInputs.length) * 10) / 10
+      : 0;
+
+    return {
+      marketId: market.key,
+      label: market.publicLabel,
+      city: market.city,
+      state: market.state,
+      county: market.county,
+      countyId: market.countyId,
+      status: market.status,
+      bbcAccess: readinessScore >= market.readinessTarget && market.status === 'live' ? 'production_allowed' : 'sandbox_or_admin_only',
+      readinessScore,
+      readinessTarget: market.readinessTarget,
+      meetsReadinessTarget: readinessScore >= market.readinessTarget,
+      scope: market.scope,
+      aliases: market.aliases,
+      refreshCadence: market.refreshCadence,
+      supportedAssetClasses: MARKET_ASSET_CLASSES,
+      supportedDataDomains: MARKET_DATA_DOMAINS,
+      supportedEndpoints: BBC_MARKET_ENDPOINTS.map((endpoint) => endpoint.replace('{market}', market.key)),
+      counts: {
+        parcels: parcelCount,
+        activeListings: activeListingCount,
+        activeListingProperties: numberOrNull(listings.active_property_count) ?? 0,
+        multifamilyCandidates: numberOrNull(parcels.multifamily_count) ?? 0,
+        creativeFinanceListings: numberOrNull(listings.creative_finance_count) ?? 0,
+        mortgageRecords: numberOrNull(debt.mortgage_record_count) ?? 0,
+        propertiesWithMortgageRecords: numberOrNull(debt.properties_with_mortgage_records) ?? 0,
+        rentSnapshots: numberOrNull(rents.rent_snapshot_count) ?? 0,
+        propertiesWithRentSnapshots: numberOrNull(rents.properties_with_rent_snapshots) ?? 0,
+      },
+      metricsError: typeof metrics.error === 'string' ? metrics.error : null,
+      coverage: {
+        parcelIdentityPct: pctOf(parcels.parcel_identity_count, parcelCount),
+        assetClassificationPct: pctOf(parcels.classified_count, parcelCount),
+        ownershipPct: pctOf(parcels.ownership_count, parcelCount),
+        valuationPct: pctOf(parcels.valuation_count, parcelCount),
+        activeListingAgentNamePct: pctOf(listings.agent_name_count, activeListingCount),
+        activeListingAgentEmailPct: pctOf(listings.agent_email_count, activeListingCount),
+        activeListingAgentPhonePct: pctOf(listings.agent_phone_count, activeListingCount),
+        activeListingBrokeragePct: pctOf(listings.brokerage_count, activeListingCount),
+        mortgageRecordPct: pctOf(debt.properties_with_mortgage_records, parcelCount),
+        mortgageAmountPct: pctOf(debt.mortgage_amount_count, numberOrNull(debt.mortgage_record_count) ?? 0),
+        rentSnapshotPct: pctOf(rents.properties_with_rent_snapshots, parcelCount),
+      },
+      freshness: {
+        latestListingSeen: listings.latest_listing_seen ?? null,
+        latestRecording: debt.latest_recording ?? null,
+        latestRentObserved: rents.latest_rent_observed ?? null,
+        listingSources: listings.listing_sources ?? [],
+      },
+      restrictions: market.restrictions,
+    };
+  }));
+}
+
 function toTitleCase(value: unknown): string {
   return String(value ?? '')
     .toLowerCase()
@@ -4275,6 +4658,10 @@ function normalizeBbcSearchFilters(input: Record<string, unknown>) {
     statuses: [...new Set(statuses)],
     minPrice: positiveNumberOrNull(input.minPrice),
     maxPrice: positiveNumberOrNull(input.maxPrice),
+    minEquityPercent: positiveNumberOrNull(input.minEquityPercent ?? input.min_equity_percent),
+    maxEquityPercent: positiveNumberOrNull(input.maxEquityPercent ?? input.max_equity_percent),
+    minEstimatedEquity: positiveNumberOrNull(input.minEstimatedEquity ?? input.min_equity ?? input.minEquity),
+    maxEstimatedEquity: positiveNumberOrNull(input.maxEstimatedEquity ?? input.max_equity ?? input.maxEquity),
     minUnits: positiveNumberOrNull(input.minUnits),
     maxUnits: positiveNumberOrNull(input.maxUnits),
     minBeds: positiveNumberOrNull(input.minBeds ?? input.minBedrooms),
@@ -4502,6 +4889,22 @@ function normalizeJoinedProperty(value: unknown): Record<string, unknown> {
 }
 
 async function queryPg<T extends Record<string, unknown>>(query: string): Promise<T[]> {
+  const directUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.MXRE_PG_URL ?? process.env.DATABASE_URL;
+  if (directUrl) {
+    if (!directPgPool) {
+      directPgPool = new Pool({
+        connectionString: directUrl,
+        max: 5,
+        options: '-c max_parallel_workers_per_gather=0',
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 10_000,
+        ssl: directUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined,
+      });
+    }
+    const result = await directPgPool.query(query);
+    return result.rows as T[];
+  }
+
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
   if (!url || !key) throw new Error('Database connection not configured.');
@@ -4716,6 +5119,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   <h2>Market and Report Endpoints</h2>
   <table>
     <tr><th>Endpoint</th><th>Purpose</th><th>Key Query Params</th></tr>
+    <tr><td><code>GET /v1/bbc/markets</code></td><td>BBC-safe list of available coverage markets. By default, markets below the readiness target are hidden.</td><td><code>includeBelowTarget=true</code> admin/debug only</td></tr>
     <tr><td><code>GET /v1/markets/{market}/readiness</code></td><td>Market readiness and coverage status.</td><td><code>market=indianapolis</code>, <code>columbus</code>, <code>west-chester</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/completion</code></td><td>Completion metrics for parcels, underwriting fields, rents, listings.</td><td><code>scope=city|core|metro</code></td></tr>
     <tr><td><code>GET /v1/markets/{market}/opportunities</code></td><td>Filterable active listing/opportunity table.</td><td><code>asset</code>, <code>zip</code>, <code>min_price</code>, <code>max_price</code>, <code>creative=positive</code>, <code>page</code>, <code>limit</code></td></tr>
@@ -4730,6 +5134,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   <table>
     <tr><th>Endpoint</th><th>Status</th><th>Purpose</th><th>Notes</th></tr>
     <tr><td><code>GET /v1/addresses/autocomplete</code></td><td>Required UX</td><td>Human users type city/state or address and select a normalized result before searching.</td><td>Debounce browser calls. If result type is <code>address</code>, call property detail after Search. If result type is <code>city</code>, call saved-search/listing endpoints.</td></tr>
+    <tr><td><code>GET /v1/bbc/markets</code></td><td>Required setup</td><td>Discover which markets BBC should show. Default response excludes markets under 90% readiness or their configured market target.</td><td>Use this before enabling market-level saved search options in BBC. Admins may use <code>includeBelowTarget=true</code> to inspect pipeline markets.</td></tr>
     <tr><td><code>GET /v1/bbc/property</code></td><td>Required</td><td>BBC-normalized exact address lookup.</td><td>Use <code>address</code>, <code>city</code>, <code>state</code>, <code>zip</code>.</td></tr>
     <tr><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Required</td><td>BBC-normalized lookup by MXRE id.</td><td>Use for safe re-sync after BBC stores <code>mxreId</code>.</td></tr>
     <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Required</td><td>Changed market records since a cursor/time.</td><td>Use for daily sync and reconsidering failed deals.</td></tr>
@@ -4742,6 +5147,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
   <h3>Minimum BBC Integration</h3>
   <table>
     <tr><th>BBC Use Case</th><th>MXRE Endpoint</th><th>Fallback</th></tr>
+    <tr><td>Show available markets</td><td><code>GET /v1/bbc/markets</code></td><td>Only show markets returned in <code>markets[]</code>; anything below readiness target remains hidden</td></tr>
     <tr><td>Autocomplete input</td><td><code>GET /v1/addresses/autocomplete</code></td><td>Do not call slow live geocoders on every keystroke; fallback only after submit/no result if BBC chooses to keep one.</td></tr>
     <tr><td>Exact address underwriting</td><td><code>GET /v1/bbc/property</code></td><td>RealEstateAPI if <code>404</code> or <code>quality.fallbackRecommended=true</code></td></tr>
     <tr><td>Stored property refresh</td><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Keep previous BBC snapshot if MXRE unavailable</td></tr>
@@ -4768,10 +5174,21 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     "minBaths": 1,
     "minSqft": 900,
     "maxSqft": 2500,
+    "minEquityPercent": 40,
     "onlyChangedSince": "2026-05-02T00:00:00Z",
     "excludeMxreIds": [50913586],
     "limit": 100
   }'</pre>
+  <p>Equity filters are computed server-side. For active on-market listings MXRE uses <code>listPrice - estimatedMortgageBalance</code>. For market search rows without an active list price it uses <code>marketValue</code>, then <code>assessedValue</code> as fallback basis. Exact property detail may include <code>estimatedValue</code> where that source field exists.</p>
+  <pre>{
+  "mxreId": 50913586,
+  "listPrice": 160000,
+  "estimatedMortgageBalance": 96000,
+  "estimatedEquity": 64000,
+  "equityPercent": 40,
+  "equityBasis": "list_price",
+  "equityBasisValue": 160000
+}</pre>
   <h3>Asset And Unit Class Presets</h3>
   <table>
     <tr><th>BBC Use</th><th>Recommended Filter</th><th>Meaning</th></tr>
@@ -4868,6 +5285,21 @@ function buildOpenApiSpec() {
       },
     },
     paths: {
+      '/v1/bbc/markets': {
+        get: {
+          summary: 'BBC coverage market list',
+          description: 'Returns the machine-readable list of MXRE markets that Buy Box Club can expose or query, including live/pilot/building status, restrictions, counts, freshness, supported asset classes, and supported endpoint paths.',
+          parameters: [
+            { name: 'includeBuilding', in: 'query', required: false, schema: { type: 'boolean', default: false } },
+            { name: 'includeBelowTarget', in: 'query', required: false, schema: { type: 'boolean', default: false }, description: 'Admin/debug only. Default false hides markets below their readiness target.' },
+          ],
+          responses: {
+            '200': { description: 'mxre.bbc.coverageMarkets.v1 market list.' },
+            '401': { description: 'Invalid client id or API key.' },
+            '429': { description: 'Rate limit exceeded.' },
+          },
+        },
+      },
       '/v1/addresses/autocomplete': {
         get: {
           summary: 'Fast human city/state/address autocomplete',
@@ -4937,6 +5369,7 @@ function buildOpenApiSpec() {
                   minBaths: 1,
                   minSqft: 900,
                   maxSqft: 2500,
+                  minEquityPercent: 40,
                   onlyChangedSince: '2026-05-02T00:00:00Z',
                   excludeMxreIds: [50913586],
                   limit: 100,
@@ -5130,7 +5563,11 @@ async function assembleResponse(
       .select('id,property_id,document_type,loan_amount,original_amount,estimated_current_balance,estimated_monthly_payment,interest_rate,interest_rate_type,rate_source,rate_match_confidence,term_months,maturity_date,recording_date,document_number,book_page,lender_name,lender_type,borrower_name,loan_type,source_url,grantee_name,open,position')
       .eq('property_id', id).order('recording_date', { ascending: false }).limit(50),
     db.from('rent_snapshots').select('*').eq('property_id', id).order('observed_at', { ascending: false }).limit(24),
-    db.from('listing_signals').select('*').eq('property_id', id).order('first_seen_at', { ascending: false }).limit(20),
+    db.from('listing_signals').select('*').eq('property_id', id)
+      .order('is_on_market', { ascending: false })
+      .order('last_seen_at', { ascending: false, nullsFirst: false })
+      .order('first_seen_at', { ascending: false, nullsFirst: false })
+      .limit(20),
     db.from('sale_history').select('*').eq('property_id', id).order('recording_date', { ascending: false }).limit(20),
     db.from('mls_history').select('*').eq('property_id', id).order('status_date', { ascending: false }).limit(20),
     db.from('foreclosures').select('*').eq('property_id', id).limit(10),
@@ -5146,7 +5583,9 @@ async function assembleResponse(
     const byAddr = await db.from('listing_signals').select('*')
       .ilike('address', addrClean)
       .eq('state_code', stateCode)
-      .order('first_seen_at', { ascending: false })
+      .order('is_on_market', { ascending: false })
+      .order('last_seen_at', { ascending: false, nullsFirst: false })
+      .order('first_seen_at', { ascending: false, nullsFirst: false })
       .limit(10);
     if (byAddr.data && byAddr.data.length > 0) listings = byAddr as typeof listingsById;
   }

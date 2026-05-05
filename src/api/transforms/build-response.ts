@@ -60,31 +60,36 @@ export function buildPropertyResponse(
       ? (rawListing.is_on_market ? 'Active' : 'Off Market')
       : (rawListing.listing_status ?? null),
     agent_name: rawListing.listing_agent_name ?? rawListing.agent_name ?? null,
+    agent_first_name: rawListing.listing_agent_first_name ?? rawListing.agent_first_name ?? null,
+    agent_last_name: rawListing.listing_agent_last_name ?? rawListing.agent_last_name ?? null,
+    agent_phone: rawListing.listing_agent_phone ?? rawListing.agent_phone ?? null,
+    agent_email: rawListing.listing_agent_email ?? rawListing.agent_email ?? null,
+    agent_source: rawListing.agent_contact_source ?? rawListing.agent_source ?? null,
     brokerage: rawListing.listing_brokerage ?? rawListing.brokerage ?? null,
     source: rawListing.listing_source ?? rawListing.source ?? null,
     listing_url: rawListing.listing_url ?? null,
     list_date: rawListing.first_seen_at ?? rawListing.list_date ?? rawListing.snapshot_date ?? null,
   } : null;
-  const listPrice = (latestListing?.list_price as number) ?? (latestListing?.price as number) ?? null;
+  const listPrice = positiveNumber(latestListing?.list_price) ?? positiveNumber(latestListing?.price);
   const listStatus = latestListing?.status as string | null;
   const marketStatus = mapMarketStatus(listStatus);
   const equityBasis = (marketStatus === 'active' || marketStatus === 'pending') && listPrice
     ? 'list_price'
-    : p.estimated_value
+    : positiveNumber(p.estimated_value)
       ? 'estimated_value'
-      : marketValue
+      : positiveNumber(marketValue)
         ? 'market_value'
-        : p.assessed_value
+        : positiveNumber(p.assessed_value)
           ? 'assessed_value'
           : null;
   const equityValue = equityBasis === 'list_price'
     ? listPrice
     : equityBasis === 'estimated_value'
-      ? (p.estimated_value as number)
+      ? positiveNumber(p.estimated_value)
       : equityBasis === 'market_value'
         ? marketValue
         : equityBasis === 'assessed_value'
-          ? (p.assessed_value as number)
+          ? positiveNumber(p.assessed_value)
           : null;
   const { summary: lienSummary, current: currentLiens, history: lienHistory } = splitLiens(mortgages, equityValue, equityBasis);
 
@@ -458,6 +463,15 @@ function fmrRentForBedrooms(fmr: FMRData, bedrooms: number | null): number | nul
 function normalizeUnitCount(value: number | null): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return null;
   return Math.round(value);
+}
+
+function positiveNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/[$,]/g, '').trim());
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return null;
 }
 
 function isSaleDocument(row: Row): boolean {
