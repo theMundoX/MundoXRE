@@ -59,7 +59,22 @@ const steps: Step[] = [
     required: false,
   },
   {
-    name: "Backfill active listings with RealEstateAPI PropertyDetail",
+    name: "Backfill missing listing descriptions with Zillow/RapidAPI",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/enrich-on-market-zillow-rapidapi.ts",
+      "--city=Indianapolis",
+      "--state=IN",
+      "--descriptions-only",
+      "--limit=1000",
+      "--max-calls=2000",
+    ],
+    required: false,
+    skip: SKIP_RAPIDAPI,
+  },
+  {
+    name: "Backfill agent/mortgage gaps with RealEstateAPI PropertyDetail",
     command: [
       "npx",
       "tsx",
@@ -73,13 +88,14 @@ const steps: Step[] = [
     skip: SKIP_REAPI,
   },
   {
-    name: "Backfill remaining active listing gaps with Zillow/RapidAPI",
+    name: "Backfill remaining active listing contact gaps with Zillow/RapidAPI",
     command: [
       "npx",
       "tsx",
       "scripts/enrich-on-market-zillow-rapidapi.ts",
       "--city=Indianapolis",
       "--state=IN",
+      "--contacts-only",
       "--limit=1000",
       "--max-calls=2000",
     ],

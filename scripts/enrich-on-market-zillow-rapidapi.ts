@@ -52,6 +52,8 @@ const valueArg = (name: string) => {
 
 const dryRun = args.includes("--dry-run");
 const force = args.includes("--force");
+const descriptionsOnly = args.includes("--descriptions-only");
+const contactsOnly = args.includes("--contacts-only");
 const city = (valueArg("city") ?? "Indianapolis").toUpperCase();
 const state = (valueArg("state") ?? "IN").toUpperCase();
 const limit = Math.min(Math.max(Number(valueArg("limit") ?? "10"), 1), 500);
@@ -85,6 +87,7 @@ const stats = {
   foundEmail: 0,
   foundPhone: 0,
   foundBrokerage: 0,
+  foundDescription: 0,
   failed: 0,
 };
 
@@ -111,6 +114,7 @@ try {
       if (contact.email) stats.foundEmail++;
       if (contact.phone) stats.foundPhone++;
       if (contact.brokerage) stats.foundBrokerage++;
+      if (listingDescription(enrichment.detail?.raw)) stats.foundDescription++;
 
       if (contact?.name || contact?.email || contact?.phone || contact?.brokerage || enrichment.detail) {
         await updateListing(candidate.property_id, enrichment);
@@ -145,18 +149,66 @@ async function loadCandidates(): Promise<Candidate[]> {
       and upper(coalesce(p.city,'')) = $2
       and (
         $3::boolean = true
-        or coalesce(l.raw, '{}'::jsonb)->'zillow_rapidapi_detail' is null
+        or (
+          $5::boolean = false
+          and coalesce(l.raw, '{}'::jsonb)->'zillow_rapidapi_detail' is null
+        )
+        or (
+          $5::boolean = true
+          and nullif(coalesce(
+            l.raw #>> '{description}',
+            l.raw #>> '{publicRemarks}',
+            l.raw #>> '{public_remarks}',
+            l.raw #>> '{remarks}',
+            l.raw #>> '{listingRemarks}',
+            l.raw #>> '{marketingRemarks}',
+            l.raw #>> '{propertyDescription}',
+            l.raw #>> '{redfinDetail,publicRemarks}',
+            l.raw #>> '{redfinDetail,description}',
+            l.raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+            l.raw #>> '{zillow_rapidapi_detail,raw,description}',
+            l.raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+            l.raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
+            l.raw #>> '{mls,remarks}',
+            l.raw #>> '{mls,description}'
+          ), '') is null
+        )
       )
       and (
-        $3::boolean = true
-        or nullif(l.listing_agent_email,'') is null
-        or nullif(l.listing_agent_phone,'') is null
-        or nullif(l.listing_agent_name,'') is null
-        or nullif(l.listing_brokerage,'') is null
+        (
+          $5::boolean = true
+          and nullif(coalesce(
+            l.raw #>> '{description}',
+            l.raw #>> '{publicRemarks}',
+            l.raw #>> '{public_remarks}',
+            l.raw #>> '{remarks}',
+            l.raw #>> '{listingRemarks}',
+            l.raw #>> '{marketingRemarks}',
+            l.raw #>> '{propertyDescription}',
+            l.raw #>> '{redfinDetail,publicRemarks}',
+            l.raw #>> '{redfinDetail,description}',
+            l.raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+            l.raw #>> '{zillow_rapidapi_detail,raw,description}',
+            l.raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+            l.raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
+            l.raw #>> '{mls,remarks}',
+            l.raw #>> '{mls,description}'
+          ), '') is null
+        )
+        or (
+          $6::boolean = false
+          and (
+            $3::boolean = true
+            or nullif(l.listing_agent_email,'') is null
+            or nullif(l.listing_agent_phone,'') is null
+            or nullif(l.listing_agent_name,'') is null
+            or nullif(l.listing_brokerage,'') is null
+          )
+        )
       )
     order by p.id, l.last_seen_at desc nulls last, l.updated_at desc nulls last
     limit $4
-  `, [state, city, force, limit]);
+  `, [state, city, force, limit, descriptionsOnly, contactsOnly]);
   return rows;
 }
 
@@ -222,7 +274,7 @@ async function rapidGet(path: string, params: Record<string, string>): Promise<R
 }
 
 async function updateListing(propertyId: number, enrichment: Enrichment) {
-  const contact = enrichment.contact;
+  const contact = descriptionsOnly ? null : enrichment.contact;
   const detail = enrichment.detail;
   await client.query(`
     update listing_signals
@@ -298,6 +350,20 @@ async function updateListing(propertyId: number, enrichment: Enrichment) {
       detail.yearBuilt,
     ]);
   }
+}
+
+function listingDescription(payload: unknown): string | null {
+  return firstString(payload, [
+    "property.description",
+    "description",
+    "data.description",
+    "homeInfo.description",
+    "publicRemarks",
+    "remarks",
+    "listingRemarks",
+    "marketingRemarks",
+    "propertyDescription",
+  ]);
 }
 
 function extractContact(payload: unknown, sourceEndpoint: string): Contact | null {
