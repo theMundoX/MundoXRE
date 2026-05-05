@@ -110,10 +110,10 @@ try {
       const enrichment = await lookupContact(candidate);
       if (!enrichment) continue;
       const contact = enrichment.contact;
-      if (contact.name) stats.foundName++;
-      if (contact.email) stats.foundEmail++;
-      if (contact.phone) stats.foundPhone++;
-      if (contact.brokerage) stats.foundBrokerage++;
+      if (contact?.name) stats.foundName++;
+      if (contact?.email) stats.foundEmail++;
+      if (contact?.phone) stats.foundPhone++;
+      if (contact?.brokerage) stats.foundBrokerage++;
       if (listingDescription(enrichment.detail?.raw)) stats.foundDescription++;
 
       if (contact?.name || contact?.email || contact?.phone || contact?.brokerage || enrichment.detail) {
