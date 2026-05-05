@@ -131,7 +131,6 @@ async function ensureQueue(): Promise<Candidate[]> {
         and (
           $3::boolean = true
           or cache.id is null
-          or cache.expires_at <= now()
         )
         and (
           $3::boolean = true

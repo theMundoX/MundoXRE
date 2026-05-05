@@ -51,6 +51,7 @@
     "fallback:migrate": "tsx scripts/apply-fallback-enrichment-migration.ts",
     "fallback:reapi:on-market": "tsx scripts/enrich-on-market-realestateapi.ts",
     "fallback:reapi:audit": "tsx scripts/audit-reapi-on-market-quality.ts",
+    "fallback:paid:audit": "tsx scripts/audit-paid-enrichment-candidates.ts",
     "fallback:zillow:on-market": "tsx scripts/enrich-on-market-zillow-rapidapi.ts",
     "mortgages:backfill-balances": "tsx scripts/backfill-mortgage-balance-estimates.ts",
     "mortgages:backfill-marion-address": "tsx scripts/backfill-marion-liens-by-property-address.ts",
