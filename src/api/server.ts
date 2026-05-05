@@ -841,8 +841,13 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
   const marketConfig = resolveMarketConfig(c.req.param('market'));
   if (!marketConfig) return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
 
-  const since = parseDateTimeParam(c.req.query('since')) ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const updatedAfter = parseDateTimeParam(c.req.query('cursor'))
+    ?? parseDateTimeParam(c.req.query('updated_after'))
+    ?? parseDateTimeParam(c.req.query('updatedAfter'))
+    ?? parseDateTimeParam(c.req.query('since'))
+    ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 100, 1000);
+  const queryLimit = limit + 1;
   const eventTypes = (c.req.query('event_types') ?? '')
     .split(',')
     .map((value) => value.trim().toLowerCase())
@@ -851,10 +856,10 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
     ? `and event_type in (${eventTypes.map((type) => `'${sqlString(type)}'`).join(',')})`
     : '';
 
-  let rows: Record<string, unknown>[];
+  let rawRows: Record<string, unknown>[];
   let source = 'property_events';
   try {
-    rows = await queryPg<Record<string, unknown>>(`
+    rawRows = await queryPg<Record<string, unknown>>(`
       select
         property_id as "mxreId",
         listing_signal_id as "listingSignalId",
@@ -870,16 +875,16 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
         underwriting_relevant as "underwritingRelevant"
       from property_events
       where market_key = '${sqlString(marketConfig.key)}'
-        and event_at >= '${sqlString(since)}'::timestamptz
+        and event_at > '${sqlString(updatedAfter)}'::timestamptz
         and underwriting_relevant = true
         ${eventFilterSql}
-      order by event_at desc
-      limit ${limit};
+      order by event_at asc, record_version asc
+      limit ${queryLimit};
     `);
   } catch (error) {
     source = 'listing_signal_events_fallback';
     console.warn('[MXRE BBC changes] property_events unavailable, falling back to listing_signal_events:', error);
-    rows = await queryPg<Record<string, unknown>>(`
+    rawRows = await queryPg<Record<string, unknown>>(`
       with listing_events as (
       select
         coalesce(property_id::bigint, 0) as property_id,
@@ -902,7 +907,7 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
       from listing_signal_events
       where state_code = '${marketConfig.state}'
         and upper(coalesce(city,'')) = '${marketConfig.cityUpper}'
-        and event_at >= '${sqlString(since)}'::timestamptz
+        and event_at > '${sqlString(updatedAfter)}'::timestamptz
         ${eventFilterSql}
     ),
     active_listing_versions as (
@@ -914,8 +919,8 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
         l.state_code,
         l.zip,
         case
-          when l.first_seen_at >= '${sqlString(since)}'::timestamptz then 'listing_created'
-          when l.last_seen_at >= '${sqlString(since)}'::timestamptz then 'listing_refreshed'
+          when l.first_seen_at > '${sqlString(updatedAfter)}'::timestamptz then 'listing_created'
+          when l.last_seen_at > '${sqlString(updatedAfter)}'::timestamptz then 'listing_refreshed'
           else null
         end as event_type,
         coalesce(l.last_seen_at, l.first_seen_at, now()) as event_at,
@@ -931,7 +936,7 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
       from listing_signals l
       where l.state_code = '${marketConfig.state}'
         and upper(coalesce(l.city,'')) = '${marketConfig.cityUpper}'
-        and coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
+        and coalesce(l.last_seen_at, l.first_seen_at) > '${sqlString(updatedAfter)}'::timestamptz
     ),
     combined as (
       select * from listing_events
@@ -968,20 +973,33 @@ app.get('/v1/bbc/markets/:market/changes', async (c) => {
       listing_brokerage as "listingBrokerage",
       true as "underwritingRelevant"
     from combined
-    order by event_at desc
-    limit ${limit};
+    order by event_at asc, "recordVersion" asc
+    limit ${queryLimit};
     `);
   }
+
+  const hasMore = rawRows.length > limit;
+  const rows = rawRows.slice(0, limit);
+  const lastRow = rows[rows.length - 1];
+  const nextCursor = typeof lastRow?.eventAt === 'string' ? lastRow.eventAt : updatedAfter;
 
   return c.json({
     schemaVersion: 'mxre.bbc.changes.v1',
     market: marketConfig.key,
     source,
-    since,
+    updatedAfter,
+    cursor: c.req.query('cursor') ?? null,
     limit,
+    hasMore,
     count: rows.length,
-    nextSince: new Date().toISOString(),
+    nextCursor,
+    nextUpdatedAfter: nextCursor,
     results: rows,
+    usage: {
+      firstCall: '/v1/bbc/markets/{market}/changes?updated_after=2026-05-01T00:00:00.000Z&limit=500',
+      nextCall: 'Call the same endpoint with cursor={nextCursor}. Continue while hasMore=true.',
+      syncRule: 'BBC should store nextCursor per market and only re-underwrite records whose changedFields are underwriting relevant.',
+    },
     fallbackPolicy: {
       provider: 'realestateapi',
       useWhen: ['mxre_no_property_match', 'mxre_missing_required_underwriting_fields', 'client_requested_validation'],
@@ -5597,7 +5615,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td><code>GET /v1/bbc/markets</code></td><td>Required setup</td><td>Discover which markets BBC should show. Default response excludes markets under 90% readiness or their configured market target.</td><td>Use this before enabling market-level saved search options in BBC. Admins may use <code>includeBelowTarget=true</code> to inspect pipeline markets.</td></tr>
     <tr><td><code>GET /v1/bbc/property</code></td><td>Required</td><td>BBC-normalized exact address lookup.</td><td>Use <code>address</code>, <code>city</code>, <code>state</code>, <code>zip</code>.</td></tr>
     <tr><td><code>GET /v1/bbc/property/{mxreId}</code></td><td>Required</td><td>BBC-normalized lookup by MXRE id.</td><td>Use for safe re-sync after BBC stores <code>mxreId</code>.</td></tr>
-    <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Required</td><td>Changed market records since a cursor/time.</td><td>Use for daily sync and reconsidering failed deals.</td></tr>
+    <tr><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Required</td><td>Cursor-based changed market records since <code>updated_after</code> or <code>cursor</code>.</td><td>Use for daily sync and reconsidering failed deals. Store <code>nextCursor</code> per market; loop while <code>hasMore=true</code>.</td></tr>
     <tr><td><code>POST /v1/bbc/search-runs</code></td><td>Required</td><td>Delta-based saved-search execution.</td><td>Send filters plus <code>excludeMxreIds</code>; MXRE returns new/changed candidates.</td></tr>
     <tr><td><code>GET /v1/bbc/markets/{market}/creative-finance-listings</code></td><td>Optional report</td><td>Creative finance listings identified daily from MLS/listing remarks.</td><td>Use for the dedicated BBC creative finance screen. Stable response: <code>mxre.bbc.creativeFinanceListings.v1</code>.</td></tr>
     <tr><td><code>GET /v1/markets/{market}/price-changes</code></td><td>Optional report</td><td>MLS/listing price-change report.</td><td>Use for re-underwriting failed deals after price drops.</td></tr>
@@ -5616,6 +5634,28 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td>Reconsider failed deals</td><td><code>GET /v1/bbc/markets/{market}/changes</code></td><td>Only re-score when <code>recordVersion</code> changes</td></tr>
   </table>
   <h3>BBC Daily Search Example</h3>
+  <h3>BBC Incremental Change Sync</h3>
+  <p>BBC should use the changes endpoint as the durable daily sync contract. First call it with <code>updated_after</code>; after that, store and reuse <code>nextCursor</code>. Returned rows are ordered oldest-to-newest so BBC can process them safely in sequence.</p>
+  <pre>curl "https://api.mxre.mundox.ai/v1/bbc/markets/indianapolis/changes?updated_after=2026-05-01T00:00:00.000Z&limit=500" \
+  -H "x-client-id: buy_box_club_sandbox" \
+  -H "x-api-key: YOUR_SANDBOX_KEY"</pre>
+  <pre>{
+  "schemaVersion": "mxre.bbc.changes.v1",
+  "market": "indianapolis",
+  "updatedAfter": "2026-05-01T00:00:00.000Z",
+  "hasMore": true,
+  "nextCursor": "2026-05-02T14:31:20.000Z",
+  "results": [
+    {
+      "mxreId": 50913586,
+      "eventType": "listing_price_changed",
+      "eventAt": "2026-05-02T14:31:20.000Z",
+      "recordVersion": "...",
+      "changedFields": ["market.listPrice"],
+      "underwritingRelevant": true
+    }
+  ]
+}</pre>
   <p>Use <code>POST /v1/bbc/search-runs</code> for frontend searches and backend cron searches. The <code>market</code> selects a covered MXRE universe; <code>location</code> and numeric filters narrow the returned active/new/changed leads.</p>
   <pre>curl "https://api.mxre.mundox.ai/v1/bbc/search-runs" \
   -X POST \
@@ -5799,14 +5839,17 @@ function buildOpenApiSpec() {
       },
       '/v1/bbc/markets/{market}/changes': {
         get: {
-          summary: 'Market changes since a timestamp',
+          summary: 'Cursor-based market changes feed',
+          description: 'Durable incremental sync endpoint for BBC automation. First call with updated_after; subsequent calls should pass cursor=nextCursor. Rows are returned oldest-to-newest. Continue until hasMore=false.',
           parameters: [
             { name: 'market', in: 'path', required: true, schema: { type: 'string', enum: SUPPORTED_MARKETS } },
-            { name: 'since', in: 'query', required: false, schema: { type: 'string', format: 'date-time' } },
+            { name: 'updated_after', in: 'query', required: false, schema: { type: 'string', format: 'date-time' }, description: 'Initial lower bound for first sync.' },
+            { name: 'cursor', in: 'query', required: false, schema: { type: 'string', format: 'date-time' }, description: 'Use nextCursor from the previous response.' },
+            { name: 'since', in: 'query', required: false, deprecated: true, schema: { type: 'string', format: 'date-time' }, description: 'Legacy alias for updated_after.' },
             { name: 'event_types', in: 'query', required: false, schema: { type: 'string' }, example: 'price_changed,listing_created' },
-            { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 100 } },
+            { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 100, maximum: 1000 } },
           ],
-          responses: { '200': { description: 'Changed records for BBC daily sync.' } },
+          responses: { '200': { description: 'mxre.bbc.changes.v1 with hasMore, nextCursor, and event rows.' } },
         },
       },
       '/v1/bbc/search-runs': {
