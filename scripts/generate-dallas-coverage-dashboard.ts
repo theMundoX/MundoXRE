@@ -128,6 +128,42 @@ async function main() {
      where source_url ilike '%dallas.tx.publicsearch.us%';
   `);
 
+  const [paidDebt] = await pg(`
+    with active_dallas_properties as (
+      select distinct property_id
+        from listing_signals
+       where is_on_market = true
+         and state_code = 'TX'
+         and upper(coalesce(city,'')) = 'DALLAS'
+         and property_id is not null
+    )
+    select count(*)::int as records,
+           count(distinct mr.property_id)::int as properties,
+           count(*) filter (where coalesce(mr.loan_amount, mr.original_amount, mr.estimated_current_balance, 0) > 0)::int as amount_rows,
+           count(*) filter (where coalesce(mr.estimated_monthly_payment, 0) > 0)::int as payment_rows,
+           sum(coalesce(mr.loan_amount, mr.original_amount, mr.estimated_current_balance, 0))::numeric as total_amount,
+           sum(coalesce(mr.estimated_monthly_payment, 0))::numeric as total_estimated_payment,
+           max(mr.recording_date)::text as latest_recording
+      from mortgage_records mr
+      join active_dallas_properties adp on adp.property_id = mr.property_id
+     where mr.source_url = 'realestateapi';
+  `);
+
+  const [paidDetails] = await pg(`
+    with active_dallas_properties as (
+      select distinct property_id
+        from listing_signals
+       where is_on_market = true
+         and state_code = 'TX'
+         and upper(coalesce(city,'')) = 'DALLAS'
+         and property_id is not null
+    )
+    select count(*)::int as cached_details,
+           max(rapi.fetched_at)::text as latest_fetch
+      from realestateapi_property_details rapi
+      join active_dallas_properties adp on adp.property_id = rapi.property_id;
+  `);
+
   const [rent] = await pg(`
     select count(distinct pw.property_id)::int as website_properties
       from property_websites pw
@@ -235,7 +271,7 @@ async function main() {
     <div class="grid">
       <div class="card"><div class="label">Full Dallas County Parcels</div><div class="metric">${fmt(countyParcels.total)}</div><div class="note">${pct(countyParcels.parcel_id, countyParcels.total)} have parcel IDs across ${fmt(countyParcels.cities)} city labels. Dallas city situs subset: ${fmt(parcels.total)}.</div></div>
       <div class="card"><div class="label">Dallas Active Listing Rows</div><div class="metric">${fmt(listings.total)}</div><div class="note">Source-limited Redfin-derived rows, not full MLS inventory. ${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows; ${fmt(listings.unlinked_listings)} unlinked.</div></div>
-      <div class="card"><div class="label">Public Recorded Debt</div><div class="metric">${fmt(recorder.debt_docs)}</div><div class="note">${fmt(recorder.mortgage_docs)} mortgages, ${fmt(recorder.lien_docs)} liens; ${fmt(recorder.amount_docs)} amount rows. Paid detail needed for balances.</div></div>
+      <div class="card"><div class="label">Paid Mortgage/Debt Detail</div><div class="metric">${fmt(paidDebt.records)}</div><div class="note">${fmt(paidDebt.properties)} linked active properties; ${fmt(paidDebt.amount_rows)} amount rows and ${fmt(paidDebt.payment_rows)} payment rows from RealEstateAPI.</div></div>
       <div class="card"><div class="label">Public Rent/Floorplans</div><div class="metric">${fmt(floorplans.rows)}</div><div class="note">${fmt(rents.fresh_rows)} rent rows observed today across ${fmt(rents.properties)} properties; source-limited public apartment scrape.</div></div>
     </div>
 
@@ -276,6 +312,8 @@ async function main() {
         <tr><td>Recorder source docs</td><td>${fmt(recorder.source_docs)}</td><td>-</td><td>Dallas County PublicSearch rows normalized into typed documents.</td></tr>
         <tr><td>Recorded liens/debt</td><td>${fmt(recorder.debt_docs)}</td><td>${pct(recorder.debt_docs, recorder.source_docs)}</td><td>${fmt(recorder.amount_docs)} rows include amount/balance data; ${fmt(recorder.payment_docs)} include estimated monthly payment.</td></tr>
         <tr><td>Recorder linked properties</td><td>${fmt(recorder.linked_properties)}</td><td>${pct(recorder.linked_properties, parcels.total)}</td><td>Still the biggest debt gap: linking needs legal/address-level matching beyond owner name.</td></tr>
+        <tr><td>Paid property detail cache</td><td>${fmt(paidDetails.cached_details)} properties</td><td>-</td><td>Latest RealEstateAPI fetch: ${esc(paidDetails.latest_fetch)}. Paid calls are property-scoped and cached before normalization.</td></tr>
+        <tr><td>Paid mortgage/debt detail</td><td>${fmt(paidDebt.records)} records / ${fmt(paidDebt.properties)} linked active properties</td><td>${pct(paidDebt.properties, listings.active_properties)}</td><td>${fmt(paidDebt.amount_rows)} rows include amount/balance data; ${fmt(paidDebt.payment_rows)} include estimated monthly payment. Total reported debt amount: ${money(paidDebt.total_amount)}; total estimated monthly payment: ${money(paidDebt.total_estimated_payment)}.</td></tr>
         <tr><td>Apartment websites</td><td>${fmt(rent.website_properties)}</td><td>-</td><td>Public/free discovery only.</td></tr>
         <tr><td>Floorplans</td><td>${fmt(floorplans.rows)} rows / ${fmt(floorplans.properties)} properties</td><td>-</td><td>By bed type where source pages expose it.</td></tr>
         <tr><td>Rent snapshots</td><td>${fmt(rents.rent_amount_rows)} rent rows / ${fmt(rents.properties)} properties</td><td>${pct(rents.rent_amount_rows, rents.rows)}</td><td>Public apartment sites usually report per-unit floorplan rent. Whole-building monthly rent is only shown when the source reports unit counts: ${fmt(rents.total_monthly_rows)} rows, ${money(rents.reported_total_monthly_rent)} reported total/mo.</td></tr>

@@ -65,12 +65,20 @@ async function main() {
   `);
 
   const [debt] = await pg(`
+    with active_market_properties as (
+      select distinct property_id
+        from listing_signals
+       where ${listingWhere}
+         and property_id is not null
+    )
     select count(*)::int as debt_records,
+           count(*) filter (where source_url = 'realestateapi')::int as paid_debt_records,
+           count(*) filter (where source_url ilike '%publicsearch%')::int as public_debt_records,
+           count(distinct property_id)::int as properties_with_debt,
            count(*) filter (where coalesce(loan_amount, original_amount, estimated_current_balance, 0) > 0)::int as amount_records,
            count(*) filter (where coalesce(estimated_monthly_payment, 0) > 0)::int as payment_records
       from mortgage_records mr
-      join properties p on p.id = mr.property_id
-     where ${propWhere.replaceAll("city", "p.city").replaceAll("county_id", "p.county_id").replaceAll("state_code", "p.state_code")};
+     where mr.property_id in (select property_id from active_market_properties);
   `);
 
   const [mf] = await pg(`
@@ -145,6 +153,9 @@ async function main() {
     },
     debt_coverage: {
       records: debtRecords,
+      paid_records: Number(debt.paid_debt_records ?? 0),
+      public_records: Number(debt.public_debt_records ?? 0),
+      properties_with_debt: Number(debt.properties_with_debt ?? 0),
       amount_records: debtAmountRecords,
       payment_records: Number(debt.payment_records ?? 0),
       pct_amount: pct(debtAmountRecords, debtRecords),
