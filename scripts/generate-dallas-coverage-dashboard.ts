@@ -89,6 +89,13 @@ async function main() {
   const [countyParcels] = await pg(`
     select count(*)::int as total,
            count(*) filter (where parcel_id is not null and parcel_id <> '')::int as parcel_id,
+           count(*) filter (where nullif(address,'') is not null)::int as address,
+           count(*) filter (where asset_type is not null)::int as asset_type,
+           count(*) filter (where owner_name is not null)::int as owner,
+           count(*) filter (where coalesce(market_value, assessed_value, taxable_value, 0) > 0)::int as value,
+           count(*) filter (where total_units is not null)::int as total_units,
+           count(*) filter (where year_built is not null)::int as year_built,
+           count(*) filter (where total_sqft is not null or living_sqft is not null)::int as sqft,
            count(distinct upper(coalesce(city,'')))::int as cities
       from properties
      where county_id = 7
@@ -226,10 +233,10 @@ async function main() {
   </header>
   <main>
     <div class="grid">
-      <div class="card"><div class="label">Active Listing Rows</div><div class="metric">${fmt(listings.total)}</div><div class="note">Redfin-derived rows: ${fmt(listings.active_properties)} linked properties; ${fmt(listings.unlinked_listings)} rows still need property matching. MLS/list price ${pct(listings.price, listings.total)}.</div></div>
-      <div class="card"><div class="label">Parcel Universe</div><div class="metric">${fmt(parcels.total)}</div><div class="note">Dallas city situs rows. Full Dallas County loaded: ${fmt(countyParcels.total)} parcels across ${fmt(countyParcels.cities)} city labels.</div></div>
-      <div class="card"><div class="label">Recorded Debt Signals</div><div class="metric">${fmt(recorder.debt_docs)}</div><div class="note">${fmt(recorder.mortgage_docs)} mortgages, ${fmt(recorder.lien_docs)} liens; ${fmt(recorder.linked_properties)} linked properties.</div></div>
-      <div class="card"><div class="label">Fresh Rent/Floorplans</div><div class="metric">${fmt(floorplans.rows)}</div><div class="note">${fmt(rents.fresh_rows)} rent rows observed today; latest ${esc(rents.latest_observed)}.</div></div>
+      <div class="card"><div class="label">Full Dallas County Parcels</div><div class="metric">${fmt(countyParcels.total)}</div><div class="note">${pct(countyParcels.parcel_id, countyParcels.total)} have parcel IDs across ${fmt(countyParcels.cities)} city labels. Dallas city situs subset: ${fmt(parcels.total)}.</div></div>
+      <div class="card"><div class="label">Dallas Active Listing Rows</div><div class="metric">${fmt(listings.total)}</div><div class="note">Source-limited Redfin-derived rows, not full MLS inventory. ${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows; ${fmt(listings.unlinked_listings)} unlinked.</div></div>
+      <div class="card"><div class="label">Public Recorded Debt</div><div class="metric">${fmt(recorder.debt_docs)}</div><div class="note">${fmt(recorder.mortgage_docs)} mortgages, ${fmt(recorder.lien_docs)} liens; ${fmt(recorder.amount_docs)} amount rows. Paid detail needed for balances.</div></div>
+      <div class="card"><div class="label">Public Rent/Floorplans</div><div class="metric">${fmt(floorplans.rows)}</div><div class="note">${fmt(rents.fresh_rows)} rent rows observed today across ${fmt(rents.properties)} properties; source-limited public apartment scrape.</div></div>
     </div>
 
     <section class="two">
@@ -242,14 +249,15 @@ async function main() {
         ${bar("Brokerage", listings.brokerage, listings.total)}
         ${bar("Agent email", listings.email, listings.total)}
       </div></div>
-      <div class="panel"><h2>Parcel & Property Coverage</h2><div class="bars">
-        ${bar("Parcel id", parcels.parcel_id, parcels.total)}
-        ${bar("Asset type", parcels.asset_type, parcels.total)}
-        ${bar("Owner", parcels.owner, parcels.total)}
-        ${bar("Assessed/market value", parcels.value, parcels.total)}
-        ${bar("Unit count", parcels.total_units, parcels.total)}
-        ${bar("Year built", parcels.year_built, parcels.total)}
-        ${bar("Sqft", parcels.sqft, parcels.total)}
+      <div class="panel"><h2>Full County Parcel Coverage</h2><div class="bars">
+        ${bar("Parcel id", countyParcels.parcel_id, countyParcels.total)}
+        ${bar("Situs address", countyParcels.address, countyParcels.total)}
+        ${bar("Asset type", countyParcels.asset_type, countyParcels.total)}
+        ${bar("Owner", countyParcels.owner, countyParcels.total)}
+        ${bar("Assessed/market value", countyParcels.value, countyParcels.total)}
+        ${bar("Unit count", countyParcels.total_units, countyParcels.total)}
+        ${bar("Year built", countyParcels.year_built, countyParcels.total)}
+        ${bar("Sqft", countyParcels.sqft, countyParcels.total)}
       </div></div>
     </section>
 
@@ -260,9 +268,11 @@ async function main() {
         <tr><td>Creative evaluated</td><td>${fmt(listings.creative_evaluated)} / ${fmt(listings.total)}</td><td>${pct(listings.creative_evaluated, listings.total)}</td><td>Every evaluated row stores <code>creative_finance_status</code>. <code>no_data</code> means description was checked and no clear signal was found.</td></tr>
         <tr><td>Creative hits</td><td>${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative</td><td>Signal yield ${pct(n(listings.creative_positive) + n(listings.creative_negative), listings.total)}</td><td>Coverage is the evaluated row above. MLS descriptions saved: ${fmt(listings.mls_description)}.</td></tr>
         <tr><td>Price-change tracking</td><td>${fmt(events.price_changed)} price changes / ${fmt(events.total)} events</td><td>-</td><td>Latest event: ${esc(events.latest_event)}.</td></tr>
+        <tr><td>Market coverage status</td><td>Not full coverage yet</td><td>-</td><td>Full Dallas County parcels are loaded, but active listings are Redfin-derived/source-limited, ${fmt(listings.unlinked_listings)} listing rows still need property matching, public debt lacks amounts, and public rent coverage is partial.</td></tr>
         <tr><td>Listing source scope</td><td>${fmt(listings.total)} active rows / ${fmt(listings.distinct_listing_urls)} distinct URLs</td><td>-</td><td>Current Dallas on-market coverage is Redfin-derived listing rows, not an authoritative full MLS inventory count.</td></tr>
         <tr><td>Listing-property matching</td><td>${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows / ${fmt(listings.unlinked_listings)} unlinked rows</td><td>${pct(n(listings.total) - n(listings.unlinked_listings), listings.total)}</td><td>Unlinked rows are active listings that have not been matched to an MXRE <code>property_id</code>; they should not be counted as unique properties.</td></tr>
-        <tr><td>County parcel universe</td><td>${fmt(countyParcels.total)} Dallas County parcels</td><td>${pct(countyParcels.parcel_id, countyParcels.total)}</td><td>The headline parcel card is the Dallas city situs subset, not all Dallas County cities.</td></tr>
+        <tr><td>County parcel universe</td><td>${fmt(countyParcels.total)} Dallas County parcels</td><td>${pct(countyParcels.parcel_id, countyParcels.total)}</td><td>Full county parcel/account rows loaded. Dallas city situs subset is ${fmt(parcels.total)} rows.</td></tr>
+        <tr><td>Dallas city parcel subset</td><td>${fmt(parcels.total)} city situs rows</td><td>${pct(parcels.parcel_id, parcels.total)}</td><td>This is the city-labeled subset only; it is not the full Dallas County market universe.</td></tr>
         <tr><td>Recorder source docs</td><td>${fmt(recorder.source_docs)}</td><td>-</td><td>Dallas County PublicSearch rows normalized into typed documents.</td></tr>
         <tr><td>Recorded liens/debt</td><td>${fmt(recorder.debt_docs)}</td><td>${pct(recorder.debt_docs, recorder.source_docs)}</td><td>${fmt(recorder.amount_docs)} rows include amount/balance data; ${fmt(recorder.payment_docs)} include estimated monthly payment.</td></tr>
         <tr><td>Recorder linked properties</td><td>${fmt(recorder.linked_properties)}</td><td>${pct(recorder.linked_properties, parcels.total)}</td><td>Still the biggest debt gap: linking needs legal/address-level matching beyond owner name.</td></tr>
