@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
+import { pathToFileURL } from "node:url";
 
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
@@ -40,6 +41,10 @@ const POSITIVE_PATTERNS: Array<[string, RegExp]> = [
 const NEGATIVE_PATTERNS: Array<[string, RegExp]> = [
   ["no_seller_financing", /\b(no|not|won'?t|will\s+not|cannot|can't|seller\s+will\s+not)\s+(?:consider\s+)?(?:seller\s+)?financ\w+\b/i],
   ["no_owner_financing", /\b(no|not|won'?t|will\s+not|cannot|can't|owner\s+will\s+not)\s+(?:consider\s+)?(?:owner\s+)?financ\w+\b/i],
+  ["seller_financing_unavailable", /\bseller\s+financ\w+\s+(?:is\s+)?(?:not\s+available|unavailable|not\s+offered|will\s+not\s+be\s+considered)\b/i],
+  ["owner_financing_unavailable", /\bowner\s+financ\w+\s+(?:is\s+)?(?:not\s+available|unavailable|not\s+offered|will\s+not\s+be\s+considered)\b/i],
+  ["no_seller_carry", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:consider\s+)?seller\s+(?:carry|carryback|terms)\b/i],
+  ["no_owner_carry", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:consider\s+)?owner\s+(?:carry|carryback|terms)\b/i],
   ["no_creative_financing", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:creative\s+)?financ\w+\b/i],
   ["no_subject_to", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:subject\s+to|sub[\s-]?to|sub\s*2)\b/i],
   ["cash_or_conventional_only", /\b(cash|conventional)\s+(?:or\s+cash\s+)?only\b/i],
@@ -193,7 +198,9 @@ async function main() {
   }, null, 2));
 }
 
-main().catch(error => {
-  console.error("Fatal:", error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(error => {
+    console.error("Fatal:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}
