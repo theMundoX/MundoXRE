@@ -1132,7 +1132,9 @@ app.post('/v1/bbc/search-runs', async (c) => {
     filters.maxEstimatedEquity !== null ? `and estimated_equity <= ${filters.maxEstimatedEquity}` : '',
   ].filter(Boolean).join('\n      ');
 
-  const [result] = await queryPg<Record<string, unknown>>(`
+  let result: Record<string, unknown> | undefined;
+  try {
+    [result] = await queryPg<Record<string, unknown>>(`
     with listing_scope as (
       select l.*
       from listing_signals l
@@ -1376,9 +1378,150 @@ app.post('/v1/bbc/search-runs', async (c) => {
       limit ${limit}
        ) r) as results;
   `);
+  } catch (error) {
+    console.warn(`[MXRE BBC search] rich search failed for ${marketConfig.key}; using lightweight fallback:`, error);
+    [result] = await queryPg<Record<string, unknown>>(`
+      with active as (
+        select
+          l.id as listing_id,
+          p.id as property_id,
+          p.address,
+          p.city,
+          p.state_code,
+          p.zip,
+          case
+            when p.asset_type = 'commercial_multifamily' or coalesce(p.property_use, '') ilike '%APT%UNITS%' then 'commercial_multifamily'
+            when p.asset_type = 'small_multifamily'
+              or coalesce(p.property_use, '') ilike '%TWO FAMILY%'
+              or coalesce(p.property_use, '') ilike '%THREE FAMILY%' then 'small_multifamily'
+            when p.asset_subtype in ('sfr', 'condo')
+              or coalesce(p.property_use, '') ilike '%ONE FAMILY%'
+              or coalesce(p.property_use, '') ilike '%CONDO%'
+              or coalesce(p.property_use, '') ilike 'RES VAC%' then 'single_family'
+            else coalesce(nullif(p.asset_type, ''), nullif(p.property_type, ''), 'unknown')
+          end as asset_group,
+          p.asset_type,
+          p.asset_subtype,
+          p.total_units,
+          p.bedrooms,
+          p.bathrooms,
+          p.bathrooms_full,
+          p.living_sqft,
+          p.year_built,
+          p.market_value,
+          p.assessed_value,
+          case
+            when l.is_on_market = true and l.mls_list_price > 0 then l.mls_list_price
+            when coalesce(p.market_value, 0) > 0 then p.market_value
+            when coalesce(p.assessed_value, 0) > 0 then p.assessed_value
+            else null
+          end as equity_basis_value,
+          case
+            when l.is_on_market = true and l.mls_list_price > 0 then 'list_price'
+            when coalesce(p.market_value, 0) > 0 then 'market_value'
+            when coalesce(p.assessed_value, 0) > 0 then 'assessed_value'
+            else null
+          end as equity_basis,
+          l.is_on_market,
+          l.mls_list_price,
+          l.days_on_market,
+          l.listing_source,
+          l.listing_url,
+          l.listing_agent_name,
+          l.listing_agent_first_name,
+          l.listing_agent_last_name,
+          l.listing_agent_email,
+          l.listing_agent_phone,
+          l.listing_brokerage,
+          l.creative_finance_score,
+          l.creative_finance_status,
+          l.creative_finance_terms,
+          l.first_seen_at,
+          l.last_seen_at,
+          greatest(coalesce(l.last_seen_at, '-infinity'::timestamptz), coalesce(l.first_seen_at, '-infinity'::timestamptz)) as changed_at
+        from listing_signals l
+        join properties p on p.id = l.property_id
+        where coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
+          and l.state_code = '${marketConfig.state}'
+          and upper(coalesce(l.city,'')) = '${marketConfig.cityUpper}'
+          and l.property_id is not null
+          ${excludeSql}
+          ${statusSql}
+          ${priceSql}
+          ${creativeSql}
+      ),
+      filtered as (
+        select *
+        from active
+        where true
+          ${assetSql}
+          ${unitClassSql}
+      ),
+      totals as (
+        select
+          count(*)::int as matched,
+          ${excludedIds.length}::int as excluded_by_client,
+          count(*) filter (where first_seen_at >= '${sqlString(since)}'::timestamptz)::int as new_count,
+          count(*) filter (where first_seen_at < '${sqlString(since)}'::timestamptz and changed_at >= '${sqlString(since)}'::timestamptz)::int as changed_count
+        from filtered
+      )
+      select
+        (select row_to_json(totals) from totals) as summary,
+        (select coalesce(jsonb_agg(row_to_json(r) order by r."lastChangedAt" desc), '[]'::jsonb)
+         from (
+          select
+            property_id as "mxreId",
+            listing_id as "listingId",
+            case when first_seen_at >= '${sqlString(since)}'::timestamptz then 'new_listing' else 'listing_updated' end as "eventReason",
+            changed_at as "lastChangedAt",
+            md5(property_id::text || '|' || listing_id::text || '|' || changed_at::text || '|light') as "recordVersion",
+            case when first_seen_at >= '${sqlString(since)}'::timestamptz then array['market'] else array['market.lastSeenAt'] end as "changedFields",
+            address,
+            city,
+            state_code as state,
+            zip,
+            asset_group as "assetGroup",
+            asset_type as "assetType",
+            asset_subtype as "assetSubtype",
+            total_units as "unitCount",
+            bedrooms,
+            coalesce(bathrooms, bathrooms_full) as bathrooms,
+            living_sqft as "livingSqft",
+            year_built as "yearBuilt",
+            market_value as "marketValue",
+            is_on_market as "onMarket",
+            mls_list_price as "listPrice",
+            days_on_market as "daysOnMarket",
+            listing_source as "listingSource",
+            listing_url as "listingUrl",
+            listing_agent_name as "listingAgentName",
+            listing_agent_first_name as "listingAgentFirstName",
+            listing_agent_last_name as "listingAgentLastName",
+            listing_agent_email as "listingAgentEmail",
+            listing_agent_phone as "listingAgentPhone",
+            listing_brokerage as "listingBrokerage",
+            creative_finance_score as "creativeFinanceScore",
+            creative_finance_status as "creativeFinanceStatus",
+            creative_finance_terms as "creativeFinanceTerms",
+            null::numeric as "estimatedMortgageBalance",
+            null::numeric as "estimatedMortgagePayment",
+            null::int as "openMortgageCount",
+            null::bigint as "estimatedEquity",
+            null::numeric as "equityPercent",
+            equity_basis as "equityBasis",
+            equity_basis_value as "equityBasisValue",
+            true as "partialResult",
+            'lightweight_search_fallback' as "partialReason"
+          from filtered
+          order by changed_at desc
+          limit ${limit}
+         ) r) as results;
+    `);
+  }
 
   const summary = normalizeRecord(result?.summary);
   const results = Array.isArray(result?.results) ? result.results : [];
+  const partialResult = results.some((row) => normalizeRecord(row).partialResult === true);
 
   return c.json({
     schemaVersion: 'mxre.bbc.searchRun.v1',
@@ -1404,6 +1547,10 @@ app.post('/v1/bbc/search-runs', async (c) => {
     fallbackPolicy: {
       provider: 'realestateapi',
       useWhen: ['mxre_no_property_match', 'mxre_missing_required_underwriting_fields', 'client_requested_validation'],
+    },
+    quality: {
+      partialResult,
+      partialReason: partialResult ? 'lightweight_search_fallback_without_debt_equity' : null,
     },
   });
 });
