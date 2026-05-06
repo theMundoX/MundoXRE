@@ -4,7 +4,9 @@ import "dotenv/config";
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "100", 10));
-const DELAY_MS = Math.max(750, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? "2500", 10));
+const FAST_SEARCH = process.argv.includes("--fast-search");
+const DELAY_MS = Math.max(FAST_SEARCH ? 0 : 750, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? (FAST_SEARCH ? "0" : "2500"), 10));
+const CONCURRENCY = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--concurrency="))?.split("=")[1] ?? (FAST_SEARCH ? "5" : "1"), 10));
 const MAX_SEARCH_QUERIES = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-queries="))?.split("=")[1] ?? "8", 10));
 const MAX_SEARCH_LINKS = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-links="))?.split("=")[1] ?? "12", 10));
 const MAX_DIRECT_PROFILE_URLS = Math.max(0, parseInt(process.argv.find(a => a.startsWith("--max-direct-profile-urls="))?.split("=")[1] ?? "6", 10));
@@ -457,7 +459,10 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const hasBrokerage = tokens.length > 0 && tokens.some(token => text.includes(token) || url.toLowerCase().includes(token));
   const emails = extractEmails(html);
   if (emails.length > 0) stats.pages_with_email++;
-  if (!hasName || !hasPhone || !hasBrokerage) {
+  const hasVerifiedIdentity = FAST_SEARCH
+    ? hasName && (hasPhone || hasBrokerage)
+    : hasName && hasPhone && hasBrokerage;
+  if (!hasVerifiedIdentity) {
     if (emails.length > 0) stats.rejected_identity++;
     return null;
   }
@@ -530,56 +535,58 @@ async function saveVerifiedEmail(row: ListingRow, candidate: Candidate): Promise
 }
 
 async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
-  for (const seedUrl of brokerageSeedUrls(row)) {
-    await sleep(DELAY_MS);
-    const seedHtml = await fetchText(seedUrl);
-    if (!seedHtml) continue;
-    stats.profile_pages++;
-    const seedCandidate = verifyEmailPage(seedHtml, row, seedUrl);
-    if (seedCandidate) return seedCandidate;
-    for (const profileLink of extractBrokerageRosterLinks(seedUrl, seedHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
+  if (!FAST_SEARCH) {
+    for (const seedUrl of brokerageSeedUrls(row)) {
       await sleep(DELAY_MS);
-      const profileHtml = await fetchText(profileLink);
-      if (!profileHtml) continue;
+      const seedHtml = await fetchText(seedUrl);
+      if (!seedHtml) continue;
       stats.profile_pages++;
-      const candidate = verifyEmailPage(profileHtml, row, profileLink);
+      const seedCandidate = verifyEmailPage(seedHtml, row, seedUrl);
+      if (seedCandidate) return seedCandidate;
+      for (const profileLink of extractBrokerageRosterLinks(seedUrl, seedHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
+        await sleep(DELAY_MS);
+        const profileHtml = await fetchText(profileLink);
+        if (!profileHtml) continue;
+        stats.profile_pages++;
+        const candidate = verifyEmailPage(profileHtml, row, profileLink);
+        if (candidate) return candidate;
+      }
+    }
+
+    const profileUrls = directProfileUrls(row).slice(0, MAX_DIRECT_PROFILE_URLS);
+    stats.direct_profile_urls += profileUrls.length;
+    if (profileUrls.length === 0) {
+      stats.no_direct_brokerage_hint++;
+      if (effectiveBrokerage(row)) brokerageSamples.add(effectiveBrokerage(row)!);
+    }
+    for (const profileUrl of profileUrls) {
+      await sleep(DELAY_MS);
+      const html = await fetchText(profileUrl);
+      if (!html) continue;
+      stats.profile_pages++;
+      const candidate = verifyEmailPage(html, row, profileUrl);
       if (candidate) return candidate;
     }
-  }
 
-  const profileUrls = directProfileUrls(row).slice(0, MAX_DIRECT_PROFILE_URLS);
-  stats.direct_profile_urls += profileUrls.length;
-  if (profileUrls.length === 0) {
-    stats.no_direct_brokerage_hint++;
-    if (effectiveBrokerage(row)) brokerageSamples.add(effectiveBrokerage(row)!);
-  }
-  for (const profileUrl of profileUrls) {
-    await sleep(DELAY_MS);
-    const html = await fetchText(profileUrl);
-    if (!html) continue;
-    stats.profile_pages++;
-    const candidate = verifyEmailPage(html, row, profileUrl);
-    if (candidate) return candidate;
-  }
-
-  const homeUrls = homepageUrls(row);
-  stats.homepage_urls += homeUrls.length;
-  for (const homeUrl of homeUrls) {
-    await sleep(DELAY_MS);
-    const homeHtml = await fetchText(homeUrl);
-    if (!homeHtml) continue;
-    stats.profile_pages++;
-    const homeCandidate = verifyEmailPage(homeHtml, row, homeUrl);
-    if (homeCandidate) return homeCandidate;
-
-    const profileLinks = extractLikelyProfileLinks(homeUrl, homeHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE);
-    for (const profileLink of profileLinks) {
+    const homeUrls = homepageUrls(row);
+    stats.homepage_urls += homeUrls.length;
+    for (const homeUrl of homeUrls) {
       await sleep(DELAY_MS);
-      const profileHtml = await fetchText(profileLink);
-      if (!profileHtml) continue;
+      const homeHtml = await fetchText(homeUrl);
+      if (!homeHtml) continue;
       stats.profile_pages++;
-      const candidate = verifyEmailPage(profileHtml, row, profileLink);
-      if (candidate) return candidate;
+      const homeCandidate = verifyEmailPage(homeHtml, row, homeUrl);
+      if (homeCandidate) return homeCandidate;
+
+      const profileLinks = extractLikelyProfileLinks(homeUrl, homeHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE);
+      for (const profileLink of profileLinks) {
+        await sleep(DELAY_MS);
+        const profileHtml = await fetchText(profileLink);
+        if (!profileHtml) continue;
+        stats.profile_pages++;
+        const candidate = verifyEmailPage(profileHtml, row, profileLink);
+        if (candidate) return candidate;
+      }
     }
   }
 
@@ -589,13 +596,18 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
   const phoneText = row.listing_agent_phone ?? "";
   const mlsNumber = rawString(row, ["mlsNumber", "mls_number", "mlsId", "mls_id"]);
   const address = row.address?.replace(/\s+/g, " ").trim();
-  const portalQueries = ["realtor.com", "zillow.com", "homes.com", "redfin.com", "realty.com", "ezhomesearch.com", "coldwellbankerhomes.com"].flatMap(domain => [
+  const portalQueries = FAST_SEARCH ? [] : ["realtor.com", "zillow.com", "homes.com", "redfin.com", "realty.com", "ezhomesearch.com", "coldwellbankerhomes.com"].flatMap(domain => [
     [`site:${domain}`, mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
     [`site:${domain}`, address ? `"${address}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
     [`site:${domain}`, `"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
     [`site:${domain}`, `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "agent"].filter(Boolean).join(" "),
   ]);
   const queries = [
+    [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
+    [phoneText ? `"${phoneText}"` : "", `"${name.full}"`, "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
     ...portalQueries,
     [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
     [address ? `"${address}"` : "", `"${name.full}"`, "listing agent email"].filter(Boolean).join(" "),
@@ -619,7 +631,7 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
         if (found.length === 0) stats.search_pages_without_links++;
         links.push(...found);
       }
-      await sleep(DELAY_MS);
+      if (DELAY_MS > 0) await sleep(DELAY_MS);
     }
     const bingUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
     const bingHtml = await fetchText(bingUrl);
@@ -637,7 +649,7 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
   if (uniqueLinks.length === 0) return null;
 
   for (const link of uniqueLinks) {
-    await sleep(DELAY_MS);
+    if (DELAY_MS > 0) await sleep(DELAY_MS);
     const html = await fetchText(link);
     if (!html) continue;
     stats.profile_pages++;
@@ -649,7 +661,7 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
 
 async function main() {
   console.log("MXRE - Public agent email enrichment");
-  console.log(`Limit: ${LIMIT}; delay ${DELAY_MS}ms; dry run ${DRY_RUN}`);
+  console.log(`Limit: ${LIMIT}; delay ${DELAY_MS}ms; concurrency ${CONCURRENCY}; fast search ${FAST_SEARCH}; dry run ${DRY_RUN}`);
   console.log(`Search caps: ${MAX_SEARCH_QUERIES} queries, ${MAX_SEARCH_LINKS} links`);
   console.log(`Timeouts: fetch ${FETCH_TIMEOUT_MS}ms, row ${ROW_TIMEOUT_MS}ms`);
   if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
@@ -679,12 +691,12 @@ async function main() {
   let updated = 0;
   let scanned = 0;
 
-  for (const row of rows) {
+  async function processRow(row: ListingRow, position: number) {
     scanned++;
     const label = row.listing_agent_name || [row.listing_agent_first_name, row.listing_agent_last_name].filter(Boolean).join(" ") || `listing ${row.id}`;
     const started = Date.now();
-    console.log(`  [${scanned}/${rows.length}] checking ${label} (${effectiveBrokerage(row) ?? "unknown brokerage"})`);
-    await sleep(DELAY_MS);
+    console.log(`  [${position}/${rows.length}] checking ${label} (${effectiveBrokerage(row) ?? "unknown brokerage"})`);
+    if (DELAY_MS > 0) await sleep(DELAY_MS);
     let candidate: Candidate | null = null;
     try {
       candidate = await withTimeout(findPublicEmail(row), ROW_TIMEOUT_MS, `row ${row.id}`);
@@ -693,11 +705,11 @@ async function main() {
       if (message.includes("timed out")) stats.row_timeouts++;
       else stats.row_errors++;
       console.log(`    skipped: ${message}`);
-      continue;
+      return;
     }
     if (!candidate) {
       console.log(`    no verified email (${Date.now() - started}ms)`);
-      continue;
+      return;
     }
     found++;
     console.log(`    email found: ${label} -> ${candidate.email} (${candidate.confidence}, ${Date.now() - started}ms)`);
@@ -706,6 +718,15 @@ async function main() {
       updated += await saveVerifiedEmail(row, candidate);
     }
   }
+
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(CONCURRENCY, rows.length) }, async () => {
+    while (nextIndex < rows.length) {
+      const index = nextIndex++;
+      await processRow(rows[index], index + 1);
+    }
+  });
+  await Promise.all(workers);
 
   console.log(JSON.stringify({
     scanned,

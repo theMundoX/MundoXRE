@@ -48,6 +48,8 @@ one-to-one listing address resolver before property-detail normalization:
 $env:REALESTATEAPI_KEY=[Environment]::GetEnvironmentVariable('REALESTATEAPI_KEY','User')
 npx tsx scripts/resolve-dallas-unlinked-listings-realestateapi.ts --limit=300 --max-calls=300 --concurrency=5
 npx tsx scripts/enrich-on-market-realestateapi.ts --state=TX --city=Dallas --limit=500 --max-calls=500 --skip-ensure-queue
+npx tsx scripts/propagate-agent-contact-emails.ts --state=TX --city=DALLAS
+npx tsx scripts/enrich-agent-emails-public.ts --state=TX --city=DALLAS --limit=500 --fast-search --concurrency=10 --max-search-queries=3 --max-search-links=5 --disable-duckduckgo --delay-ms=0 --fetch-timeout-ms=5000 --row-timeout-ms=25000
 npx tsx scripts/generate-dallas-coverage-dashboard.ts
 ```
 
@@ -62,6 +64,13 @@ writes the cached full response, mortgages, sales history, MLS history, and
 agent fields back to that same `property_id`. Zillow/RapidAPI fallback is also
 property-scoped and writes listing/contact/detail data back to active listings
 for the same `property_id`.
+
+Agent email backfill should run the exact-identity propagation step before
+public search. Propagation fills only rows where the same active agent identity
+already has one unique verified personal email from RealEstateAPI or a public
+profile. Public search may run after that, but it must still require public page
+evidence tied to the agent name and phone or brokerage; do not pattern-generate
+emails.
 
 Never run paid fallback without a daily `--paid-max-calls` cap. If a listing is
 not linked to a `property_id`, link or resolve it first; do not spend paid calls

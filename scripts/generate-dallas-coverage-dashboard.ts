@@ -190,8 +190,6 @@ async function main() {
            count(*) filter (where rs.rent_per_door > 0)::int as rent_per_door_rows,
            count(*) filter (where rs.total_monthly_rent > 0)::int as total_monthly_rows,
            max(rs.observed_at)::text as latest_observed,
-           percentile_cont(0.5) within group (order by coalesce(rs.effective_rent, rs.asking_rent))::numeric as median_rent,
-           percentile_cont(0.5) within group (order by rs.rent_per_door)::numeric as median_rent_per_door,
            sum(coalesce(rs.total_monthly_rent, 0))::numeric as reported_total_monthly_rent
       from rent_snapshots rs
       join properties p on p.id = rs.property_id

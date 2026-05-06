@@ -167,6 +167,28 @@ const MARKET_CONFIGS: Record<string, {
       'Mortgage balance and agent contact fields may be blended from paid fallback sources when MXRE public data is incomplete.',
     ],
   },
+  dallas: {
+    key: 'dallas',
+    aliases: ['dallas', 'dallas-tx'],
+    label: 'Dallas',
+    publicLabel: 'Dallas, TX',
+    city: 'Dallas',
+    cityUpper: 'DALLAS',
+    county: 'Dallas',
+    state: 'TX',
+    countyId: 7,
+    status: 'live',
+    readinessTarget: 60,
+    scope: 'city',
+    refreshCadence: 'daily listing, paid detail, public agent-contact, mortgage/debt, rent, and dashboard refresh; paid detail calls are property-scoped and cached',
+    restrictions: [
+      'Dallas is publishable for BBC underwriting with field-level quality flags; active listings are source-limited Redfin-derived rows, not a guaranteed full MLS inventory.',
+      'Full Dallas County parcel/account rows are loaded; Dallas city situs is exposed as the first user-facing market boundary.',
+      'Agent email coverage is blended from RealEstateAPI, exact verified identity propagation, and public/legal profile search; missing emails are not guessed.',
+      'Mortgage and debt data includes RealEstateAPI paid detail for linked active properties plus public Dallas County recorder documents where linkable.',
+      'Public rent and floorplan coverage is partial and should continue backfilling without blocking BBC exact-address underwriting.',
+    ],
+  },
   columbus: {
     key: 'columbus',
     aliases: ['columbus', 'columbus-oh'],
@@ -2719,11 +2741,12 @@ app.get('/v1/markets/:market/pre-foreclosures', async (c) => {
 
 const creativeFinanceListingsHandler = async (c: Context) => {
   const market = (c.req.param('market') ?? '').toLowerCase();
-  if (!['indianapolis', 'indy'].includes(market)) {
-    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  const marketConfig = resolveMarketConfig(market);
+  if (!marketConfig) {
+    return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
   }
 
-  const scope = getIndianapolisScope(c.req.query('scope'));
+  const scope = marketConfig.key === 'indianapolis' ? getIndianapolisScope(c.req.query('scope')) : null;
   const requestedAsset = (c.req.query('asset') ?? 'all').toLowerCase();
   const allowedAssets = ['all', 'single_family', 'multifamily'];
   if (!allowedAssets.includes(requestedAsset)) {
@@ -2746,10 +2769,13 @@ const creativeFinanceListingsHandler = async (c: Context) => {
   const page = Math.max(parsePositiveInt(c.req.query('page')) ?? 1, 1);
   const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 50, 250);
   const offset = (page - 1) * limit;
-  const listingCitySql = "l.state_code = 'IN' and upper(trim(replace(coalesce(l.city, ''), ',', ''))) = 'INDIANAPOLIS'";
-  const marketWhere = scope.key === 'city'
-    ? listingCitySql
-    : `(p.county_id in (${scope.countySql}) or (${listingCitySql}))`;
+  const listingCitySql = `l.state_code = '${marketConfig.state}' and upper(trim(replace(coalesce(l.city, ''), ',', ''))) = '${marketConfig.cityUpper}'`;
+  const propertyCitySql = `p.state_code = '${marketConfig.state}' and upper(trim(replace(coalesce(p.city, ''), ',', ''))) = '${marketConfig.cityUpper}'`;
+  const marketWhere = scope
+    ? scope.key === 'city'
+      ? listingCitySql
+      : `(p.county_id in (${scope.countySql}) or (${listingCitySql}))`
+    : `(${listingCitySql} or ${propertyCitySql})`;
 
   const assetWhere = requestedAsset === 'single_family'
     ? "and asset_group = 'single_family'"
@@ -2962,9 +2988,9 @@ const creativeFinanceListingsHandler = async (c: Context) => {
 
   return c.json({
     schemaVersion: 'mxre.bbc.creativeFinanceListings.v1',
-    market: 'indianapolis',
+    market: marketConfig.key,
     report: 'creative_finance',
-    geography: { scope: scope.key, scope_label: scope.label },
+    geography: { scope: scope?.key ?? marketConfig.scope, scope_label: scope?.label ?? marketConfig.publicLabel },
     filters: { status: requestedStatus, asset: requestedAsset, zip: zip ?? null, min_price: minPrice, max_price: maxPrice, min_units: minUnits, max_units: maxUnits, since, until },
     page,
     limit,
