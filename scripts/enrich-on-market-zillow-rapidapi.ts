@@ -8,6 +8,10 @@ type Candidate = {
   city: string;
   state_code: string;
   zip: string | null;
+  listing_id: number | null;
+  search_address: string | null;
+  search_city: string | null;
+  search_zip: string | null;
   mls_list_price: number | null;
   listing_url: string | null;
 };
@@ -56,8 +60,9 @@ const descriptionsOnly = args.includes("--descriptions-only");
 const contactsOnly = args.includes("--contacts-only");
 const city = (valueArg("city") ?? "Indianapolis").toUpperCase();
 const state = (valueArg("state") ?? "IN").toUpperCase();
-const limit = Math.min(Math.max(Number(valueArg("limit") ?? "10"), 1), 500);
+const limit = Math.min(Math.max(Number(valueArg("limit") ?? "10"), 1), 2500);
 const maxCalls = Math.min(Math.max(Number(valueArg("max-calls") ?? String(limit)), 0), limit * 5);
+const concurrency = Math.min(Math.max(Number(valueArg("concurrency") ?? "1"), 1), 10);
 const rapidApiKey = process.env.RAPIDAPI_KEY ?? process.env.ZILLOW_RAPIDAPI_KEY;
 const provider = process.env.ZILLOW_RAPIDAPI_PROVIDER ?? "realestate101";
 const host = process.env.ZILLOW_RAPIDAPI_HOST ?? defaultHost(provider);
@@ -84,14 +89,22 @@ function sqlLiteral(value: unknown): string {
   if (Array.isArray(value)) return `array[${value.map(sqlLiteral).join(",")}]`;
   if (typeof value === "number") return Number.isFinite(value) ? String(value) : "null";
   if (typeof value === "boolean") return value ? "true" : "false";
-  return `'${String(value).replace(/'/g, "''")}'`;
+  return dollarQuotedString(String(value));
+}
+
+function dollarQuotedString(value: string): string {
+  let tag = "mxre";
+  while (value.includes(`$${tag}$`)) tag = `${tag}x`;
+  return `$${tag}$${value}$${tag}$`;
 }
 
 function bindSql(query: string, params: unknown[] = []): string {
-  return params.reduceRight((sql, value, index) => {
+  const templated = params.reduceRight((sql, _value, index) => {
     const token = new RegExp(`\\$${index + 1}(?!\\d)`, "g");
-    return sql.replace(token, sqlLiteral(value));
+    return sql.replace(token, `__MXRE_PARAM_${index + 1}__`);
   }, query);
+  return params.reduce((sql, value, index) =>
+    sql.replaceAll(`__MXRE_PARAM_${index + 1}__`, sqlLiteral(value)), templated);
 }
 
 function makeClient(): Queryable {
@@ -131,6 +144,7 @@ const stats = {
   provider: `zillow_api_${provider}`,
   host,
   dryRun,
+  concurrency,
   candidates: 0,
   apiCalls: 0,
   updated: 0,
@@ -146,8 +160,23 @@ try {
   const candidates = await loadCandidates();
   stats.candidates = candidates.length;
 
-  for (const candidate of candidates) {
-    if (!dryRun && stats.apiCalls >= maxCalls) break;
+  let nextIndex = 0;
+  const workerCount = dryRun ? 1 : Math.min(concurrency, candidates.length || 1);
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (nextIndex < candidates.length) {
+      if (!dryRun && stats.apiCalls >= maxCalls) break;
+      const candidate = candidates[nextIndex++];
+      if (!candidate) break;
+      await processCandidate(candidate);
+    }
+  }));
+} finally {
+  await client.end();
+}
+
+console.log(JSON.stringify(stats, null, 2));
+
+async function processCandidate(candidate: Candidate) {
     try {
       if (dryRun) {
         console.log(JSON.stringify({
@@ -155,11 +184,11 @@ try {
           property_id: candidate.property_id,
           listing_url: candidate.listing_url,
         }));
-        continue;
+        return;
       }
 
       const enrichment = await lookupContact(candidate);
-      if (!enrichment) continue;
+      if (!enrichment) return;
       const contact = enrichment.contact;
       if (contact?.name) stats.foundName++;
       if (contact?.email) stats.foundEmail++;
@@ -176,12 +205,7 @@ try {
       stats.failed++;
       console.error(`Failed Zillow lookup for ${candidate.property_id}:`, error instanceof Error ? error.message : error);
     }
-  }
-} finally {
-  await client.end();
 }
-
-console.log(JSON.stringify(stats, null, 2));
 
 async function loadCandidates(): Promise<Candidate[]> {
   const { rows } = await client.query<Candidate>(`
@@ -191,13 +215,18 @@ async function loadCandidates(): Promise<Candidate[]> {
       p.city,
       p.state_code,
       p.zip,
+      l.id as listing_id,
+      coalesce(nullif(l.address,''), p.address) as search_address,
+      coalesce(nullif(l.city,''), p.city) as search_city,
+      coalesce(nullif(l.zip,''), p.zip) as search_zip,
       l.mls_list_price,
       l.listing_url
     from listing_signals l
     join properties p on p.id = l.property_id
     where l.is_on_market = true
+      and l.state_code = $1
+      and upper(coalesce(l.city,'')) = $2
       and p.state_code = $1
-      and upper(coalesce(p.city,'')) = $2
       and (
         $3::boolean = true
         or (
@@ -575,7 +604,12 @@ function findAgentScreenName(payload: unknown): string | null {
 }
 
 function requestLabel(candidate: Candidate): string {
-  return [candidate.address, candidate.city, candidate.state_code, candidate.zip].filter(Boolean).join(", ");
+  return [
+    candidate.search_address ?? candidate.address,
+    candidate.search_city ?? candidate.city,
+    candidate.state_code,
+    candidate.search_zip ?? candidate.zip,
+  ].filter(Boolean).join(", ");
 }
 
 function defaultHost(providerName: string) {
