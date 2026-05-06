@@ -22,6 +22,7 @@ const valueArg = (name: string) => {
 const dryRun = args.includes("--dry-run");
 const force = args.includes("--force");
 const cacheOnly = args.includes("--cache-only");
+const skipEnsureQueue = args.includes("--skip-ensure-queue");
 const city = (valueArg("city") ?? "Indianapolis").toUpperCase();
 const state = (valueArg("state") ?? "IN").toUpperCase();
 const limit = Math.min(Math.max(Number(valueArg("limit") ?? "25"), 1), 2500);
@@ -100,6 +101,7 @@ const stats = {
   dryRun,
   force,
   cacheOnly,
+  skipEnsureQueue,
   queued: 0,
   candidates: 0,
   apiCalls: 0,
@@ -109,7 +111,7 @@ const stats = {
 };
 
 try {
-  const previewCandidates = await ensureQueue();
+  const previewCandidates = skipEnsureQueue ? [] : await ensureQueue();
   const candidates = dryRun ? previewCandidates : await loadCandidates();
   stats.candidates = candidates.length;
 
@@ -262,7 +264,17 @@ async function loadCandidates(): Promise<Candidate[]> {
       where q.provider = 'realestateapi'
         and q.status in ('queued','failed')
         and p.state_code = $1
-        and upper(coalesce(p.city,'')) = $2
+        and (
+          upper(coalesce(p.city,'')) = $2
+          or exists (
+            select 1
+              from listing_signals l
+             where l.property_id = p.id
+               and l.is_on_market = true
+               and l.state_code = $1
+               and upper(coalesce(l.city,'')) = $2
+          )
+        )
       group by p.id, p.address, p.city, p.state_code, p.zip
       order by min(q.priority), p.id
       limit $3;
@@ -284,7 +296,17 @@ async function loadCandidates(): Promise<Candidate[]> {
       and q.status in ('queued','failed')
       and q.next_run_at <= now()
       and p.state_code = $1
-      and upper(coalesce(p.city,'')) = $2
+      and (
+        upper(coalesce(p.city,'')) = $2
+        or exists (
+          select 1
+            from listing_signals l
+           where l.property_id = p.id
+             and l.is_on_market = true
+             and l.state_code = $1
+             and upper(coalesce(l.city,'')) = $2
+        )
+      )
     group by p.id, p.address, p.city, p.state_code, p.zip
     order by min(q.priority), p.id
     limit $3;

@@ -36,6 +36,8 @@ function normalize(value: string): string {
     .replace(/\bAVENUE\b/g, "AVE")
     .replace(/\bBOULEVARD\b/g, "BLVD")
     .replace(/\bDRIVE\b/g, "DR")
+    .replace(/\bPLAZA\b/g, "PLZ")
+    .replace(/\bSPRINGS\b/g, "SPGS")
     .replace(/\bLANE\b/g, "LN")
     .replace(/\bROAD\b/g, "RD")
     .replace(/\bCOURT\b/g, "CT")
@@ -51,9 +53,22 @@ function normalize(value: string): string {
 
 function keys(address: string): string[] {
   const full = normalize(address);
-  const withoutUnit = full.replace(/\s+UNIT\s+\S+.*$/, "").replace(/\s+\d+[A-Z]?$/, "").trim();
+  const unitMatch = full.match(/\s+UNIT\s+([A-Z0-9-]+)\s*$/);
+  const unit = unitMatch?.[1];
+  const base = full.replace(/\s+UNIT\s+\S+.*$/, "").trim();
+  const withoutUnit = base.replace(/\s+\d+[A-Z]?$/, "").trim();
   const lotNormalized = full.replace(/\s+LOT\s+(\S+)/, " UNIT $1");
-  return [...new Set([full, lotNormalized, withoutUnit].filter(k => k.length >= 5))];
+  const unitVariants: string[] = [];
+  if (unit) {
+    unitVariants.push(`${base} ${unit}`);
+    if (/^\d+$/.test(unit)) unitVariants.push(`${base} ${unit.padStart(4, "0")}`);
+    unitVariants.push(`${base} UNIT ${unit.replace(/^0+/, "")}`);
+  }
+  return [...new Set([full, lotNormalized, ...unitVariants, withoutUnit].filter(k => k.length >= 5))];
+}
+
+function streetNumber(address: string): string | null {
+  return normalize(address).match(/^(\d+[A-Z]?)/)?.[1] ?? null;
 }
 
 async function main() {
@@ -73,12 +88,14 @@ async function main() {
   `);
 
   const zips = [...new Set(listings.map(row => String(row.zip ?? "").match(/\d{5}/)?.[0]).filter(Boolean))];
+  const streetNumbers = [...new Set(listings.map(row => streetNumber(String(row.address ?? ""))).filter(Boolean))];
   const properties = await pg(`
     select id, address, zip
       from properties
      where county_id = 7
        and state_code = 'TX'
        and zip in (${zips.map(sql).join(",") || "null"})
+       and split_part(upper(address), ' ', 1) in (${streetNumbers.map(sql).join(",") || "null"})
        and nullif(address,'') is not null;
   `);
 
