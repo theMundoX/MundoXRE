@@ -146,6 +146,7 @@ const MARKET_CONFIGS: Record<string, {
   publicLabel: string;
   refreshCadence: string;
   restrictions: string[];
+  fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
   indianapolis: {
     key: 'indianapolis',
@@ -188,6 +189,38 @@ const MARKET_CONFIGS: Record<string, {
       'Mortgage and debt data includes RealEstateAPI paid detail for linked active properties plus public Dallas County recorder documents where linkable.',
       'Public rent and floorplan coverage is partial and should continue backfilling without blocking BBC exact-address underwriting.',
     ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 357450,
+        parcel_identity_count: 357450,
+        classified_count: 357450,
+        ownership_count: 356750,
+        valuation_count: 337386,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 5426,
+        active_property_count: 5158,
+        agent_name_count: 5426,
+        agent_email_count: 3795,
+        agent_phone_count: 5303,
+        brokerage_count: 5413,
+        creative_finance_count: 102,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 7439,
+        properties_with_mortgage_records: 3214,
+        mortgage_amount_count: 7341,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 71,
+        properties_with_rent_snapshots: 9,
+        latest_rent_observed: null,
+      },
+    },
   },
   columbus: {
     key: 'columbus',
@@ -5531,7 +5564,11 @@ async function buildCoverageMarketRows(): Promise<Array<Record<string, unknown>>
       metrics = row ?? {};
     } catch (error) {
       console.warn(`[MXRE coverage markets] failed to build metrics for ${market.key}:`, error);
-      metrics = { error: error instanceof Error ? error.message : String(error) };
+      metrics = {
+        ...(market.fallbackCoverageMetrics ?? {}),
+        error: error instanceof Error ? error.message : String(error),
+        fallback: market.fallbackCoverageMetrics ? 'configured_market_coverage_snapshot' : null,
+      };
     }
 
     const parcels = normalizeRecord(metrics.parcels);
@@ -5587,6 +5624,7 @@ async function buildCoverageMarketRows(): Promise<Array<Record<string, unknown>>
         propertiesWithRentSnapshots: numberOrNull(rents.properties_with_rent_snapshots) ?? 0,
       },
       metricsError: typeof metrics.error === 'string' ? metrics.error : null,
+      metricsFallback: typeof metrics.fallback === 'string' ? metrics.fallback : null,
       coverage: {
         parcelIdentityPct: pctOf(parcels.parcel_identity_count, parcelCount),
         assetClassificationPct: pctOf(parcels.classified_count, parcelCount),
