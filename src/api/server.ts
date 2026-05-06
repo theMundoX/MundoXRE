@@ -1133,7 +1133,18 @@ app.post('/v1/bbc/search-runs', async (c) => {
   ].filter(Boolean).join('\n      ');
 
   const [result] = await queryPg<Record<string, unknown>>(`
-    with normalized as (
+    with listing_scope as (
+      select l.*
+      from listing_signals l
+      where coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
+        and l.state_code = '${marketConfig.state}'
+        and upper(coalesce(l.city,'')) = '${marketConfig.cityUpper}'
+        and l.property_id is not null
+        ${excludeSql}
+        ${statusSql}
+        ${creativeSql}
+    ),
+    normalized as (
       select
         p.*,
         case
@@ -1148,8 +1159,7 @@ app.post('/v1/bbc/search-runs', async (c) => {
           else coalesce(nullif(p.asset_type, ''), nullif(p.property_type, ''), 'unknown')
         end as asset_group
       from properties p
-      where p.state_code = '${marketConfig.state}'
-        and upper(coalesce(p.city,'')) = '${marketConfig.cityUpper}'
+      join (select distinct property_id from listing_scope) ls on ls.property_id = p.id
     ),
     debt_rows as (
       select
@@ -1162,6 +1172,7 @@ app.post('/v1/bbc/search-runs', async (c) => {
         m.recording_date,
         m.maturity_date
       from mortgage_records m
+      join normalized np on np.id = m.property_id
       where (
           coalesce(m.open, true) = true
           or (m.maturity_date is not null and m.maturity_date::date > current_date)
@@ -1274,16 +1285,13 @@ app.post('/v1/bbc/search-runs', async (c) => {
         l.first_seen_at,
         l.last_seen_at,
         greatest(coalesce(l.last_seen_at, '-infinity'::timestamptz), coalesce(l.first_seen_at, '-infinity'::timestamptz)) as changed_at
-      from listing_signals l
+      from listing_scope l
       join normalized p on p.id = l.property_id
       left join debt d on d.property_id = p.id
-      where coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
-        ${excludeSql}
+      where true
         ${assetSql}
         ${unitClassSql}
-        ${statusSql}
         ${priceSql}
-        ${creativeSql}
     ),
     enriched as (
       select
