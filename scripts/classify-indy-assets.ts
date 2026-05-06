@@ -18,6 +18,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const getArg = (name: string) => process.argv.find((arg) => arg.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 const BATCH_SIZE = Math.max(100, Number.parseInt(getArg("batch-size") ?? "1000", 10));
 const MAX_RETRIES = Math.max(1, Number.parseInt(getArg("retries") ?? "3", 10));
+const MAX_BATCHES_PER_RULE = Math.max(1, Number.parseInt(getArg("max-batches-per-rule") ?? "50", 10));
 
 async function pg(query: string): Promise<any[]> {
   if (DRY_RUN && /^\s*(update|insert|delete|alter|create)/i.test(query)) {
@@ -54,8 +55,18 @@ async function pg(query: string): Promise<any[]> {
 async function updateBatched(label: string, setSql: string, whereSql: string) {
   console.log(`\n${label}`);
   let total = 0;
+  let batches = 0;
+
+  if (DRY_RUN) {
+    console.log("  dry-run only; skipped heavy update scan");
+    return;
+  }
 
   while (true) {
+    if (batches >= MAX_BATCHES_PER_RULE) {
+      console.log(`\n  paused after ${batches} batches; rerun to continue`);
+      break;
+    }
     const rows = await pg(`
       WITH target AS (
         SELECT id
@@ -73,6 +84,7 @@ async function updateBatched(label: string, setSql: string, whereSql: string) {
       SELECT count(*)::int AS updated FROM changed;
     `);
     const count = Number(rows?.[0]?.updated ?? 0);
+    batches++;
     total += count;
     process.stdout.write(`\r  updated ${total.toLocaleString()}   `);
     if (count === 0 || DRY_RUN) break;
@@ -241,6 +253,11 @@ async function main() {
     `${indyWhere}
      AND asset_type IS NULL`,
   );
+
+  if (DRY_RUN) {
+    console.log("\nSummary skipped in dry-run to avoid heavy market scan.");
+    return;
+  }
 
   const summary = await pg(`
     SELECT asset_type, asset_subtype, unit_count_source, asset_confidence,

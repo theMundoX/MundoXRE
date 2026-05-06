@@ -583,7 +583,8 @@ app.get('/v1/platform/source-registry', (c) => {
 const coverageMarketsHandler = async (c: Context) => {
   const includeBuilding = c.req.query('includeBuilding') === 'true';
   const includeBelowTarget = c.req.query('includeBelowTarget') === 'true';
-  const markets = await buildCoverageMarketRows();
+  const includeLiveMetrics = c.req.query('includeLiveMetrics') === 'true';
+  const markets = await buildCoverageMarketRows(includeLiveMetrics);
   const filtered = markets.filter((market) => {
     if (!includeBuilding && market.status === 'building') return false;
     if (!includeBelowTarget && market.meetsReadinessTarget !== true) return false;
@@ -622,6 +623,24 @@ const coverageMarketsHandler = async (c: Context) => {
 
 app.get('/v1/bbc/markets', coverageMarketsHandler);
 app.get('/v1/markets', coverageMarketsHandler);
+app.get('/v1/coverage/markets', coverageMarketsHandler);
+
+const coverageMarketDetailHandler = async (c: Context) => {
+  const marketConfig = resolveMarketConfig(c.req.param('market') ?? '');
+  if (!marketConfig) return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 404);
+  const includeLiveMetrics = c.req.query('includeLiveMetrics') === 'true';
+  const markets = await buildCoverageMarketRows(includeLiveMetrics);
+  const market = markets.find((row) => row.marketId === marketConfig.key);
+  return c.json({
+    schemaVersion: 'mxre.bbc.coverageMarket.v1',
+    market,
+    canonicalListEndpoint: '/v1/bbc/markets',
+    generatedAt: new Date().toISOString(),
+  });
+};
+
+app.get('/v1/bbc/markets/:market', coverageMarketDetailHandler);
+app.get('/v1/markets/:market', coverageMarketDetailHandler);
 
 app.get('/v1/addresses/autocomplete', async (c) => {
   const q = normalizeAutocompleteQuery(c.req.query('q') ?? c.req.query('query') ?? '');
@@ -5651,12 +5670,13 @@ function buildAutocompleteResponse(query: string, limit: number, rows: Record<st
   };
 }
 
-async function buildCoverageMarketRows(): Promise<Array<Record<string, unknown>>> {
+async function buildCoverageMarketRows(includeLiveMetrics = false): Promise<Array<Record<string, unknown>>> {
   const markets = Object.values(MARKET_CONFIGS);
   return Promise.all(markets.map(async (market) => {
-    let metrics: Record<string, unknown> = {};
-    try {
-      const [row] = await queryPg<Record<string, unknown>>(`
+    let metrics: Record<string, unknown> = market.fallbackCoverageMetrics ?? {};
+    if (includeLiveMetrics) {
+      try {
+        const [row] = await queryPg<Record<string, unknown>>(`
         with parcels as (
           select
             count(*)::int as parcel_count,
@@ -5716,13 +5736,19 @@ async function buildCoverageMarketRows(): Promise<Array<Record<string, unknown>>
           row_to_json(rents) as rents
         from parcels, listings, debt, rents;
       `);
-      metrics = row ?? {};
-    } catch (error) {
-      console.warn(`[MXRE coverage markets] failed to build metrics for ${market.key}:`, error);
+        metrics = row ?? {};
+      } catch (error) {
+        console.warn(`[MXRE coverage markets] failed to build metrics for ${market.key}:`, error);
+        metrics = {
+          ...(market.fallbackCoverageMetrics ?? {}),
+          error: error instanceof Error ? error.message : String(error),
+          fallback: market.fallbackCoverageMetrics ? 'configured_market_coverage_snapshot' : null,
+        };
+      }
+    } else if (market.fallbackCoverageMetrics) {
       metrics = {
-        ...(market.fallbackCoverageMetrics ?? {}),
-        error: error instanceof Error ? error.message : String(error),
-        fallback: market.fallbackCoverageMetrics ? 'configured_market_coverage_snapshot' : null,
+        ...market.fallbackCoverageMetrics,
+        fallback: 'configured_market_coverage_snapshot',
       };
     }
 

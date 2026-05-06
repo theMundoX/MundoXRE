@@ -21,6 +21,7 @@ interface MarketRefreshJob {
   label: string;
   enabled: boolean;
   required?: boolean;
+  continueOnFailure?: boolean;
   command: string[];
 }
 
@@ -148,9 +149,11 @@ async function main() {
       exit_code: exitCode,
     });
 
-    if (status === "failed" && required) {
+    if (status === "failed" && required && job.continueOnFailure === false) {
       console.error(`Required market refresh failed: ${job.label}`);
       break;
+    } else if (status === "failed" && required) {
+      console.error(`Required market refresh failed: ${job.label}; continuing to remaining market jobs.`);
     }
   }
 

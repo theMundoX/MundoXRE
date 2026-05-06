@@ -6,6 +6,7 @@
       "label": "Indianapolis, IN",
       "enabled": true,
       "required": true,
+      "continueOnFailure": true,
       "command": ["npx", "tsx", "scripts/refresh-indianapolis-market.ts"]
     },
     {
@@ -13,6 +14,7 @@
       "label": "Dallas, TX",
       "enabled": true,
       "required": true,
+      "continueOnFailure": true,
       "command": ["npx", "tsx", "scripts/refresh-dallas-market.ts"]
     }
   ]

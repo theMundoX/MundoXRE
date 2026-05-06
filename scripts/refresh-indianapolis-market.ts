@@ -57,8 +57,8 @@ interface StepResult {
 const steps: Step[] = [
   {
     name: "Classify Indianapolis parcel asset types",
-    command: ["npx", "tsx", "scripts/classify-indy-assets.ts", "--batch-size=1000", ...(DRY_RUN ? ["--dry-run"] : [])],
-    required: true,
+    command: ["npx", "tsx", "scripts/classify-indy-assets.ts", "--batch-size=500", "--max-batches-per-rule=25", ...(DRY_RUN ? ["--dry-run"] : [])],
+    required: false,
     supportsDryRun: true,
     skip: SKIP_CLASSIFY,
   },
