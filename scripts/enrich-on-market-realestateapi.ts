@@ -10,6 +10,10 @@ type Candidate = {
   city: string;
   state_code: string;
   zip: string | null;
+  listing_id?: number | null;
+  search_address?: string | null;
+  search_city?: string | null;
+  search_zip?: string | null;
   reasons: string[];
 };
 
@@ -164,6 +168,10 @@ async function ensureQueue(): Promise<Candidate[]> {
         p.city,
         p.state_code,
         p.zip,
+        l.id as listing_id,
+        coalesce(nullif(l.address,''), p.address) as search_address,
+        coalesce(nullif(l.city,''), p.city) as search_city,
+        coalesce(nullif(l.zip,''), p.zip) as search_zip,
         array_remove(array[
           case when not exists (
             select 1 from mortgage_records mr
@@ -180,7 +188,8 @@ async function ensureQueue(): Promise<Candidate[]> {
       left join realestateapi_property_details cache on cache.property_id = p.id
       where l.is_on_market = true
         and p.state_code = $1
-        and upper(coalesce(p.city,'')) = $2
+        and l.state_code = $1
+        and upper(coalesce(l.city,'')) = $2
         and (
           $3::boolean = true
           or cache.id is null
@@ -237,6 +246,10 @@ async function loadCandidates(): Promise<Candidate[]> {
         p.city,
         p.state_code,
         p.zip,
+        null::int as listing_id,
+        p.address as search_address,
+        p.city as search_city,
+        p.zip as search_zip,
         array['cache_only_renormalize']::text[] as reasons
       from realestateapi_property_details r
       join properties p on p.id = r.property_id
@@ -258,24 +271,27 @@ async function loadCandidates(): Promise<Candidate[]> {
         p.city,
         p.state_code,
         p.zip,
+        l.id as listing_id,
+        coalesce(nullif(l.address,''), p.address) as search_address,
+        coalesce(nullif(l.city,''), p.city) as search_city,
+        coalesce(nullif(l.zip,''), p.zip) as search_zip,
         array_agg(distinct q.reason order by q.reason) as reasons
       from property_enrichment_queue q
       join properties p on p.id = q.property_id
+      join lateral (
+        select id, address, city, state_code, zip
+          from listing_signals
+         where property_id = p.id
+           and is_on_market = true
+           and state_code = $1
+           and upper(coalesce(city,'')) = $2
+         order by last_seen_at desc nulls last, updated_at desc nulls last
+         limit 1
+      ) l on true
       where q.provider = 'realestateapi'
         and q.status in ('queued','failed')
         and p.state_code = $1
-        and (
-          upper(coalesce(p.city,'')) = $2
-          or exists (
-            select 1
-              from listing_signals l
-             where l.property_id = p.id
-               and l.is_on_market = true
-               and l.state_code = $1
-               and upper(coalesce(l.city,'')) = $2
-          )
-        )
-      group by p.id, p.address, p.city, p.state_code, p.zip
+      group by p.id, p.address, p.city, p.state_code, p.zip, l.id, l.address, l.city, l.zip
       order by min(q.priority), p.id
       limit $3;
     `, [state, city, limit]);
@@ -289,25 +305,28 @@ async function loadCandidates(): Promise<Candidate[]> {
       p.city,
       p.state_code,
       p.zip,
+      l.id as listing_id,
+      coalesce(nullif(l.address,''), p.address) as search_address,
+      coalesce(nullif(l.city,''), p.city) as search_city,
+      coalesce(nullif(l.zip,''), p.zip) as search_zip,
       array_agg(distinct q.reason order by q.reason) as reasons
     from property_enrichment_queue q
     join properties p on p.id = q.property_id
+    join lateral (
+      select id, address, city, state_code, zip
+        from listing_signals
+       where property_id = p.id
+         and is_on_market = true
+         and state_code = $1
+         and upper(coalesce(city,'')) = $2
+       order by last_seen_at desc nulls last, updated_at desc nulls last
+       limit 1
+    ) l on true
     where q.provider = 'realestateapi'
       and q.status in ('queued','failed')
       and q.next_run_at <= now()
       and p.state_code = $1
-      and (
-        upper(coalesce(p.city,'')) = $2
-        or exists (
-          select 1
-            from listing_signals l
-           where l.property_id = p.id
-             and l.is_on_market = true
-             and l.state_code = $1
-             and upper(coalesce(l.city,'')) = $2
-        )
-      )
-    group by p.id, p.address, p.city, p.state_code, p.zip
+    group by p.id, p.address, p.city, p.state_code, p.zip, l.id, l.address, l.city, l.zip
     order by min(q.priority), p.id
     limit $3;
   `, [state, city, limit]);
@@ -342,7 +361,12 @@ async function loadAnyCache(propertyId: number) {
 }
 
 function buildRequest(candidate: Candidate) {
-  const label = [candidate.address, candidate.city, candidate.state_code, candidate.zip].filter(Boolean).join(", ");
+  const label = [
+    candidate.search_address ?? candidate.address,
+    candidate.search_city ?? candidate.city,
+    candidate.state_code,
+    candidate.search_zip ?? candidate.zip,
+  ].filter(Boolean).join(", ");
   return {
     address: label,
     exact_match: true,
