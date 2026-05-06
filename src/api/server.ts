@@ -2285,6 +2285,272 @@ app.get('/v1/markets/:market/price-changes', async (c) => {
   });
 });
 
+app.get('/v1/markets/:market/analytics', async (c) => {
+  const marketConfig = resolveMarketConfig(c.req.param('market'));
+  if (!marketConfig || marketConfig.key !== 'indianapolis') {
+    return c.json({ error: 'Unsupported market', supported_markets: ['indianapolis'] }, 400);
+  }
+
+  const days = Math.min(parsePositiveInt(c.req.query('days')) ?? 30, 365);
+  const limit = Math.min(parsePositiveInt(c.req.query('limit')) ?? 25, 100);
+  const listingWhere = `l.state_code = '${sqlString(marketConfig.state)}' and l.city ilike '%${sqlString(marketConfig.cityUpper)}%'`;
+  const eventWhere = `e.state_code = '${sqlString(marketConfig.state)}' and e.city ilike '%${sqlString(marketConfig.cityUpper)}%'`;
+
+  const [analytics] = await queryPg<Record<string, unknown>>(`
+    with active as (
+      select
+        l.id as listing_id,
+        l.property_id,
+        coalesce(p.address, l.address) as address,
+        coalesce(p.city, l.city) as city,
+        coalesce(p.state_code, l.state_code) as state_code,
+        coalesce(p.zip, l.zip) as zip,
+        case
+          when p.asset_type = 'commercial_multifamily' or coalesce(p.property_use, '') ilike '%APT%UNITS%' then 'commercial_multifamily'
+          when p.asset_type = 'small_multifamily'
+            or coalesce(p.property_use, '') ilike '%TWO FAMILY%'
+            or coalesce(p.property_use, '') ilike '%THREE FAMILY%' then 'small_multifamily'
+          when p.asset_subtype in ('sfr', 'condo')
+            or coalesce(p.property_use, '') ilike '%ONE FAMILY%'
+            or coalesce(p.property_use, '') ilike '%CONDO%'
+            or coalesce(p.property_use, '') ilike 'RES VAC%' then 'single_family'
+          when l.property_id is null then 'unlinked_listing'
+          else coalesce(nullif(p.asset_type, ''), nullif(p.property_type, ''), 'unknown')
+        end as asset_group,
+        p.asset_type,
+        p.asset_subtype,
+        p.property_use,
+        p.total_units,
+        p.bedrooms,
+        coalesce(p.bathrooms, p.bathrooms_full) as bathrooms,
+        p.living_sqft,
+        p.market_value,
+        l.mls_list_price,
+        l.days_on_market,
+        l.listing_source,
+        l.listing_url,
+        l.listing_agent_name,
+        l.listing_agent_email,
+        l.listing_agent_phone,
+        l.listing_brokerage,
+        l.creative_finance_score,
+        l.creative_finance_status,
+        l.creative_finance_terms,
+        l.creative_finance_negative_terms,
+        l.creative_finance_rate_text,
+        l.first_seen_at,
+        l.last_seen_at,
+        l.raw,
+        nullif(coalesce(
+          l.raw #>> '{redfinDetail,publicRemarks}',
+          l.raw #>> '{redfinDetail,description}',
+          l.raw #>> '{publicRemarks}',
+          l.raw #>> '{remarks}',
+          l.raw #>> '{description}',
+          l.raw #>> '{listingDescription}',
+          l.raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+          l.raw #>> '{zillow_rapidapi_detail,raw,description}',
+          l.raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+          l.raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
+          l.raw #>> '{mls,remarks}',
+          l.raw #>> '{mls,description}',
+          ''
+        ), '') as listing_description
+      from listing_signals l
+      left join properties p on p.id = l.property_id
+      where l.is_on_market = true
+        and ${listingWhere}
+    ),
+    recent_events as (
+      select e.*
+      from listing_signal_events e
+      where ${eventWhere}
+        and e.event_at >= now() - interval '${days} days'
+    ),
+    event_counts as (
+      select event_type, count(*)::int as count
+      from recent_events
+      group by event_type
+    ),
+    daily_events as (
+      select date_trunc('day', event_at)::date as day, event_type, count(*)::int as count
+      from recent_events
+      group by 1,2
+      order by 1 desc, 2
+    )
+    select
+      jsonb_build_object(
+        'activeRows', (select count(*) from active),
+        'activeProperties', (select count(distinct property_id) from active),
+        'medianListPrice', (select round(percentile_cont(0.5) within group (order by mls_list_price))::int from active where mls_list_price > 0),
+        'medianDaysOnMarket', (select round(percentile_cont(0.5) within group (order by days_on_market))::int from active where days_on_market is not null),
+        'creativePositive', (select count(*) from active where creative_finance_status = 'positive'),
+        'creativeNegative', (select count(*) from active where creative_finance_status = 'negative'),
+        'agentEmailCoveragePct', (select case when count(*) = 0 then 0 else round((count(*) filter (where listing_agent_email is not null)::numeric / count(*)) * 100, 2) end from active),
+        'agentPhoneCoveragePct', (select case when count(*) = 0 then 0 else round((count(*) filter (where listing_agent_phone is not null)::numeric / count(*)) * 100, 2) end from active),
+        'descriptionCoveragePct', (select case when count(*) = 0 then 0 else round((count(*) filter (where listing_description is not null)::numeric / count(*)) * 100, 2) end from active),
+        'priceDrops', (select count(*) from recent_events where event_type = 'price_changed' and list_price < previous_list_price),
+        'delisted', (select count(*) from recent_events where event_type = 'delisted'),
+        'newListings', (select count(*) from recent_events where event_type in ('listed','listing_created','listing_refreshed')),
+        'relisted', (select count(*) from recent_events where event_type = 'relisted')
+      ) as overview,
+      (select coalesce(jsonb_object_agg(event_type, count), '{}'::jsonb) from event_counts) as event_counts,
+      (select coalesce(jsonb_agg(row_to_json(d)), '[]'::jsonb) from daily_events d) as daily_events,
+      (select coalesce(jsonb_agg(row_to_json(a)), '[]'::jsonb)
+       from (
+         select
+           asset_group as "assetGroup",
+           count(*)::int as listings,
+           count(distinct property_id)::int as properties,
+           round(percentile_cont(0.5) within group (order by mls_list_price))::int as "medianListPrice",
+           count(*) filter (where creative_finance_status = 'positive')::int as "creativePositive",
+           count(*) filter (where listing_agent_email is not null)::int as "withAgentEmail",
+           count(*) filter (where listing_description is not null)::int as "withDescription"
+         from active
+         group by asset_group
+         order by count(*) desc
+       ) a) as asset_mix,
+      (select coalesce(jsonb_agg(row_to_json(z)), '[]'::jsonb)
+       from (
+         select
+           zip,
+           count(*)::int as listings,
+           count(distinct property_id)::int as properties,
+           round(percentile_cont(0.5) within group (order by mls_list_price))::int as "medianListPrice",
+           round(percentile_cont(0.5) within group (order by days_on_market))::int as "medianDom",
+           count(*) filter (where creative_finance_status = 'positive')::int as "creativePositive",
+           count(*) filter (where listing_agent_email is not null or listing_agent_phone is not null)::int as "withContact"
+         from active
+         group by zip
+         order by count(*) desc, zip
+         limit 25
+       ) z) as zip_rankings,
+      (select coalesce(jsonb_agg(row_to_json(p)), '[]'::jsonb)
+       from (
+         select
+           event_at as "eventAt",
+           address,
+           zip,
+           listing_source as "listingSource",
+           listing_url as "listingUrl",
+           previous_list_price as "previousListPrice",
+           list_price as "listPrice",
+           (previous_list_price - list_price)::numeric as "dropAmount",
+           case when previous_list_price > 0 then round(((previous_list_price - list_price) / previous_list_price) * 100, 2) else null end as "dropPct",
+           days_on_market as "daysOnMarket",
+           listing_agent_name as "listingAgentName",
+           listing_brokerage as "listingBrokerage"
+         from recent_events
+         where event_type = 'price_changed'
+           and list_price is not null
+           and previous_list_price is not null
+           and list_price < previous_list_price
+         order by (previous_list_price - list_price) desc nulls last, event_at desc
+         limit ${limit}
+       ) p) as price_drops,
+      (select coalesce(jsonb_agg(row_to_json(c)), '[]'::jsonb)
+       from (
+         select
+           listing_id as "listingId",
+           property_id as "propertyId",
+           address,
+           zip,
+           asset_group as "assetGroup",
+           total_units as "unitCount",
+           mls_list_price as "listPrice",
+           days_on_market as "daysOnMarket",
+           listing_source as "listingSource",
+           listing_url as "listingUrl",
+           listing_agent_name as "listingAgentName",
+           listing_agent_email as "listingAgentEmail",
+           listing_agent_phone as "listingAgentPhone",
+           listing_brokerage as "listingBrokerage",
+           creative_finance_score as "creativeFinanceScore",
+           creative_finance_terms as "creativeFinanceTerms",
+           creative_finance_rate_text as "creativeFinanceRateText",
+           left(listing_description, 700) as "listingDescription"
+         from active
+         where creative_finance_status = 'positive'
+         order by coalesce(creative_finance_score, 0) desc, last_seen_at desc nulls last
+         limit ${limit}
+       ) c) as creative_finance,
+      (select coalesce(jsonb_agg(row_to_json(d)), '[]'::jsonb)
+       from (
+         select
+           event_at as "eventAt",
+           address,
+           zip,
+           listing_source as "listingSource",
+           listing_url as "listingUrl",
+           list_price as "lastListPrice",
+           days_on_market as "daysOnMarket",
+           listing_agent_name as "listingAgentName",
+           listing_brokerage as "listingBrokerage"
+         from recent_events
+         where event_type = 'delisted'
+         order by event_at desc
+         limit ${limit}
+       ) d) as delisted,
+      (select coalesce(jsonb_agg(row_to_json(e)), '[]'::jsonb)
+       from (
+         select
+           event_at as "eventAt",
+           event_type as "eventType",
+           address,
+           zip,
+           listing_source as "listingSource",
+           previous_list_price as "previousListPrice",
+           list_price as "listPrice",
+           mls_status as status,
+           previous_mls_status as "previousStatus"
+         from recent_events
+         order by event_at desc
+         limit ${limit}
+       ) e) as change_feed,
+      jsonb_build_object(
+        'activeRows', (select count(*) from active),
+        'withAgentName', (select count(*) from active where listing_agent_name is not null),
+        'withAgentPhone', (select count(*) from active where listing_agent_phone is not null),
+        'withAgentEmail', (select count(*) from active where listing_agent_email is not null),
+        'withBrokerage', (select count(*) from active where listing_brokerage is not null),
+        'withDescription', (select count(*) from active where listing_description is not null),
+        'withPrice', (select count(*) from active where mls_list_price is not null),
+        'linkedToProperty', (select count(*) from active where property_id is not null)
+      ) as data_quality;
+  `);
+
+  return c.json({
+    schemaVersion: 'mxre.marketAnalytics.v1',
+    market: marketConfig.key,
+    geography: {
+      city: marketConfig.city,
+      state: marketConfig.state,
+      county: marketConfig.county,
+      scope: marketConfig.scope,
+    },
+    window: { days },
+    overview: analytics?.overview ?? {},
+    eventCounts: analytics?.event_counts ?? {},
+    dailyEvents: analytics?.daily_events ?? [],
+    assetMix: analytics?.asset_mix ?? [],
+    zipRankings: analytics?.zip_rankings ?? [],
+    reports: {
+      priceDrops: analytics?.price_drops ?? [],
+      creativeFinance: analytics?.creative_finance ?? [],
+      delisted: analytics?.delisted ?? [],
+      changeFeed: analytics?.change_feed ?? [],
+    },
+    dataQuality: analytics?.data_quality ?? {},
+    recommendations: [
+      'Use /v1/bbc/markets/indianapolis/changes for incremental BBC sync and re-underwrite only changed deals.',
+      'Use priceDrops and delisted reports as first negotiation-focused lead queues.',
+      'Use creativeFinance rows only when listingDescription is present so users can verify the exact public remarks.',
+      'Keep agent email and mortgage balance as explicit data-quality metrics because they rely on fallback enrichment.',
+    ],
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/v1/markets/:market/pre-foreclosures', async (c) => {
   const market = c.req.param('market').toLowerCase();
   if (!['indianapolis', 'indy'].includes(market)) {
@@ -4041,8 +4307,53 @@ app.get('/preview/market-dashboard', async (c) => {
   if (market && market !== 'indianapolis' && market !== 'indy') {
     return c.html(renderMarketSnapshotDashboard(market, apiKey));
   }
-  return c.html(renderAnalystMarketDashboard(apiKey));
+  return c.html(renderMarketCommandCenter(apiKey));
 });
+
+function renderMarketCommandCenter(apiKey: string): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MXRE Market Command Center</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1110;--panel:#141918;--panel2:#1a211f;--line:#2d3834;--text:#eff7f1;--muted:#9cacA4;--green:#38d47c;--blue:#66b7ff;--amber:#f4bd50;--red:#f26d6d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.top{position:sticky;top:0;z-index:5;background:#111615;border-bottom:1px solid var(--line);padding:16px 22px;display:flex;justify-content:space-between;gap:14px;align-items:center}.brand{font-size:18px;font-weight:850;letter-spacing:.04em}.sub,.muted{color:var(--muted)}main{max-width:1540px;margin:0 auto;padding:18px 22px 34px}.tabs,.chips{display:flex;gap:8px;flex-wrap:wrap}.tab,.chip,.btn{border:1px solid var(--line);border-radius:7px;background:#111615;color:var(--muted);padding:9px 12px;font-weight:750;cursor:pointer}.tab.active,.chip.active,.btn.primary{background:#183323;border-color:#2c8052;color:#e8fff0}.grid{display:grid;gap:12px}.kpis{grid-template-columns:repeat(6,minmax(145px,1fr));margin:14px 0}.three{grid-template-columns:1fr 1fr 1fr}.two{grid-template-columns:1fr 1.6fr}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}.card h2,.card h3{margin:0 0 9px;font-size:14px}.metric{font-size:28px;font-weight:850;line-height:1}.good{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}.blue{color:var(--blue)}.toolbar{display:grid;grid-template-columns:1fr repeat(4,130px) auto;gap:8px;margin:14px 0}.toolbar input,.toolbar select{background:#101514;border:1px solid var(--line);border-radius:7px;color:var(--text);padding:10px;width:100%}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid rgba(255,255,255,.07);padding:9px 8px;text-align:left;vertical-align:top}th{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}.bar-row{display:grid;grid-template-columns:90px 1fr 82px;gap:8px;align-items:center;margin:9px 0}.bar-track{height:9px;border-radius:99px;background:#0e1312;border:1px solid var(--line);overflow:hidden}.bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--blue))}.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 8px;color:var(--muted);font-size:12px}.desc{max-width:520px;color:#d5e5da;font-size:12px}.hidden{display:none}a{color:#8cc8ff;text-decoration:none}@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.three,.two,.toolbar{grid-template-columns:1fr}}@media(max-width:680px){main{padding:14px}.top{align-items:flex-start;flex-direction:column}.kpis{grid-template-columns:1fr 1fr}th:nth-child(4),td:nth-child(4),th:nth-child(6),td:nth-child(6){display:none}}
+</style></head><body>
+<div class="top"><div><div class="brand">MXRE Market Command Center</div><div class="sub">Indianapolis, IN analytics for listings, changes, opportunity reports, and data quality</div></div><div class="chips"><span class="pill" id="status">Loading</span><button class="btn" onclick="loadAll()">Refresh</button></div></div>
+<main>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-view="overview">Overview</button><button class="tab" data-view="listings">Listings</button><button class="tab" data-view="priceDrops">Price Drops</button><button class="tab" data-view="creativeFinance">Creative Finance</button><button class="tab" data-view="delisted">Delisted</button><button class="tab" data-view="multifamily">Multifamily</button><button class="tab" data-view="zipCodes">Zip Codes</button><button class="tab" data-view="dataQuality">Data Quality</button><button class="tab" data-view="changeFeed">Change Feed</button>
+  </div>
+  <section class="grid kpis" id="kpis"></section>
+  <section class="card">
+    <div class="toolbar"><input id="q" placeholder="Filter visible report by address, zip, agent, source, description"><input id="minPrice" placeholder="Min price"><input id="maxPrice" placeholder="Max price"><input id="minUnits" placeholder="Min units"><input id="zip" placeholder="Zip"><button class="btn primary" onclick="loadListings()">Apply</button></div>
+    <div class="chips"><button class="chip active" data-asset="all">All</button><button class="chip" data-asset="single_family">Single-family</button><button class="chip" data-asset="multifamily">Multifamily</button><button class="chip" onclick="setUnits(2,4)">2-4 units</button><button class="chip" onclick="setUnits(5,10)">5-10</button><button class="chip" onclick="setUnits(11,20)">11-20</button><button class="chip" onclick="setUnits(21,'')">21+</button></div>
+  </section>
+  <section class="grid three" style="margin-top:12px"><div class="card"><h2>Event Pulse</h2><div id="events"></div></div><div class="card"><h2>Asset Mix</h2><div id="assets"></div></div><div class="card"><h2>Top ZIPs</h2><div id="zips"></div></div></section>
+  <section class="grid two" style="margin-top:12px"><div class="card"><h2 id="leftTitle">Analytics Notes</h2><div id="notes"></div></div><div class="card"><h2 id="tableTitle">Report</h2><table><thead id="thead"></thead><tbody id="tbody"></tbody></table><div class="sub" id="tableSub" style="margin-top:10px"></div></div></section>
+</main>
+<script>
+const apiKey=${JSON.stringify(apiKey)};let analytics=null,listings=null,view='overview',asset='all',page=1;const limit=50;const statusEl=document.getElementById('status');
+const fmt=n=>Number(n||0).toLocaleString();const money=n=>n==null?'-':'$'+Number(n).toLocaleString();const esc=v=>String(v??'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));const pct=(n,d)=>!Number(d)?'0%':(Math.round(Number(n||0)/Number(d)*1000)/10)+'%';
+async function getJson(path){const r=await fetch(path,{headers:{'x-api-key':apiKey}});const j=await r.json();if(!r.ok)throw new Error(j.error||j.detail||path);return j}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');view=b.dataset.view;render()});
+document.querySelectorAll('.chip[data-asset]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip[data-asset]').forEach(x=>x.classList.remove('active'));b.classList.add('active');asset=b.dataset.asset;page=1;loadListings()});
+function params(){const p=new URLSearchParams({asset,page:String(page),limit:String(limit),scope:'city'});for(const [id,key] of [['zip','zip'],['minPrice','min_price'],['maxPrice','max_price'],['minUnits','min_units']]){const v=document.getElementById(id).value.trim();if(v)p.set(key,v)}return p}
+function setUnits(min,max){document.getElementById('minUnits').value=min;document.getElementById('maxPrice').value=document.getElementById('maxPrice').value; if(max!==undefined){} asset='multifamily';document.querySelectorAll('.chip[data-asset]').forEach(x=>x.classList.toggle('active',x.dataset.asset==='multifamily'));loadListings()}
+async function loadAll(){statusEl.textContent='Loading analytics';analytics=await getJson('/v1/markets/indianapolis/analytics?days=30&limit=50');await loadListings(false);render();statusEl.textContent='Updated '+new Date().toLocaleTimeString()}
+async function loadListings(doRender=true){statusEl.textContent='Loading listings';listings=await getJson('/v1/markets/indianapolis/opportunities?'+params().toString());if(doRender)render();statusEl.textContent='Updated '+new Date().toLocaleTimeString()}
+function k(label,value,sub,tone=''){return '<div class="card"><h3>'+esc(label)+'</h3><div class="metric '+tone+'">'+esc(value)+'</div><div class="sub">'+esc(sub)+'</div></div>'}
+function bars(id,rows,label='listings'){const max=Math.max(1,...(rows||[]).map(r=>Number(r[label]||r.count)||0));document.getElementById(id).innerHTML=(rows||[]).slice(0,10).map(r=>{const name=r.zip||r.assetGroup||r.event_type||r.eventType||r.day||'unknown';const val=Number(r[label]||r.count||0);return '<div class="bar-row"><div>'+esc(name)+'</div><div class="bar-track"><div class="bar-fill" style="width:'+Math.max(4,val/max*100)+'%"></div></div><div>'+fmt(val)+'</div></div>'}).join('')||'<div class="sub">No data</div>'}
+function render(){if(!analytics||!listings)return;const o=analytics.overview||{},q=analytics.dataQuality||{},rows=listRows();kpis.innerHTML=k('Active listings',fmt(o.activeRows),'current Indianapolis rows','good')+k('Unique properties',fmt(o.activeProperties),'linked active property universe')+k('Price drops',fmt(o.priceDrops),'last 30 days','warn')+k('Delisted',fmt(o.delisted),'last 30 days','warn')+k('Creative finance',fmt(o.creativePositive),'positive language detected','good')+k('Agent email',esc(o.agentEmailCoveragePct||0)+'%',fmt(q.withAgentEmail)+' / '+fmt(q.activeRows));bars('events',Object.entries(analytics.eventCounts||{}).map(([eventType,count])=>({eventType,count})),'count');bars('assets',analytics.assetMix||[]);bars('zips',analytics.zipRankings||[]);notes.innerHTML='<div class="sub">'+analytics.recommendations.map(esc).join('<br><br>')+'</div>';tableTitle.textContent=title();thead.innerHTML=head();tbody.innerHTML=rows.map(row).join('')||'<tr><td colspan="8" class="sub">No rows.</td></tr>';tableSub.textContent=subtitle()}
+function title(){return ({overview:'Market Pulse Report',listings:'Filtered Opportunity List',priceDrops:'Price Drop Report',creativeFinance:'Creative Finance Report',delisted:'Delisted / Failed Listing Report',multifamily:'Multifamily Report',zipCodes:'ZIP Code Rankings',dataQuality:'Data Quality Report',changeFeed:'Change Feed'})[view]||'Report'}
+function subtitle(){return view==='listings'?fmt(listings.total)+' matching active listings':'Generated '+new Date(analytics.generated_at).toLocaleString()}
+function listRows(){const f=q.value.trim().toLowerCase();let r=view==='priceDrops'?analytics.reports.priceDrops:view==='creativeFinance'?analytics.reports.creativeFinance:view==='delisted'?analytics.reports.delisted:view==='changeFeed'?analytics.reports.changeFeed:view==='zipCodes'?analytics.zipRankings:view==='dataQuality'?[analytics.dataQuality]:view==='multifamily'?(listings.results||[]).filter(x=>['small_multifamily','commercial_multifamily'].includes(x.assetGroup)):view==='overview'?analytics.assetMix:(listings.results||[]);return f?r.filter(x=>JSON.stringify(x).toLowerCase().includes(f)):r}
+function head(){if(view==='zipCodes')return '<tr><th>ZIP</th><th>Listings</th><th>Median Price</th><th>Median DOM</th><th>Creative</th><th>Contact</th></tr>';if(view==='dataQuality')return '<tr><th>Field</th><th>Coverage</th><th>Rows</th><th>Meaning</th></tr>';if(view==='changeFeed')return '<tr><th>When</th><th>Event</th><th>Property</th><th>Price</th><th>Status</th><th>Source</th></tr>';if(view==='overview')return '<tr><th>Asset</th><th>Listings</th><th>Properties</th><th>Median Price</th><th>Creative</th><th>Description</th></tr>';return '<tr><th>Property</th><th>Price</th><th>Units</th><th>DOM</th><th>Agent</th><th>Signal</th><th>Description</th></tr>'}
+function row(r){if(view==='zipCodes')return '<tr><td>'+esc(r.zip)+'</td><td>'+fmt(r.listings)+'</td><td>'+money(r.medianListPrice)+'</td><td>'+esc(r.medianDom??'-')+'</td><td>'+fmt(r.creativePositive)+'</td><td>'+fmt(r.withContact)+'</td></tr>';if(view==='dataQuality'){const total=Number(r.activeRows||0);return ['withPrice','linkedToProperty','withBrokerage','withAgentName','withAgentPhone','withAgentEmail','withDescription'].map(k=>'<tr><td>'+k+'</td><td>'+pct(r[k],total)+'</td><td>'+fmt(r[k])+' / '+fmt(total)+'</td><td>'+qualityMeaning(k)+'</td></tr>').join('')}if(view==='changeFeed')return '<tr><td>'+esc(new Date(r.eventAt).toLocaleString())+'</td><td>'+esc(r.eventType)+'</td><td>'+esc(r.address)+'<div class="sub">'+esc(r.zip)+'</div></td><td>'+money(r.previousListPrice)+' -> '+money(r.listPrice)+'</td><td>'+esc(r.previousStatus||'')+' -> '+esc(r.status||'')+'</td><td>'+esc(r.listingSource)+'</td></tr>';if(view==='overview')return '<tr><td>'+esc(r.assetGroup)+'</td><td>'+fmt(r.listings)+'</td><td>'+fmt(r.properties)+'</td><td>'+money(r.medianListPrice)+'</td><td>'+fmt(r.creativePositive)+'</td><td>'+fmt(r.withDescription)+'</td></tr>';return '<tr><td><a href="'+esc(r.listingUrl||'#')+'" target="_blank">'+esc(r.address)+'</a><div class="sub">'+esc(r.zip||'')+' '+esc(r.assetGroup||'')+'</div></td><td>'+money(r.listPrice)+'</td><td>'+esc(r.unitCount??'-')+'</td><td>'+esc(r.daysOnMarket??'-')+'</td><td>'+esc(r.listingAgentName||'')+'<div class="sub">'+esc(r.listingAgentEmail||r.listingAgentPhone||r.listingBrokerage||'contact gap')+'</div></td><td>'+signal(r)+'</td><td><div class="desc">'+esc(r.listingDescription||r.publicRemarksSnippet||'')+'</div></td></tr>'}
+function signal(r){if(view==='priceDrops')return '<span class="pill warn">'+money(r.dropAmount)+' drop</span><div class="sub">'+esc(r.dropPct||'')+'%</div>';if(view==='delisted')return '<span class="pill warn">delisted</span>';if(r.creativeFinanceScore)return '<span class="pill good">creative '+esc(r.creativeFinanceScore)+'</span><div class="sub">'+esc((r.creativeFinanceTerms||[]).join(', '))+'</div>';return '<span class="pill">active</span>'}
+function qualityMeaning(k){return ({withPrice:'Can filter and underwrite listing economics.',linkedToProperty:'Matched to MXRE parcel/ownership/valuation.',withBrokerage:'Brokerage captured for contact routing.',withAgentName:'Human contact identity exists.',withAgentPhone:'Phone available for outreach.',withAgentEmail:'Email available for outreach.',withDescription:'MLS/public remarks available for creative-finance detection.'})[k]||''}
+loadAll().catch(e=>{statusEl.textContent=String(e.message||e)});
+</script></body></html>`;
+}
 
 function renderMarketSnapshotDashboard(requestedMarket: string, apiKey: string): string {
   const market = resolveMarketConfig(requestedMarket)?.key ?? 'columbus';
@@ -4804,9 +5115,9 @@ body{font-family:Inter,Arial,sans-serif;margin:0;background:#f6f7f9;color:#14171
 <table><thead><tr><th>Property</th><th>Asset</th><th>Status</th><th>Value</th><th>Missing</th><th>Next sources</th><th>Agent</th></tr></thead><tbody id="rows"></tbody></table>
 </main>
 <script>
-const apiKey=${JSON.stringify(apiKey)},fmt=n=>Number(n||0).toLocaleString(),esc=v=>String(v??'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])),pill=(t,c='')=>'<span class="pill '+c+'">'+esc(t)+'</span>';
-async function load(){const params=new URLSearchParams({scope:'city',asset:asset.value,gap:gap.value,on_market:onMarket.value,limit:limit.value});if(zip.value.trim())params.set('zip',zip.value.trim());if(q.value.trim())params.set('q',q.value.trim());status.textContent='Loading report...';const res=await fetch('/v1/markets/indianapolis/data-gaps?'+params,{headers:{'x-api-key':apiKey}});const data=await res.json();if(!res.ok){status.textContent=data.error||'Failed';return;}total.textContent=fmt(data.total);count.textContent=fmt(data.count);agentEmail.textContent=fmt(data.returned_gap_counts?.agent_email);mortgageBalance.textContent=fmt(data.returned_gap_counts?.mortgage_balance);rentSnapshot.textContent=fmt(data.returned_gap_counts?.rent_snapshot);status.textContent='Generated '+new Date(data.generated_at).toLocaleString();rows.innerHTML=(data.rows||[]).map(r=>{const a=r.agent||{};return '<tr><td><strong>'+esc(r.address)+'</strong><div class="muted">'+esc(r.city)+', '+esc(r.state)+' '+esc(r.zip)+' | '+esc(r.parcelId)+' | MXRE '+esc(r.mxreId)+'</div></td><td>'+esc(r.assetGroup)+'<div class="muted">'+esc(r.assetSubtype||r.assetType||'')+' | units '+esc(r.unitCount??'')+'</div></td><td>'+pill(r.severity,r.severity)+'<div class="muted">'+(r.onMarket?'on market':'off market')+'</div></td><td class="nowrap">$'+fmt(r.listPrice||r.marketValue||r.assessedValue)+'</td><td class="missing">'+(r.missingFields||[]).map(x=>pill(x)).join(' ')+'</td><td>'+(r.nextBestSources||[]).map(x=>pill(x)).join(' ')+'</td><td>'+esc(a.name||'')+'<div class="muted">'+esc(a.email||'')+' '+esc(a.phone||'')+'</div><div class="muted">'+esc(a.brokerage||'')+'</div></td></tr>';}).join('');}
-load().catch(err=>{status.textContent=String(err);});
+const apiKey=${JSON.stringify(apiKey)},statusEl=document.getElementById('status'),fmt=n=>Number(n||0).toLocaleString(),esc=v=>String(v??'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])),pill=(t,c='')=>'<span class="pill '+c+'">'+esc(t)+'</span>';
+async function load(){const params=new URLSearchParams({scope:'city',asset:asset.value,gap:gap.value,on_market:onMarket.value,limit:limit.value});if(zip.value.trim())params.set('zip',zip.value.trim());if(q.value.trim())params.set('q',q.value.trim());statusEl.textContent='Loading report...';const res=await fetch('/v1/markets/indianapolis/data-gaps?'+params,{headers:{'x-api-key':apiKey}});const data=await res.json();if(!res.ok){statusEl.textContent=data.error||'Failed';return;}total.textContent=fmt(data.total);count.textContent=fmt(data.count);agentEmail.textContent=fmt(data.returned_gap_counts?.agent_email);mortgageBalance.textContent=fmt(data.returned_gap_counts?.mortgage_balance);rentSnapshot.textContent=fmt(data.returned_gap_counts?.rent_snapshot);statusEl.textContent='Generated '+new Date(data.generated_at).toLocaleString();rows.innerHTML=(data.rows||[]).map(r=>{const a=r.agent||{};return '<tr><td><strong>'+esc(r.address)+'</strong><div class="muted">'+esc(r.city)+', '+esc(r.state)+' '+esc(r.zip)+' | '+esc(r.parcelId)+' | MXRE '+esc(r.mxreId)+'</div></td><td>'+esc(r.assetGroup)+'<div class="muted">'+esc(r.assetSubtype||r.assetType||'')+' | units '+esc(r.unitCount??'')+'</div></td><td>'+pill(r.severity,r.severity)+'<div class="muted">'+(r.onMarket?'on market':'off market')+'</div></td><td class="nowrap">$'+fmt(r.listPrice||r.marketValue||r.assessedValue)+'</td><td class="missing">'+(r.missingFields||[]).map(x=>pill(x)).join(' ')+'</td><td>'+(r.nextBestSources||[]).map(x=>pill(x)).join(' ')+'</td><td>'+esc(a.name||'')+'<div class="muted">'+esc(a.email||'')+' '+esc(a.phone||'')+'</div><div class="muted">'+esc(a.brokerage||'')+'</div></td></tr>';}).join('');}
+load().catch(err=>{statusEl.textContent=String(err);});
 </script></body></html>`);
 });
 
@@ -5435,7 +5746,7 @@ function normalizeJoinedProperty(value: unknown): Record<string, unknown> {
 
 async function queryPg<T extends Record<string, unknown>>(query: string): Promise<T[]> {
   const directUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.MXRE_PG_URL ?? process.env.DATABASE_URL;
-  if (directUrl) {
+  if (directUrl && /^postgres(ql)?:\/\//i.test(directUrl)) {
     if (!directPgPool) {
       directPgPool = new Pool({
         connectionString: directUrl,
@@ -5450,7 +5761,9 @@ async function queryPg<T extends Record<string, unknown>>(query: string): Promis
     return result.rows as T[];
   }
 
-  const url = process.env.SUPABASE_URL;
+  const url = directUrl && /^https?:\/\//i.test(directUrl)
+    ? directUrl.replace(/\/$/, '').replace(/\/pg\/query$/, '')
+    : process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
   if (!url || !key) throw new Error('Database connection not configured.');
 
@@ -6281,4 +6594,5 @@ serve({ fetch: app.fetch, port, hostname }, (info) => {
 });
 
 export { app };
+
 
