@@ -41,6 +41,20 @@ Paid fallback is now explicit and capped:
 npm run market:dallas:refresh -- --include-paid --paid-max-calls=100
 ```
 
+For Dallas active listings that are not yet linked to a parcel/property, use the
+one-to-one listing address resolver before property-detail normalization:
+
+```powershell
+$env:REALESTATEAPI_KEY=[Environment]::GetEnvironmentVariable('REALESTATEAPI_KEY','User')
+npx tsx scripts/resolve-dallas-unlinked-listings-realestateapi.ts --limit=300 --max-calls=300 --concurrency=5
+npx tsx scripts/enrich-on-market-realestateapi.ts --state=TX --city=Dallas --limit=500 --max-calls=500 --skip-ensure-queue
+npx tsx scripts/generate-dallas-coverage-dashboard.ts
+```
+
+The resolver is intentionally capped and exact-address only. It stores the
+provider response on the listing and links only when the returned APN/address
+uniquely resolves to an MXRE property.
+
 This runs the normal public refresh first, then calls paid enrichment only for
 active linked properties selected by remaining gaps. RealEstateAPI Property
 Detail is queried one property at a time from the MXRE property address and

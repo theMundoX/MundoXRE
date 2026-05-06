@@ -12,6 +12,7 @@ const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
 const LIMIT = Math.min(Math.max(Number(valueArg("limit") ?? "100"), 1), 2500);
 const MAX_CALLS = Math.min(Math.max(Number(valueArg("max-calls") ?? String(LIMIT)), 0), LIMIT);
+const CONCURRENCY = Math.min(Math.max(Number(valueArg("concurrency") ?? "1"), 1), 10);
 
 type Row = Record<string, any>;
 
@@ -123,7 +124,7 @@ async function callRealEstateApi(address: string): Promise<Row> {
 
 async function main() {
   console.log("MXRE - Dallas unlinked listing RealEstateAPI resolver");
-  console.log(JSON.stringify({ dry_run: DRY_RUN, limit: LIMIT, max_calls: MAX_CALLS }, null, 2));
+  console.log(JSON.stringify({ dry_run: DRY_RUN, limit: LIMIT, max_calls: MAX_CALLS, concurrency: CONCURRENCY }, null, 2));
 
   const listings = await pg(`
     select id, address, city, state_code, zip, listing_url
@@ -138,22 +139,25 @@ async function main() {
      limit ${LIMIT};
   `);
 
-  let apiCalls = 0;
-  let matched = 0;
-  let unmatched = 0;
-  let ambiguous = 0;
-  let failed = 0;
+  const stats = {
+    apiCalls: 0,
+    matched: 0,
+    unmatched: 0,
+    ambiguous: 0,
+    failed: 0,
+  };
+  const candidates = DRY_RUN ? listings : listings.slice(0, MAX_CALLS);
+  let nextIndex = 0;
 
-  for (const listing of listings) {
-    if (apiCalls >= MAX_CALLS && !DRY_RUN) break;
+  async function processListing(listing: Row) {
     const searchAddress = [listing.address, listing.city, listing.state_code, listing.zip].filter(Boolean).join(", ");
     try {
       if (DRY_RUN) {
         console.log(JSON.stringify({ wouldCall: searchAddress, listing_id: listing.id }));
-        continue;
+        return;
       }
       const response = await callRealEstateApi(searchAddress);
-      apiCalls++;
+      stats.apiCalls++;
       const propertyId = await resolvePropertyId(response, listing);
       const resolution = {
         provider: "realestateapi",
@@ -174,7 +178,7 @@ async function main() {
       `);
 
       if (propertyId) {
-        matched++;
+        stats.matched++;
         await pg(`
           insert into property_enrichment_queue(property_id, provider, reason, status, priority, next_run_at)
           values (${propertyId}, 'realestateapi', 'missing_property_detail', 'queued', 5, now())
@@ -182,11 +186,10 @@ async function main() {
           do update set status = 'queued', priority = least(property_enrichment_queue.priority, excluded.priority), next_run_at = now(), updated_at = now();
         `);
       } else {
-        unmatched++;
+        stats.unmatched++;
       }
-      await sleep(350);
     } catch (error) {
-      failed++;
+      stats.failed++;
       await pg(`
         update listing_signals
            set raw = jsonb_set(coalesce(raw,'{}'::jsonb), '{realestateapi_unlinked_resolution_error}', ${sql(JSON.stringify({
@@ -202,7 +205,15 @@ async function main() {
     }
   }
 
-  console.log(JSON.stringify({ scanned: listings.length, apiCalls, matched, unmatched, ambiguous, failed }, null, 2));
+  const workerCount = DRY_RUN ? 1 : Math.min(CONCURRENCY, candidates.length || 1);
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (nextIndex < candidates.length) {
+      const listing = candidates[nextIndex++];
+      await processListing(listing);
+    }
+  }));
+
+  console.log(JSON.stringify({ scanned: listings.length, processed: candidates.length, ...stats }, null, 2));
 
   async function resolvePropertyId(response: Row, listing: Row): Promise<number | null> {
     const exactApnKeys = [
@@ -226,7 +237,7 @@ async function main() {
       `);
       if (rows.length === 1) return Number(rows[0].id);
       if (rows.length > 1) {
-        ambiguous++;
+        stats.ambiguous++;
         return null;
       }
     }
@@ -241,7 +252,7 @@ async function main() {
       `);
       if (rows.length === 1) return Number(rows[0].id);
       if (rows.length > 1) {
-        ambiguous++;
+        stats.ambiguous++;
         return null;
       }
     }
@@ -264,13 +275,9 @@ async function main() {
     const candidates = rows.filter(row => addressKeys(String(row.address ?? "")).some(key => keys.includes(key)));
     const ids = [...new Set(candidates.map(row => Number(row.id)))];
     if (ids.length === 1) return ids[0];
-    if (ids.length > 1) ambiguous++;
+    if (ids.length > 1) stats.ambiguous++;
     return null;
   }
-}
-
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 main().catch(error => {
