@@ -5,6 +5,9 @@
       "id": "indianapolis-in",
       "label": "Indianapolis, IN",
       "enabled": true,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
+      "paidPolicy": "public_first_cached_property_scoped",
       "required": true,
       "continueOnFailure": true,
       "command": ["npx", "tsx", "scripts/refresh-indianapolis-market.ts"]
@@ -13,6 +16,9 @@
       "id": "dallas-tx",
       "label": "Dallas, TX",
       "enabled": true,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
+      "paidPolicy": "public_first_cached_property_scoped",
       "required": true,
       "continueOnFailure": true,
       "command": ["npx", "tsx", "scripts/refresh-dallas-market.ts"]
@@ -21,6 +27,9 @@
       "id": "columbus-oh",
       "label": "Columbus, OH",
       "enabled": true,
+      "phase": "coverage_backfill",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "public_first_cached_property_scoped_capped",
       "required": true,
       "continueOnFailure": true,
       "command": ["npx", "tsx", "scripts/refresh-columbus-market.ts", "--include-paid", "--paid-max-calls=1500"]
@@ -32,6 +41,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 10,
       "targetCountyHints": ["Montgomery"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Dayton", "--state=OH"]
@@ -43,6 +54,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 20,
       "targetCountyHints": ["Lucas"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Toledo", "--state=OH"]
@@ -54,6 +67,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 30,
       "targetCountyHints": ["Cuyahoga"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Cleveland", "--state=OH"]
@@ -65,6 +80,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 40,
       "targetCountyHints": ["Summit"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Akron", "--state=OH"]
@@ -76,6 +93,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 50,
       "targetCountyHints": ["Allen"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Fort Wayne", "--state=IN"]
@@ -87,6 +106,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 60,
       "targetCountyHints": ["St. Joseph"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=South Bend", "--state=IN"]
@@ -98,6 +119,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 70,
       "targetCountyHints": ["Peoria"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Peoria", "--state=IL"]
@@ -109,6 +132,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 80,
       "targetCountyHints": ["Jefferson", "Shelby"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Birmingham", "--state=AL"]
@@ -120,6 +145,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 90,
       "targetCountyHints": ["Shelby"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Memphis", "--state=TN"]
@@ -131,6 +158,8 @@
       "required": false,
       "continueOnFailure": true,
       "phase": "source_discovery",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "no_paid_calls",
       "priority": 100,
       "targetCountyHints": ["Wayne"],
       "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Detroit", "--state=MI"]

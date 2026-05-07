@@ -109,7 +109,39 @@ The enabled market list lives in:
 config/market-refresh-jobs.json
 ```
 
-Add a city there after its refresh script exists.
+`market:refresh:all` intentionally runs only markets marked:
+
+```json
+"phase": "daily_refresh",
+"dailyRefreshEligible": true
+```
+
+That is the production-safe daily path. A market should not be promoted to
+`daily_refresh` until it has a reusable refresh script, public-source ingestion,
+coverage audits, dashboard generation, and no publish-blocking gaps for the BBC
+contract.
+
+Markets that are still being built should stay in one of these phases:
+
+- `source_discovery`: county/source mapping only, no paid calls.
+- `coverage_backfill`: active cleanup/enrichment; can run manually, but is not
+  safe for unattended daily production refresh unless caps and cache checks are
+  explicit.
+- `daily_refresh`: publishable/repeatable market, included by
+  `npm run market:refresh:all`.
+
+Manual phase runs:
+
+```powershell
+npm run market:refresh:discovery
+npm run market:refresh:backfill
+npm run market:refresh:all-phases
+```
+
+Add a city to `config/market-refresh-jobs.json` as `source_discovery` first.
+Promote it to `coverage_backfill` when a market-specific refresh script exists.
+Promote it to `daily_refresh` only after it is publishable and safe to run every
+day without unbounded paid API usage.
 
 ## Running Multiple Cities At Once
 
@@ -126,6 +158,15 @@ npm run market:dallas:refresh
 ```
 
 Use this carefully. Parallel city jobs are fine when they touch different market rows, but paid API fallback scripts should keep daily call caps so RealEstateAPI/RapidAPI credits cannot spiral.
+
+Recommended concurrency:
+
+- Source discovery: many markets can run in parallel.
+- Public listing/rent/agent discovery: 2-4 markets at once is acceptable.
+- Parcel/recorder ingestion: usually 1-2 markets at once because the DB bridge
+  and source portals are the bottlenecks.
+- Paid enrichment: run only one controlled market batch at a time, with
+  property-scoped cache checks and `--paid-max-calls`.
 
 ## Logs
 

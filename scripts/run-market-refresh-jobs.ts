@@ -22,6 +22,9 @@ interface MarketRefreshJob {
   id: string;
   label: string;
   enabled: boolean;
+  phase?: "source_discovery" | "coverage_backfill" | "daily_refresh" | string;
+  dailyRefreshEligible?: boolean;
+  paidPolicy?: string;
   required?: boolean;
   continueOnFailure?: boolean;
   command: string[];
@@ -96,6 +99,9 @@ async function main() {
   const startedAt = new Date();
   const only = argValue("only");
   const dryRun = hasFlag("dry-run");
+  const includeBackfill = hasFlag("include-backfill");
+  const includeDiscovery = hasFlag("include-discovery");
+  const allPhases = hasFlag("all-phases");
   const config = await loadConfig();
   const logDir = join(repoRoot, "logs", "market-refresh");
   const stamp = startedAt.toISOString().replace(/[:.]/g, "-");
@@ -109,16 +115,23 @@ async function main() {
   console.log(`Started: ${startedAt.toISOString()}`);
   console.log(`Dry run: ${dryRun}`);
   console.log(`Only: ${only ?? "all enabled jobs"}`);
+  console.log(`Phase mode: ${allPhases ? "all phases" : includeBackfill || includeDiscovery ? "selected non-daily phases allowed" : "daily-refresh eligible only"}`);
   console.log(`Result log: ${resultPath}`);
 
   for (const job of config.jobs) {
     const jobStartedAt = new Date();
     const required = job.required !== false;
+    const phase = job.phase ?? (job.enabled ? "daily_refresh" : "source_discovery");
+    const dailyEligible = job.dailyRefreshEligible !== false && phase === "daily_refresh";
+    const phaseAllowed = allPhases
+      || dailyEligible
+      || (includeBackfill && phase === "coverage_backfill")
+      || (includeDiscovery && phase === "source_discovery");
     const command = dryRun && !job.command.includes("--dry-run")
       ? [...job.command, "--dry-run"]
       : job.command;
 
-    if (!job.enabled || (only && only !== job.id)) {
+    if (!job.enabled || !phaseAllowed || (only && only !== job.id)) {
       results.push({
         id: job.id,
         label: job.label,
