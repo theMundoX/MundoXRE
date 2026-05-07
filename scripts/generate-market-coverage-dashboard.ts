@@ -8,6 +8,10 @@ const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const OUT = process.argv.find(a => a.startsWith("--out="))?.split("=").slice(1).join("=")
   ?? "logs/market-refresh/market-coverage-dashboard.html";
+const QUERY_TIMEOUT_MS = Math.max(
+  5_000,
+  Number(process.argv.find(a => a.startsWith("--query-timeout-ms="))?.split("=")[1] ?? "20000"),
+);
 
 type Row = Record<string, unknown>;
 type MarketConfig = {
@@ -236,7 +240,7 @@ async function pg<T extends Row = Row>(query: string): Promise<T[]> {
     method: "POST",
     headers: { apikey: PG_KEY, Authorization: `Bearer ${PG_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
-    signal: AbortSignal.timeout(120_000),
+    signal: AbortSignal.timeout(QUERY_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`pg/query ${response.status}: ${await response.text()}`);
   return response.json() as Promise<T[]>;
