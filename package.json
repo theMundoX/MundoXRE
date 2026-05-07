@@ -38,6 +38,8 @@
     "market:indy:listings": "tsx scripts/refresh-indianapolis-listings.ts",
     "market:dallas:refresh": "tsx scripts/refresh-dallas-market.ts",
     "market:dallas:refresh:dry": "tsx scripts/refresh-dallas-market.ts --dry-run",
+    "market:columbus:refresh": "tsx scripts/refresh-columbus-market.ts",
+    "market:columbus:refresh:dry": "tsx scripts/refresh-columbus-market.ts --dry-run",
     "market:west-chester:refresh": "tsx scripts/refresh-west-chester-market.ts",
     "market:west-chester:refresh:dry": "tsx scripts/refresh-west-chester-market.ts --dry-run",
     "market:refresh:all": "tsx scripts/run-market-refresh-jobs.ts",

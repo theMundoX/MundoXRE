@@ -139,13 +139,16 @@ export function splitLiens(
   const mortgageTypes = new Set<LienRecord['type']>(['mortgage', 'heloc']);
   const openMortgages = current.filter((l) => mortgageTypes.has(l.type));
 
-  const openMortgageBalance = openMortgages.reduce((sum, l) => sum + (l.currentBalance ?? 0), 0) || null;
+  const freeClear = openMortgages.length === 0;
+  const openMortgageBalance = freeClear
+    ? 0
+    : openMortgages.reduce((sum, l) => sum + (l.currentBalance ?? 0), 0) || null;
   const openMortgageBalanceSource = summarizeBalanceSource(openMortgages);
   const openMortgageBalanceConfidence = confidenceForBalanceSource(openMortgageBalanceSource);
 
   const totalMonthlyPayment = openMortgages.reduce((sum, l) => {
     return sum + (l.monthlyPayment ?? 0);
-  }, 0) || null;
+  }, 0) || (freeClear ? 0 : null);
 
   const estimatedEquity = equityValue != null && openMortgageBalance != null
     ? equityValue - openMortgageBalance
@@ -164,7 +167,7 @@ export function splitLiens(
     equityPercent,
     equityBasis: equityValue != null ? equityBasis : null,
     equityValue,
-    freeClear: openMortgages.length === 0,
+    freeClear,
     lienCount: current.length + history.length,
     openLienCount: current.length,
   };

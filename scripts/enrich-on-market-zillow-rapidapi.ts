@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 import { Client } from "pg";
+import { firstEnv, hydrateWindowsUserEnv } from "./lib/env.ts";
 
 type Candidate = {
   property_id: number;
@@ -49,6 +50,7 @@ type Enrichment = {
 };
 
 const args = process.argv.slice(2);
+hydrateWindowsUserEnv();
 const valueArg = (name: string) => {
   const prefix = `--${name}=`;
   return args.find((arg) => arg.startsWith(prefix))?.slice(prefix.length) ?? null;
@@ -63,13 +65,10 @@ const state = (valueArg("state") ?? "IN").toUpperCase();
 const limit = Math.min(Math.max(Number(valueArg("limit") ?? "10"), 1), 2500);
 const maxCalls = Math.min(Math.max(Number(valueArg("max-calls") ?? String(limit)), 0), limit * 5);
 const concurrency = Math.min(Math.max(Number(valueArg("concurrency") ?? "1"), 1), 10);
-const rapidApiKey = process.env.RAPIDAPI_KEY ?? process.env.ZILLOW_RAPIDAPI_KEY;
-const provider = process.env.ZILLOW_RAPIDAPI_PROVIDER ?? "realestate101";
-const host = process.env.ZILLOW_RAPIDAPI_HOST ?? defaultHost(provider);
-const databaseUrl = process.env.MXRE_DIRECT_PG_URL
-  ?? process.env.MXRE_PG_URL
-  ?? process.env.DATABASE_URL
-  ?? process.env.POSTGRES_URL;
+const rapidApiKey = firstEnv("RAPIDAPI_KEY", "ZILLOW_RAPIDAPI_KEY");
+const provider = firstEnv("ZILLOW_RAPIDAPI_PROVIDER") ?? "realestate101";
+const host = firstEnv("ZILLOW_RAPIDAPI_HOST") ?? defaultHost(provider);
+const databaseUrl = firstEnv("MXRE_DIRECT_PG_URL", "MXRE_PG_URL", "DATABASE_URL", "POSTGRES_URL");
 
 if (!databaseUrl) throw new Error("Set MXRE_DIRECT_PG_URL, MXRE_PG_URL, DATABASE_URL, or POSTGRES_URL.");
 if (!dryRun && maxCalls > 0 && !rapidApiKey) {

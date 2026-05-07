@@ -1,6 +1,9 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 import { Client } from "pg";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { firstEnv, hydrateWindowsUserEnv } from "./lib/env.ts";
 
 type ReapiResponse = Record<string, unknown>;
 
@@ -11,6 +14,7 @@ type Candidate = {
   state_code: string;
   zip: string | null;
   listing_id?: number | null;
+  mls_list_price?: number | null;
   search_address?: string | null;
   search_city?: string | null;
   search_zip?: string | null;
@@ -18,6 +22,7 @@ type Candidate = {
 };
 
 const args = process.argv.slice(2);
+hydrateWindowsUserEnv();
 const valueArg = (name: string) => {
   const prefix = `--${name}=`;
   return args.find((arg) => arg.startsWith(prefix))?.slice(prefix.length) ?? null;
@@ -27,18 +32,37 @@ const dryRun = args.includes("--dry-run");
 const force = args.includes("--force");
 const cacheOnly = args.includes("--cache-only");
 const skipEnsureQueue = args.includes("--skip-ensure-queue");
+const onlyMissingEquity = args.includes("--only-missing-equity") || args.includes("--missing-equity-only");
 const city = (valueArg("city") ?? "Indianapolis").toUpperCase();
 const state = (valueArg("state") ?? "IN").toUpperCase();
 const limit = Math.min(Math.max(Number(valueArg("limit") ?? "25"), 1), 2500);
 const maxCalls = Math.min(Math.max(Number(valueArg("max-calls") ?? String(limit)), 0), limit);
 const staleDays = Math.max(Number(valueArg("stale-days") ?? "30"), 1);
-const reapiKey = process.env.REALESTATEAPI_KEY
-  ?? process.env.REALESTATE_API_KEY
-  ?? process.env.REALESTATEAPI_API_KEY;
-const databaseUrl = process.env.MXRE_DIRECT_PG_URL
-  ?? process.env.MXRE_PG_URL
-  ?? process.env.DATABASE_URL
-  ?? process.env.POSTGRES_URL;
+const progressHtml = valueArg("progress-html")
+  ?? `logs/market-refresh/realestateapi-${city.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${state.toLowerCase()}-progress.html`;
+const reapiKey = firstEnv("REALESTATEAPI_KEY", "REALESTATE_API_KEY", "REALESTATEAPI_API_KEY");
+const databaseUrl = firstEnv("MXRE_DIRECT_PG_URL", "MXRE_PG_URL", "DATABASE_URL", "POSTGRES_URL");
+
+const hasOpenMortgageBalanceSql = `
+  exists (
+    select 1 from mortgage_records mr
+    where mr.property_id = p.id
+      and coalesce(mr.open, true) = true
+      and coalesce(nullif(mr.loan_amount,0), nullif(mr.original_amount,0), nullif(mr.estimated_current_balance,0)) is not null
+  )
+`;
+
+const hasReapiFreeClearSql = `
+  exists (
+    select 1 from realestateapi_property_details rfc
+    where rfc.property_id = p.id
+      and jsonb_typeof(rfc.response_body) = 'object'
+      and coalesce(jsonb_array_length(case when jsonb_typeof(rfc.response_body->'currentMortgages') = 'array' then rfc.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+      and coalesce(nullif(regexp_replace(coalesce(rfc.response_body->>'estimatedMortgageBalance', rfc.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
+  )
+`;
+
+const hasDebtCoverageSql = `(${hasOpenMortgageBalanceSql} or ${hasReapiFreeClearSql})`;
 
 if (!databaseUrl) throw new Error("Set MXRE_DIRECT_PG_URL, MXRE_PG_URL, DATABASE_URL, or POSTGRES_URL.");
 if (!dryRun && maxCalls > 0 && !reapiKey) {
@@ -106,6 +130,7 @@ const stats = {
   force,
   cacheOnly,
   skipEnsureQueue,
+  onlyMissingEquity,
   queued: 0,
   candidates: 0,
   apiCalls: 0,
@@ -113,14 +138,36 @@ const stats = {
   normalized: 0,
   failed: 0,
 };
+const progressRows: Array<{
+  at: string;
+  status: string;
+  propertyId: number;
+  address: string;
+  reasons: string;
+  source: string;
+  listPrice: number | null;
+  mortgageBalance: number | null;
+  estimatedPayment: number | null;
+  estimatedEquity: number | null;
+  equityPercent: number | null;
+  currentMortgageCount: number | null;
+  mortgageHistoryCount: number | null;
+  agentEmail: string | null;
+  agentPhone: string | null;
+  detail: string;
+}> = [];
 
 try {
   const previewCandidates = skipEnsureQueue ? [] : await ensureQueue();
   const candidates = dryRun ? previewCandidates : await loadCandidates();
   stats.candidates = candidates.length;
+  await writeProgress("initialized");
 
   for (const candidate of candidates) {
     if (!cacheOnly && stats.apiCalls >= maxCalls && !dryRun) break;
+    const requestBody = buildRequest(candidate);
+      addProgress(candidate, "running", "pending", null, String(requestBody.address ?? candidate.address));
+    await writeProgress("running");
     try {
       await markQueueRunning(candidate.property_id, candidate.reasons);
       const cached = cacheOnly ? await loadAnyCache(candidate.property_id) : (force ? null : await loadFreshCache(candidate.property_id));
@@ -129,14 +176,17 @@ try {
         if (!dryRun) await normalizeAndStore(candidate, cached.response_body as ReapiResponse, cached.request_body as Record<string, unknown>);
         await markQueueComplete(candidate.property_id, candidate.reasons);
         stats.normalized++;
+        addProgress(candidate, "cached_normalized", "cache", cached.response_body as ReapiResponse, String(cached.request_body?.address ?? requestBody.address ?? candidate.address));
+        await writeProgress("running");
         continue;
       }
 
       if (cacheOnly) continue;
 
-      const requestBody = buildRequest(candidate);
       if (dryRun) {
         console.log(JSON.stringify({ wouldCall: requestBody, property_id: candidate.property_id, reasons: candidate.reasons }));
+        addProgress(candidate, "dry_run", "preview", null, String(requestBody.address ?? candidate.address));
+        await writeProgress("running");
         continue;
       }
 
@@ -146,18 +196,174 @@ try {
       await normalizeAndStore(candidate, response, requestBody);
       await markQueueComplete(candidate.property_id, candidate.reasons);
       stats.normalized++;
+      addProgress(candidate, "api_normalized", "paid_api", response, summarizeProgressResponse(response));
+      await writeProgress("running");
       await sleep(350);
     } catch (error) {
       stats.failed++;
       await markQueueFailed(candidate.property_id, candidate.reasons, error instanceof Error ? error.message : String(error));
+      addProgress(candidate, "failed", "error", null, error instanceof Error ? error.message : String(error));
+      await writeProgress("running");
       console.error(`Failed property ${candidate.property_id}:`, error instanceof Error ? error.message : error);
     }
   }
 } finally {
+  await writeProgress("finished");
   await client.end();
 }
 
 console.log(JSON.stringify(stats, null, 2));
+console.log(JSON.stringify({ progressHtml }, null, 2));
+
+function addProgress(candidate: Candidate, status: string, source: string, response: ReapiResponse | null, detail: string) {
+  const summary = response ? summarizeResponse(response) : null;
+  const agent = response ? bestAgent(response) : null;
+  progressRows.unshift({
+    at: new Date().toISOString(),
+    status,
+    propertyId: candidate.property_id,
+    address: [candidate.search_address ?? candidate.address, candidate.search_city ?? candidate.city, candidate.state_code, candidate.search_zip ?? candidate.zip].filter(Boolean).join(", "),
+    reasons: candidate.reasons.join(", "),
+    source,
+    listPrice: candidate.mls_list_price ?? null,
+    mortgageBalance: summary?.estimatedMortgageBalance ?? summary?.openMortgageBalance ?? null,
+    estimatedPayment: response ? numberOrNull(response.estimatedMortgagePayment) : null,
+    estimatedEquity: summary?.estimatedEquity ?? null,
+    equityPercent: summary?.equityPercent ?? null,
+    currentMortgageCount: summary?.currentMortgageCount ?? null,
+    mortgageHistoryCount: summary?.mortgageHistoryCount ?? null,
+    agentEmail: agent?.email ?? null,
+    agentPhone: agent?.phone ?? null,
+    detail: detail.slice(0, 500),
+  });
+  if (progressRows.length > 250) progressRows.pop();
+}
+
+function summarizeProgressResponse(response: ReapiResponse) {
+  const summary = summarizeResponse(response);
+  return [
+    `currentMortgages=${summary.currentMortgageCount}`,
+    `mortgageHistory=${summary.mortgageHistoryCount}`,
+    `estimatedBalance=${summary.estimatedMortgageBalance ?? "null"}`,
+    `openBalance=${summary.openMortgageBalance ?? "null"}`,
+    `equity=${summary.estimatedEquity ?? "null"}`,
+    `equityPct=${summary.equityPercent ?? "null"}`,
+  ].join("; ");
+}
+
+async function writeProgress(runStatus: string) {
+  await mkdir(join(process.cwd(), "logs", "market-refresh"), { recursive: true });
+  await writeFile(join(process.cwd(), progressHtml), renderProgressHtml(runStatus), "utf8");
+}
+
+function renderProgressHtml(runStatus: string) {
+  const processed = stats.cached + stats.normalized + stats.failed;
+  const pct = stats.candidates > 0 ? Math.round((processed / stats.candidates) * 1000) / 10 : 0;
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="5">
+  <title>RealEstateAPI Progress - ${esc(city)}, ${esc(state)}</title>
+  <style>
+    :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#17212f; background:#f5f7f9; }
+    body { margin:0; padding:24px; } header { margin-bottom:16px; } h1 { margin:0 0 4px; font-size:24px; }
+    .sub { color:#596b7e; font-size:13px; } .grid { display:grid; grid-template-columns:repeat(6,minmax(120px,1fr)); gap:10px; margin:16px 0; }
+    .card { background:white; border:1px solid #d8e0e8; border-radius:8px; padding:12px; } .label { color:#596b7e; font-size:12px; font-weight:700; text-transform:uppercase; } .value { font-size:24px; font-weight:800; margin-top:4px; }
+    .track { height:12px; background:#e5ebf1; border-radius:999px; overflow:hidden; margin:10px 0 18px; } .fill { height:100%; background:#276f63; width:${pct}%; }
+    table { min-width:1900px; width:max-content; border-collapse:collapse; background:white; border:1px solid #d8e0e8; border-radius:8px; overflow:hidden; } th,td { padding:9px 8px; border-bottom:1px solid #e6ebf1; text-align:left; font-size:13px; vertical-align:top; white-space:nowrap; }
+    th { color:#596b7e; font-size:11px; text-transform:uppercase; position:sticky; top:0; z-index:2; background:white; } code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size:12px; }
+    .scroll-note { margin:8px 0 6px; color:#596b7e; font-size:12px; }
+    .scroll-actions { display:flex; gap:8px; margin:8px 0; flex-wrap:wrap; }
+    button { min-height:32px; border:1px solid #c8d4df; border-radius:6px; background:#fff; color:#17212f; font-weight:700; cursor:pointer; }
+    .key-rows { display:grid; gap:10px; margin:10px 0 14px; }
+    .key-row { background:white; border:1px solid #d8e0e8; border-radius:8px; padding:10px; }
+    .key-title { display:flex; justify-content:space-between; gap:12px; font-weight:800; margin-bottom:8px; }
+    .key-fields { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:8px 12px; font-size:13px; }
+    .key-field span { display:block; color:#596b7e; font-size:11px; text-transform:uppercase; font-weight:700; margin-bottom:2px; }
+    .key-field code { white-space:normal; overflow-wrap:anywhere; }
+    .table-wrap { overflow:scroll; max-height:470px; border:1px solid #d8e0e8; border-radius:8px; background:white; padding-bottom:10px; scrollbar-gutter:stable both-edges; }
+    .table-wrap::-webkit-scrollbar { width:16px; height:16px; }
+    .table-wrap::-webkit-scrollbar-thumb { background:#8a98a8; border-radius:999px; border:3px solid #eef2f6; }
+    .table-wrap::-webkit-scrollbar-track { background:#eef2f6; border-radius:999px; }
+    .money { text-align:right; font-variant-numeric:tabular-nums; } .muted { color:#6b7785; }
+    @media (max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} .key-fields{grid-template-columns:repeat(2,minmax(130px,1fr));} body{padding:14px;} }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>RealEstateAPI Progress - ${esc(city)}, ${esc(state)}</h1>
+    <div class="sub">Auto-refreshes every 5 seconds. Last written ${esc(new Date().toLocaleString())}. Status: <code>${esc(runStatus)}</code>.</div>
+  </header>
+  <div class="grid">
+    <div class="card"><div class="label">Candidates</div><div class="value">${stats.candidates.toLocaleString()}</div></div>
+    <div class="card"><div class="label">Processed</div><div class="value">${processed.toLocaleString()}</div></div>
+    <div class="card"><div class="label">API Calls</div><div class="value">${stats.apiCalls.toLocaleString()}</div></div>
+    <div class="card"><div class="label">Cached</div><div class="value">${stats.cached.toLocaleString()}</div></div>
+    <div class="card"><div class="label">Normalized</div><div class="value">${stats.normalized.toLocaleString()}</div></div>
+    <div class="card"><div class="label">Failed</div><div class="value">${stats.failed.toLocaleString()}</div></div>
+  </div>
+  <div class="track"><div class="fill"></div></div>
+  <div class="scroll-note">Scroll sideways inside this row table to see mortgage balance, payment, equity, agent email, phone, and detail.</div>
+  <div class="key-rows">
+    ${progressRows.slice(0, 25).filter((row) => row.status !== "running").map((row) => `<div class="key-row">
+      <div class="key-title"><div>${esc(row.address)}</div><div>${esc(row.status)}</div></div>
+      <div class="key-fields">
+        <div class="key-field"><span>List price</span>${money(row.listPrice)}</div>
+        <div class="key-field"><span>Debt status</span>${debtStatus(row)}</div>
+        <div class="key-field"><span>Payment</span>${paymentStatus(row)}</div>
+        <div class="key-field"><span>Equity</span>${money(row.estimatedEquity)} ${row.equityPercent == null ? "" : `(${esc(row.equityPercent)}%)`}</div>
+        <div class="key-field"><span>Mortgages</span>${row.currentMortgageCount ?? "-"} current / ${row.mortgageHistoryCount ?? "-"} history</div>
+        <div class="key-field"><span>Agent email</span><code>${esc(row.agentEmail ?? "-")}</code></div>
+        <div class="key-field"><span>Agent phone</span><code>${esc(row.agentPhone ?? "-")}</code></div>
+        <div class="key-field"><span>Detail</span><code>${esc(row.detail || "-")}</code></div>
+      </div>
+    </div>`).join("")}
+  </div>
+  <div class="scroll-actions"><button type="button" onclick="document.querySelector('.table-wrap').scrollLeft-=500">Scroll left</button><button type="button" onclick="document.querySelector('.table-wrap').scrollLeft+=500">Scroll right</button></div>
+  <div class="table-wrap"><table>
+    <tr><th>Time</th><th>Status</th><th>Source</th><th>Property</th><th>Address</th><th>List Price</th><th>Mortgage Balance</th><th>Payment</th><th>Equity</th><th>Equity %</th><th>Mortgages</th><th>Agent Email</th><th>Agent Phone</th><th>Reasons</th><th>Detail</th></tr>
+    ${progressRows.map((row) => `<tr><td>${esc(row.at)}</td><td><code>${esc(row.status)}</code></td><td>${esc(row.source)}</td><td>${row.propertyId}</td><td>${esc(row.address)}</td><td class="money">${money(row.listPrice)}</td><td class="money">${debtStatus(row)}</td><td class="money">${paymentStatus(row)}</td><td class="money">${money(row.estimatedEquity)}</td><td class="money">${row.equityPercent == null ? `<span class="muted">-</span>` : `${esc(row.equityPercent)}%`}</td><td>${row.currentMortgageCount ?? "-"} current / ${row.mortgageHistoryCount ?? "-"} history</td><td>${esc(row.agentEmail ?? "-")}</td><td>${esc(row.agentPhone ?? "-")}</td><td>${esc(displayReasons(row))}</td><td>${esc(row.detail)}</td></tr>`).join("")}
+  </table></div>
+</body>
+</html>`;
+}
+
+function esc(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function money(value: unknown) {
+  if (value == null || value === "") return `<span class="muted">-</span>`;
+  const num = Number(value);
+  return Number.isFinite(num) && num >= 0 ? `$${Math.round(num).toLocaleString()}` : `<span class="muted">-</span>`;
+}
+
+function isFreeClear(row: ProgressRow) {
+  return row.currentMortgageCount === 0
+    && (row.mortgageBalance == null || row.mortgageBalance === 0)
+    && /(?:estimatedBalance=0|openBalance=0|currentMortgages=0)/.test(row.detail);
+}
+
+function debtStatus(row: ProgressRow) {
+  if (isFreeClear(row)) return `$0 <span class="muted">free & clear</span>`;
+  return money(row.mortgageBalance);
+}
+
+function paymentStatus(row: ProgressRow) {
+  if (isFreeClear(row)) return `$0 <span class="muted">no current debt payment</span>`;
+  return money(row.estimatedPayment);
+}
+
+function displayReasons(row: ProgressRow) {
+  if (isFreeClear(row)) return row.reasons.replace(/missing_mortgage_balance/g, "free_and_clear_debt_covered");
+  return row.reasons;
+}
 
 async function ensureQueue(): Promise<Candidate[]> {
   const { rows } = await client.query<Candidate>(`
@@ -169,16 +375,12 @@ async function ensureQueue(): Promise<Candidate[]> {
         p.state_code,
         p.zip,
         l.id as listing_id,
+        l.mls_list_price,
         coalesce(nullif(l.address,''), p.address) as search_address,
         coalesce(nullif(l.city,''), p.city) as search_city,
         coalesce(nullif(l.zip,''), p.zip) as search_zip,
         array_remove(array[
-          case when not exists (
-            select 1 from mortgage_records mr
-            where mr.property_id = p.id
-              and coalesce(mr.open, true) = true
-              and coalesce(nullif(mr.loan_amount,0), nullif(mr.original_amount,0), nullif(mr.estimated_current_balance,0)) is not null
-          ) then 'missing_mortgage_balance' end,
+          case when not ${hasDebtCoverageSql} then 'missing_mortgage_balance' end,
           case when nullif(l.listing_agent_email,'') is null then 'missing_agent_email' end,
           case when nullif(l.listing_agent_phone,'') is null then 'missing_agent_phone' end,
           case when not exists (select 1 from mls_history mh where mh.property_id = p.id) then 'missing_mls_history' end
@@ -192,29 +394,40 @@ async function ensureQueue(): Promise<Candidate[]> {
         and upper(coalesce(l.city,'')) = $2
         and (
           $3::boolean = true
+          or $5::boolean = true
           or cache.id is null
         )
         and (
-          $3::boolean = true
-          or nullif(l.listing_agent_email,'') is null
-          or nullif(l.listing_agent_phone,'') is null
-          or not exists (select 1 from mls_history mh where mh.property_id = p.id)
-          or not exists (
-            select 1 from mortgage_records mr
-            where mr.property_id = p.id
-              and coalesce(mr.open, true) = true
-              and coalesce(nullif(mr.loan_amount,0), nullif(mr.original_amount,0), nullif(mr.estimated_current_balance,0)) is not null
+          (
+            $5::boolean = true
+            and not ${hasDebtCoverageSql}
+          )
+          or (
+            $5::boolean = false
+            and (
+              $3::boolean = true
+              or nullif(l.listing_agent_email,'') is null
+              or nullif(l.listing_agent_phone,'') is null
+              or not exists (select 1 from mls_history mh where mh.property_id = p.id)
+              or not ${hasDebtCoverageSql}
+            )
           )
         )
       order by p.id, l.last_seen_at desc nulls last, l.updated_at desc nulls last
     )
     select * from active
     where array_length(reasons, 1) > 0
+      and (
+        $5::boolean = false
+        or 'missing_mortgage_balance' = any(reasons)
+      )
     order by array_length(reasons, 1) desc, property_id
     limit $4;
-  `, [state, city, force, limit]);
+  `, [state, city, force, limit, onlyMissingEquity]);
 
   for (const candidate of rows) {
+    const reasons = onlyMissingEquity ? candidate.reasons.filter((reason) => reason === "missing_mortgage_balance") : candidate.reasons;
+    candidate.reasons = reasons.length > 0 ? reasons : ["missing_mortgage_balance"];
     for (const reason of candidate.reasons) {
       if (dryRun) {
         stats.queued++;
@@ -247,19 +460,24 @@ async function loadCandidates(): Promise<Candidate[]> {
         p.state_code,
         p.zip,
         null::int as listing_id,
+        null::numeric as mls_list_price,
         p.address as search_address,
         p.city as search_city,
         p.zip as search_zip,
-        array['cache_only_renormalize']::text[] as reasons
+        array[case when $4::boolean then 'missing_mortgage_balance' else 'cache_only_renormalize' end]::text[] as reasons
       from realestateapi_property_details r
       join properties p on p.id = r.property_id
       join listing_signals l on l.property_id = p.id and l.is_on_market = true
       where p.state_code = $1
         and upper(coalesce(p.city,'')) = $2
+        and (
+          $4::boolean = false
+          or not ${hasDebtCoverageSql}
+        )
       group by p.id, p.address, p.city, p.state_code, p.zip
       order by p.id
       limit $3
-    `, [state, city, limit]);
+    `, [state, city, limit, onlyMissingEquity]);
     return rows;
   }
 
@@ -272,6 +490,7 @@ async function loadCandidates(): Promise<Candidate[]> {
         p.state_code,
         p.zip,
         l.id as listing_id,
+        l.mls_list_price,
         coalesce(nullif(l.address,''), p.address) as search_address,
         coalesce(nullif(l.city,''), p.city) as search_city,
         coalesce(nullif(l.zip,''), p.zip) as search_zip,
@@ -279,7 +498,7 @@ async function loadCandidates(): Promise<Candidate[]> {
       from property_enrichment_queue q
       join properties p on p.id = q.property_id
       join lateral (
-        select id, address, city, state_code, zip
+        select id, address, city, state_code, zip, mls_list_price
           from listing_signals
          where property_id = p.id
            and is_on_market = true
@@ -291,7 +510,7 @@ async function loadCandidates(): Promise<Candidate[]> {
       where q.provider = 'realestateapi'
         and q.status in ('queued','failed')
         and p.state_code = $1
-      group by p.id, p.address, p.city, p.state_code, p.zip, l.id, l.address, l.city, l.zip
+      group by p.id, p.address, p.city, p.state_code, p.zip, l.id, l.address, l.city, l.zip, l.mls_list_price
       order by min(q.priority), p.id
       limit $3;
     `, [state, city, limit]);
@@ -306,6 +525,7 @@ async function loadCandidates(): Promise<Candidate[]> {
       p.state_code,
       p.zip,
       l.id as listing_id,
+      l.mls_list_price,
       coalesce(nullif(l.address,''), p.address) as search_address,
       coalesce(nullif(l.city,''), p.city) as search_city,
       coalesce(nullif(l.zip,''), p.zip) as search_zip,
@@ -313,7 +533,7 @@ async function loadCandidates(): Promise<Candidate[]> {
     from property_enrichment_queue q
     join properties p on p.id = q.property_id
     join lateral (
-      select id, address, city, state_code, zip
+      select id, address, city, state_code, zip, mls_list_price
         from listing_signals
        where property_id = p.id
          and is_on_market = true
@@ -326,7 +546,7 @@ async function loadCandidates(): Promise<Candidate[]> {
       and q.status in ('queued','failed')
       and q.next_run_at <= now()
       and p.state_code = $1
-    group by p.id, p.address, p.city, p.state_code, p.zip, l.id, l.address, l.city, l.zip
+    group by p.id, p.address, p.city, p.state_code, p.zip, l.id, l.address, l.city, l.zip, l.mls_list_price
     order by min(q.priority), p.id
     limit $3;
   `, [state, city, limit]);
@@ -665,6 +885,7 @@ function summarizeResponse(response: ReapiResponse) {
   return {
     id: stringOrNull(response.id),
     hasMortgageHistory: arrayOfObjects(response.mortgageHistory).length > 0,
+    mortgageHistoryCount: arrayOfObjects(response.mortgageHistory).length,
     currentMortgageCount: arrayOfObjects(response.currentMortgages).length,
     saleHistoryCount: arrayOfObjects(response.saleHistory).length,
     mlsHistoryCount: arrayOfObjects(response.mlsHistory).length,

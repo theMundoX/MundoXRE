@@ -1,0 +1,532 @@
+#!/usr/bin/env tsx
+import "dotenv/config";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
+const OUT = process.argv.find(a => a.startsWith("--out="))?.split("=").slice(1).join("=")
+  ?? "logs/market-refresh/market-coverage-dashboard.html";
+
+type Row = Record<string, unknown>;
+type MarketConfig = {
+  key: string;
+  label: string;
+  city: string;
+  state: string;
+  countyId?: number;
+  countyName?: string;
+  propertyCityLike?: string;
+  listingCity?: string;
+  listingScopeNote: string;
+  parcelScopeNote: string;
+  recorderSourcePattern?: string;
+  rerunCommands: string[];
+};
+
+const MARKETS: MarketConfig[] = [
+  {
+    key: "dallas-tx",
+    label: "Dallas, TX",
+    city: "DALLAS",
+    state: "TX",
+    countyId: 7,
+    countyName: "Dallas",
+    propertyCityLike: "DALLAS",
+    listingCity: "DALLAS",
+    listingScopeNote: "Current on-market rows are source-limited Redfin/paid-enrichment rows, not a guaranteed full MLS feed.",
+    parcelScopeNote: "Dallas County parcel/account rows are tracked separately from the Dallas city situs subset.",
+    recorderSourcePattern: "dallas.tx.publicsearch.us",
+    rerunCommands: [
+      "npm run market:dallas:refresh",
+      "npm run market:dallas:refresh -- --include-paid --paid-max-calls=1500",
+    ],
+  },
+  {
+    key: "indianapolis-in",
+    label: "Indianapolis, IN",
+    city: "INDIANAPOLIS",
+    state: "IN",
+    countyId: 797583,
+    countyName: "Marion",
+    propertyCityLike: "INDIANAPOLIS",
+    listingCity: "INDIANAPOLIS",
+    listingScopeNote: "Indianapolis combines Redfin, Movoto, and local refresh sources where available.",
+    parcelScopeNote: "Core dashboard view uses Marion County / Indianapolis city coverage.",
+    recorderSourcePattern: "inmarion.fidlar.com/INMarion",
+    rerunCommands: [
+      "npm run market:indy:refresh",
+      "npm run market:indy:listings",
+    ],
+  },
+  {
+    key: "columbus-oh",
+    label: "Columbus, OH",
+    city: "COLUMBUS",
+    state: "OH",
+    countyId: 1698985,
+    countyName: "Franklin",
+    propertyCityLike: "COLUMBUS",
+    listingCity: "COLUMBUS",
+    listingScopeNote: "Columbus is a pilot market and currently source-limited.",
+    parcelScopeNote: "Franklin County parcel coverage is tracked separately from Columbus city situs rows.",
+    recorderSourcePattern: "franklin.oh.publicsearch",
+    rerunCommands: [
+      "npx tsx scripts/run-columbus-overnight.ps1",
+      "npx tsx scripts/market-readiness-summary.ts --city=Columbus --state=OH --county_id=1698985",
+    ],
+  },
+  {
+    key: "west-chester-pa",
+    label: "West Chester, PA",
+    city: "WEST CHESTER",
+    state: "PA",
+    countyName: "Chester",
+    propertyCityLike: "WEST CHESTER",
+    listingCity: "WEST CHESTER",
+    listingScopeNote: "West Chester is a pilot market covering borough-first listing/rent signals.",
+    parcelScopeNote: "Chester County parcel rows are the county universe; West Chester city rows are a subset.",
+    rerunCommands: [
+      "npm run market:west-chester:refresh",
+      "npm run market:west-chester:refresh:dry",
+    ],
+  },
+];
+
+async function pg<T extends Row = Row>(query: string): Promise<T[]> {
+  const response = await fetch(PG_URL, {
+    method: "POST",
+    headers: { apikey: PG_KEY, Authorization: `Bearer ${PG_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!response.ok) throw new Error(`pg/query ${response.status}: ${await response.text()}`);
+  return response.json() as Promise<T[]>;
+}
+
+async function pgOptional<T extends Row = Row>(query: string, label: string): Promise<T[]> {
+  try {
+    return await pg<T>(query);
+  } catch (error) {
+    console.warn(`Optional dashboard query failed (${label}): ${error instanceof Error ? error.message : error}`);
+    return [];
+  }
+}
+
+const sql = (value: string) => value.replace(/'/g, "''");
+const n = (value: unknown) => Number(value ?? 0);
+const fmt = (value: unknown) => Math.round(n(value)).toLocaleString();
+const money = (value: unknown) => n(value) > 0 ? `$${Math.round(n(value)).toLocaleString()}` : "-";
+const pctNumber = (value: unknown, total: unknown) => {
+  const denominator = n(total);
+  if (denominator <= 0) return 0;
+  return Math.round((n(value) / denominator) * 10000) / 100;
+};
+const pct = (value: unknown, total: unknown) => `${pctNumber(value, total)}%`;
+const esc = (value: unknown) => String(value ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;");
+
+function bar(label: string, value: unknown, total: unknown) {
+  const p = pctNumber(value, total);
+  const klass = p >= 85 ? "" : p >= 25 ? " warn" : " bad";
+  return `<div class="row"><div>${esc(label)}</div><div class="track"><div class="fill${klass}" style="width:${Math.min(100, p)}%"></div></div><strong>${p}%</strong></div>`;
+}
+
+async function resolveCountyId(market: MarketConfig): Promise<number | null> {
+  if (market.countyId) return market.countyId;
+  if (!market.countyName) return null;
+  const rows = await pg<{ id: number }>(`
+    select id
+      from counties
+     where state_code = '${sql(market.state)}'
+       and upper(county_name) = '${sql(market.countyName.toUpperCase())}'
+     order by id
+     limit 1;
+  `);
+  return Number(rows[0]?.id ?? 0) || null;
+}
+
+async function collectMarket(market: MarketConfig) {
+  const countyId = await resolveCountyId(market);
+  const stateSql = sql(market.state);
+  const listingCitySql = sql((market.listingCity ?? market.city).toUpperCase());
+  const propertyCitySql = sql((market.propertyCityLike ?? market.city).toUpperCase());
+  const countyClause = countyId ? `county_id = ${countyId}` : "false";
+  const countyPropertyWhere = `${countyClause} and state_code = '${stateSql}'`;
+  const cityPropertyWhere = `${countyPropertyWhere} and upper(coalesce(city,'')) like '%${propertyCitySql}%'`;
+  const listingWhere = `is_on_market = true and state_code = '${stateSql}' and upper(coalesce(city,'')) = '${listingCitySql}'`;
+  const mfWhere = `${cityPropertyWhere} and (coalesce(total_units,1) >= 2 or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily'))`;
+  const recorderWhere = market.recorderSourcePattern
+    ? `source_url ilike '%${sql(market.recorderSourcePattern)}%'`
+    : "false";
+
+  const [listings] = await pg(`
+    select count(*)::int as total,
+           count(distinct property_id)::int as active_properties,
+           count(*) filter (where property_id is null)::int as unlinked_listings,
+           count(distinct listing_url)::int as distinct_listing_urls,
+           count(distinct listing_source)::int as source_count,
+           array_agg(distinct listing_source order by listing_source) filter (where listing_source is not null) as sources,
+           count(*) filter (where mls_list_price is not null)::int as price,
+           count(*) filter (where nullif(listing_agent_name,'') is not null)::int as agent_name,
+           count(*) filter (where nullif(listing_agent_first_name,'') is not null and nullif(listing_agent_last_name,'') is not null)::int as first_last,
+           count(*) filter (where nullif(listing_agent_phone,'') is not null)::int as phone,
+           count(*) filter (
+             where nullif(listing_agent_email,'') is not null
+               and (
+                 agent_contact_source = 'realestateapi'
+                 or agent_contact_confidence = 'public_profile_verified'
+               )
+           )::int as email,
+           count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage,
+           count(*) filter (where raw ? 'redfinDetail')::int as redfin_detail,
+           count(*) filter (where raw #>> '{redfinDetail,publicRemarks}' is not null)::int as mls_description,
+           count(*) filter (where creative_finance_status is not null)::int as creative_evaluated,
+           count(*) filter (where creative_finance_status = 'positive')::int as creative_positive,
+           count(*) filter (where creative_finance_status = 'negative')::int as creative_negative,
+           count(*) filter (where creative_finance_status = 'no_data')::int as creative_no_data
+      from listing_signals
+     where ${listingWhere};
+  `);
+  console.log(`  ${market.label}: listings`);
+
+  const [cityParcels] = await pg(`
+    select count(*)::int as total,
+           count(*) filter (where parcel_id is not null and parcel_id <> '')::int as parcel_id,
+           count(*) filter (where nullif(address,'') is not null)::int as address,
+           count(*) filter (where asset_type is not null)::int as asset_type,
+           count(*) filter (where owner_name is not null)::int as owner,
+           count(*) filter (where coalesce(market_value, assessed_value, taxable_value, 0) > 0)::int as value,
+           count(*) filter (where total_units is not null)::int as total_units,
+           count(*) filter (where year_built is not null)::int as year_built,
+           count(*) filter (where total_sqft is not null or living_sqft is not null)::int as sqft
+      from properties
+     where ${cityPropertyWhere};
+  `);
+  console.log(`  ${market.label}: city parcels`);
+
+  const [countyParcels] = await pg(`
+    select count(*)::int as total,
+           count(*) filter (where parcel_id is not null and parcel_id <> '')::int as parcel_id,
+           count(*) filter (where nullif(address,'') is not null)::int as address,
+           count(*) filter (where asset_type is not null)::int as asset_type,
+           count(*) filter (where owner_name is not null)::int as owner,
+           count(*) filter (where coalesce(market_value, assessed_value, taxable_value, 0) > 0)::int as value,
+           count(*) filter (where total_units is not null)::int as total_units,
+           count(*) filter (where year_built is not null)::int as year_built,
+           count(*) filter (where total_sqft is not null or living_sqft is not null)::int as sqft,
+           count(distinct upper(coalesce(city,'')))::int as cities
+      from properties
+     where ${countyPropertyWhere};
+  `);
+  console.log(`  ${market.label}: county parcels`);
+
+  const [events] = await pg(`
+    select count(*)::int as total,
+           count(*) filter (where event_type = 'price_changed')::int as price_changed,
+           count(*) filter (where event_type = 'listed')::int as listed,
+           max(event_at)::text as latest_event
+      from listing_signal_events
+     where state_code = '${stateSql}'
+       and upper(coalesce(city,'')) = '${listingCitySql}';
+  `);
+  console.log(`  ${market.label}: events`);
+
+  const [debt] = await pg(`
+    with active_market_properties as (
+      select distinct property_id
+        from listing_signals
+       where ${listingWhere}
+         and property_id is not null
+    )
+    select count(*)::int as records,
+           count(*) filter (where source_url = 'realestateapi')::int as paid_records,
+           count(*) filter (where source_url <> 'realestateapi')::int as public_records,
+           count(distinct property_id)::int as properties,
+           count(*) filter (where coalesce(loan_amount, original_amount, estimated_current_balance, 0) > 0)::int as amount_rows,
+           count(*) filter (where coalesce(estimated_monthly_payment, 0) > 0)::int as payment_rows,
+           sum(coalesce(loan_amount, original_amount, estimated_current_balance, 0))::numeric as total_amount,
+           sum(coalesce(estimated_monthly_payment, 0))::numeric as total_estimated_payment,
+           max(recording_date)::text as latest_recording
+      from mortgage_records mr
+     where mr.property_id in (select property_id from active_market_properties);
+  `);
+  console.log(`  ${market.label}: linked debt`);
+
+  const [recorder] = await pg(`
+    select count(*)::int as source_docs,
+           count(*) filter (where document_type = 'mortgage')::int as mortgage_docs,
+           count(*) filter (where document_type in ('lien','tax_lien','mechanics_lien','judgment_lien'))::int as lien_docs,
+           count(*) filter (where document_type in ('mortgage','lien','tax_lien','mechanics_lien','judgment_lien'))::int as debt_docs,
+           count(*) filter (where property_id is not null)::int as linked_docs,
+           count(distinct property_id) filter (where property_id is not null)::int as linked_properties,
+           count(*) filter (where coalesce(loan_amount, original_amount, estimated_current_balance, 0) > 0)::int as amount_docs,
+           count(*) filter (where coalesce(estimated_monthly_payment, 0) > 0)::int as payment_docs,
+           max(recording_date)::text as latest_recording
+      from mortgage_records
+     where ${recorderWhere};
+  `);
+  console.log(`  ${market.label}: recorder`);
+
+  const [paidDetails] = await pg(`
+    with active_market_properties as (
+      select distinct property_id
+        from listing_signals
+       where ${listingWhere}
+         and property_id is not null
+    )
+    select count(*)::int as cached_details,
+           max(rapi.fetched_at)::text as latest_fetch
+      from realestateapi_property_details rapi
+      join active_market_properties amp on amp.property_id = rapi.property_id;
+  `);
+  console.log(`  ${market.label}: paid details`);
+
+  const [mf] = await pg(`
+    with mf as (
+      select id from properties where ${mfWhere}
+    )
+    select count(distinct mf.id)::int as complex_count,
+           count(distinct pw.property_id)::int as website_properties,
+           count(distinct fp.property_id)::int as floorplan_properties,
+           count(distinct fp.id)::int as floorplan_rows,
+           count(distinct rs.property_id)::int as rent_properties,
+           count(*) filter (where rs.id is not null)::int as rent_rows,
+           count(*) filter (where rs.observed_at >= now() - interval '1 day')::int as fresh_rent_rows,
+           count(*) filter (where coalesce(rs.effective_rent, rs.asking_rent) > 0)::int as rent_amount_rows,
+           count(*) filter (where rs.rent_per_door > 0)::int as rent_per_door_rows,
+           count(*) filter (where rs.total_monthly_rent > 0)::int as total_monthly_rows,
+           max(rs.observed_at)::text as latest_rent_observed,
+           sum(coalesce(rs.total_monthly_rent, 0))::numeric as reported_total_monthly_rent
+      from mf
+      left join property_websites pw on pw.property_id = mf.id and pw.active = true
+      left join floorplans fp on fp.property_id = mf.id
+      left join rent_snapshots rs on rs.property_id = mf.id;
+  `);
+  console.log(`  ${market.label}: multifamily`);
+
+  const lienSamples = await pgOptional(`
+    select document_type, recording_date::text, borrower_name, lender_name,
+           coalesce(loan_amount, original_amount, estimated_current_balance, 0)::numeric as amount,
+           estimated_monthly_payment
+      from mortgage_records
+     where ${recorderWhere}
+       and document_type in ('mortgage','lien','tax_lien','mechanics_lien','judgment_lien')
+     order by recording_date desc nulls last
+     limit 10;
+  `, `${market.label} lien samples`);
+  console.log(`  ${market.label}: lien samples`);
+
+  const rentSamples = await pgOptional(`
+    with recent_rents as (
+      select *
+        from rent_snapshots
+       where coalesce(effective_rent, asking_rent, 0) > 0
+       order by observed_at desc nulls last
+       limit 5000
+    )
+    select coalesce(cp.complex_name, p.address) as complex_name,
+           p.address,
+           fp.name as floorplan,
+           rs.beds,
+           rs.baths,
+           rs.sqft,
+           coalesce(rs.effective_rent, rs.asking_rent)::numeric as rent,
+           rs.rent_per_door,
+           rs.estimated_unit_count,
+           rs.rent_unit_basis,
+           rs.total_monthly_rent,
+           rs.observed_at::text as observed_at
+      from recent_rents rs
+      join properties p on p.id = rs.property_id
+      left join floorplans fp on fp.id = rs.floorplan_id
+      left join property_complex_profiles cp on cp.property_id = p.id
+     where ${cityPropertyWhere}
+       and coalesce(rs.effective_rent, rs.asking_rent, 0) > 0
+     order by rs.observed_at desc nulls last
+     limit 10;
+  `, `${market.label} rent samples`);
+  console.log(`  ${market.label}: rent samples`);
+
+  const readinessGaps = [
+    n(listings.total) === 0 ? "active listing ingestion has no current rows" : null,
+    n(listings.source_count) <= 1 ? "active listing coverage is source-limited" : null,
+    n(listings.unlinked_listings) > 0 ? `${fmt(listings.unlinked_listings)} listing rows are not linked to property_id` : null,
+    pctNumber(listings.email, listings.total) < 50 ? `verified agent email coverage is low (${pct(listings.email, listings.total)})` : null,
+    n(debt.records) > 0 && n(debt.amount_rows) === 0 ? "linked debt rows exist but loan/balance/payment amounts are missing" : null,
+    n(mf.rent_properties) === 0 ? "multifamily rent snapshots are empty" : null,
+  ].filter(Boolean);
+
+  return {
+    market,
+    countyId,
+    listings,
+    cityParcels,
+    countyParcels,
+    events,
+    debt,
+    recorder,
+    paidDetails,
+    mf,
+    lienSamples,
+    rentSamples,
+    readinessGaps,
+  };
+}
+
+function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: number) {
+  const { market, listings, cityParcels, countyParcels, events, debt, recorder, paidDetails, mf, lienSamples, rentSamples, readinessGaps } = data;
+  const panelId = `panel-${market.key}`;
+  return `<section id="${panelId}" class="market-panel${index === 0 ? " active" : ""}" role="tabpanel" aria-labelledby="tab-${market.key}">
+    <div class="grid">
+      <div class="card"><div class="label">County Parcels</div><div class="metric">${fmt(countyParcels.total)}</div><div class="note">${pct(countyParcels.parcel_id, countyParcels.total)} have parcel IDs across ${fmt(countyParcels.cities)} city labels. City subset: ${fmt(cityParcels.total)}.</div></div>
+      <div class="card"><div class="label">Active Listing Rows</div><div class="metric">${fmt(listings.total)}</div><div class="note">${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows; ${fmt(listings.unlinked_listings)} unlinked. ${esc(market.listingScopeNote)}</div></div>
+      <div class="card"><div class="label">Recorded / Paid Debt</div><div class="metric">${fmt(debt.records)}</div><div class="note">${fmt(debt.properties)} active linked properties; ${fmt(debt.amount_rows)} amount rows and ${fmt(debt.payment_rows)} payment rows.</div></div>
+      <div class="card"><div class="label">Rent / Floorplans</div><div class="metric">${fmt(mf.rent_rows)}</div><div class="note">${fmt(mf.floorplan_rows)} floorplans; ${fmt(mf.rent_properties)} complexes with rent snapshots. Latest: ${esc(mf.latest_rent_observed ?? "-")}.</div></div>
+    </div>
+
+    <div class="status ${readinessGaps.length ? "building" : "ready"}">
+      <strong>${readinessGaps.length ? "Still Building" : "Ready"}</strong>
+      <span>${readinessGaps.length ? esc(readinessGaps.join("; ")) : "No dashboard blocking gaps detected by the current coverage checks."}</span>
+    </div>
+
+    <section class="two">
+      <div class="panel"><h2>Listing & Agent Coverage</h2><div class="bars">
+        ${bar("MLS/list price", listings.price, listings.total)}
+        ${bar("MLS description saved", listings.mls_description, listings.total)}
+        ${bar("Agent name", listings.agent_name, listings.total)}
+        ${bar("Agent first / last", listings.first_last, listings.total)}
+        ${bar("Agent phone", listings.phone, listings.total)}
+        ${bar("Brokerage", listings.brokerage, listings.total)}
+        ${bar("Verified agent email", listings.email, listings.total)}
+      </div></div>
+      <div class="panel"><h2>Parcel Coverage</h2><div class="bars">
+        ${bar("County parcel id", countyParcels.parcel_id, countyParcels.total)}
+        ${bar("County address", countyParcels.address, countyParcels.total)}
+        ${bar("County asset type", countyParcels.asset_type, countyParcels.total)}
+        ${bar("County owner", countyParcels.owner, countyParcels.total)}
+        ${bar("County value", countyParcels.value, countyParcels.total)}
+        ${bar("City unit count", cityParcels.total_units, cityParcels.total)}
+        ${bar("City year built", cityParcels.year_built, cityParcels.total)}
+        ${bar("City sqft", cityParcels.sqft, cityParcels.total)}
+      </div></div>
+    </section>
+
+    <section class="panel">
+      <h2>Coverage Detail</h2>
+      <table>
+        <tr><th>Metric</th><th>Count</th><th>Coverage / Yield</th><th>Notes</th></tr>
+        <tr><td>Sources</td><td>${fmt(listings.source_count)}</td><td>-</td><td>${esc(Array.isArray(listings.sources) ? listings.sources.join(", ") : "")}</td></tr>
+        <tr><td>Creative evaluated</td><td>${fmt(listings.creative_evaluated)} / ${fmt(listings.total)}</td><td>${pct(listings.creative_evaluated, listings.total)}</td><td>Coverage means rows were evaluated and status was saved. Hits are a yield, not coverage.</td></tr>
+        <tr><td>Creative hits</td><td>${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative</td><td>${pct(n(listings.creative_positive) + n(listings.creative_negative), listings.total)}</td><td>MLS descriptions saved: ${fmt(listings.mls_description)}.</td></tr>
+        <tr><td>Price-change tracking</td><td>${fmt(events.price_changed)} price changes / ${fmt(events.total)} events</td><td>-</td><td>Latest event: ${esc(events.latest_event ?? "-")}.</td></tr>
+        <tr><td>Listing-property matching</td><td>${fmt(n(listings.total) - n(listings.unlinked_listings))} linked / ${fmt(listings.unlinked_listings)} unlinked</td><td>${pct(n(listings.total) - n(listings.unlinked_listings), listings.total)}</td><td>Unlinked rows should not be counted as unique active properties.</td></tr>
+        <tr><td>County parcel universe</td><td>${fmt(countyParcels.total)}</td><td>${pct(countyParcels.parcel_id, countyParcels.total)}</td><td>${esc(market.parcelScopeNote)}</td></tr>
+        <tr><td>City parcel subset</td><td>${fmt(cityParcels.total)}</td><td>${pct(cityParcels.parcel_id, cityParcels.total)}</td><td>City/situs-labelled subset used for local coverage quality checks.</td></tr>
+        <tr><td>Recorder source docs</td><td>${fmt(recorder.source_docs)}</td><td>-</td><td>${fmt(recorder.linked_properties)} linked properties; latest recording ${esc(recorder.latest_recording ?? "-")}.</td></tr>
+        <tr><td>Recorded liens/debt</td><td>${fmt(recorder.debt_docs)}</td><td>${pct(recorder.debt_docs, recorder.source_docs)}</td><td>${fmt(recorder.amount_docs)} rows include amount/balance data; ${fmt(recorder.payment_docs)} include estimated monthly payment.</td></tr>
+        <tr><td>Paid property detail cache</td><td>${fmt(paidDetails.cached_details)} properties</td><td>-</td><td>Latest RealEstateAPI fetch: ${esc(paidDetails.latest_fetch ?? "-")}.</td></tr>
+        <tr><td>Paid/linked mortgage detail</td><td>${fmt(debt.records)} records / ${fmt(debt.properties)} properties</td><td>${pct(debt.properties, listings.active_properties)}</td><td>${fmt(debt.paid_records)} paid rows, ${fmt(debt.public_records)} public rows. Total amount: ${money(debt.total_amount)}; total estimated payment: ${money(debt.total_estimated_payment)}.</td></tr>
+        <tr><td>Multifamily websites</td><td>${fmt(mf.website_properties)} / ${fmt(mf.complex_count)}</td><td>${pct(mf.website_properties, mf.complex_count)}</td><td>Public/free discovery only unless paid enrichment is explicitly run.</td></tr>
+        <tr><td>Floorplans</td><td>${fmt(mf.floorplan_rows)} rows / ${fmt(mf.floorplan_properties)} properties</td><td>${pct(mf.floorplan_properties, mf.complex_count)}</td><td>By bed type where source pages expose it.</td></tr>
+        <tr><td>Rent snapshots</td><td>${fmt(mf.rent_amount_rows)} rent rows / ${fmt(mf.rent_properties)} properties</td><td>${pct(mf.rent_properties, mf.complex_count)}</td><td>${fmt(mf.total_monthly_rows)} rows include total monthly rent; reported total/mo ${money(mf.reported_total_monthly_rent)}.</td></tr>
+      </table>
+    </section>
+
+    <section class="two">
+      <div class="panel">
+        <h2>Recorded Lien / Debt Samples</h2>
+        <table><tr><th>Type</th><th>Date</th><th>Borrower</th><th>Lender</th><th>Amount</th><th>Payment</th></tr>
+          ${lienSamples.length ? lienSamples.map(r => `<tr><td>${esc(r.document_type)}</td><td>${esc(r.recording_date)}</td><td>${esc(r.borrower_name)}</td><td>${esc(r.lender_name)}</td><td>${money(r.amount)}</td><td>${money(r.estimated_monthly_payment)}</td></tr>`).join("") : `<tr><td colspan="6">No recorded lien/debt samples available yet.</td></tr>`}
+        </table>
+      </div>
+      <div class="panel">
+        <h2>Rent / Floorplan Samples</h2>
+        <table><tr><th>Complex</th><th>Floorplan</th><th>Unit</th><th>Rent</th><th>Total/mo</th><th>Observed</th></tr>
+          ${rentSamples.length ? rentSamples.map(r => `<tr><td>${esc(r.complex_name)}<div class="note">${esc(r.address)}</div></td><td>${esc(r.floorplan)}</td><td>${esc(r.beds)} bd / ${esc(r.baths)} ba / ${esc(r.sqft)} sf</td><td>${money(r.rent)}<div class="note">${esc(r.rent_unit_basis || "per_unit")}</div></td><td>${n(r.total_monthly_rent) > 0 ? money(r.total_monthly_rent) : "Unit count not reported"}<div class="note">${n(r.estimated_unit_count) > 0 ? `${fmt(r.estimated_unit_count)} units` : ""}</div></td><td>${esc(r.observed_at)}</td></tr>`).join("") : `<tr><td colspan="6">No public rent samples available yet.</td></tr>`}
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Rerun Commands</h2>
+      <table>
+        <tr><th>Purpose</th><th>Command</th></tr>
+        ${market.rerunCommands.map((command, i) => `<tr><td>${i === 0 ? "Market refresh" : "Follow-up"}</td><td><code>${esc(command)}</code></td></tr>`).join("")}
+        <tr><td>Regenerate tabbed dashboard only</td><td><code>npx tsx scripts/generate-market-coverage-dashboard.ts</code></td></tr>
+      </table>
+    </section>
+  </section>`;
+}
+
+async function main() {
+  const markets = [];
+  for (const market of MARKETS) {
+    console.log(`Collecting ${market.label}...`);
+    markets.push(await collectMarket(market));
+  }
+
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MXRE Market Coverage Dashboard</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f5f7f9; color:#16212f; }
+    * { box-sizing:border-box; } body { margin:0; background:#f5f7f9; } header { padding:26px 32px 18px; border-bottom:1px solid #d8e0e8; background:#fff; position:sticky; top:0; z-index:10; }
+    .eyebrow { color:#5a6b7e; font-size:13px; font-weight:700; text-transform:uppercase; } h1 { margin:5px 0 4px; font-size:30px; letter-spacing:0; } .sub,.note { color:#5a6b7e; font-size:13px; line-height:1.35; }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; } .tab { appearance:none; border:1px solid #c9d4df; background:#fff; color:#233143; border-radius:6px; padding:9px 12px; font-weight:750; cursor:pointer; }
+    .tab.active { background:#1f5f56; color:#fff; border-color:#1f5f56; } main { padding:24px 32px 36px; } .market-panel { display:none; } .market-panel.active { display:block; }
+    .grid { display:grid; grid-template-columns:repeat(4,minmax(170px,1fr)); gap:14px; } .card,.panel,.status { background:#fff; border:1px solid #d8e0e8; border-radius:8px; padding:16px; }
+    .card { min-height:116px; } .label { color:#5a6b7e; font-size:13px; font-weight:700; } .metric { margin-top:9px; font-size:30px; line-height:1; font-weight:800; }
+    section { margin-top:22px; } h2 { margin:0 0 12px; font-size:18px; letter-spacing:0; } .bars { display:grid; gap:12px; } .row { display:grid; grid-template-columns:210px 1fr 76px; gap:12px; align-items:center; font-size:14px; }
+    .track { height:12px; border-radius:999px; background:#e7edf3; overflow:hidden; } .fill { height:100%; background:#2f7d70; border-radius:999px; } .fill.warn { background:#c27803; } .fill.bad { background:#b53b45; }
+    .two { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; } table { width:100%; border-collapse:collapse; font-size:14px; } th,td { padding:10px 8px; border-bottom:1px solid #e4eaf0; text-align:left; vertical-align:top; } th { color:#5a6b7e; font-size:12px; text-transform:uppercase; }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size:12px; } .status { margin-top:14px; display:flex; gap:10px; align-items:flex-start; } .status.ready { border-color:#94c9bc; background:#f3fbf8; } .status.building { border-color:#e1c37a; background:#fffaf0; }
+    @media (max-width:960px){ .grid,.two{grid-template-columns:1fr;} .row{grid-template-columns:150px 1fr 62px;} header,main{padding-left:18px;padding-right:18px;} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">MXRE Market Coverage</div>
+    <h1>Coverage Dashboard</h1>
+    <div class="sub">Tabbed coverage snapshot generated ${esc(new Date().toLocaleString())}. This replaces separate per-market dashboard files.</div>
+    <div class="tabs" role="tablist">
+      ${markets.map((data, i) => `<button id="tab-${data.market.key}" class="tab${i === 0 ? " active" : ""}" role="tab" aria-selected="${i === 0}" aria-controls="panel-${data.market.key}" data-target="panel-${data.market.key}">${esc(data.market.label)}</button>`).join("")}
+    </div>
+  </header>
+  <main>
+    ${markets.map(renderMarket).join("")}
+  </main>
+  <script>
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    const panels = Array.from(document.querySelectorAll(".market-panel"));
+    function activate(id) {
+      tabs.forEach(tab => {
+        const active = tab.dataset.target === id;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+      });
+      panels.forEach(panel => panel.classList.toggle("active", panel.id === id));
+      history.replaceState(null, "", "#" + id.replace(/^panel-/, ""));
+    }
+    tabs.forEach(tab => tab.addEventListener("click", () => activate(tab.dataset.target)));
+    const initial = location.hash ? "panel-" + location.hash.slice(1) : null;
+    if (initial && document.getElementById(initial)) activate(initial);
+  </script>
+</body>
+</html>`;
+
+  await mkdir(join(process.cwd(), "logs", "market-refresh"), { recursive: true });
+  await writeFile(join(process.cwd(), OUT), html, "utf8");
+  console.log(JSON.stringify({ wrote: OUT, markets: MARKETS.map(m => m.key), generated_at: new Date().toISOString() }, null, 2));
+}
+
+main().catch(error => {
+  console.error("Fatal:", error instanceof Error ? error.message : error);
+  process.exit(1);
+});

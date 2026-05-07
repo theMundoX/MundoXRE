@@ -16,6 +16,14 @@
       "required": true,
       "continueOnFailure": true,
       "command": ["npx", "tsx", "scripts/refresh-dallas-market.ts"]
+    },
+    {
+      "id": "columbus-oh",
+      "label": "Columbus, OH",
+      "enabled": true,
+      "required": true,
+      "continueOnFailure": true,
+      "command": ["npx", "tsx", "scripts/refresh-columbus-market.ts"]
     }
   ]
 }

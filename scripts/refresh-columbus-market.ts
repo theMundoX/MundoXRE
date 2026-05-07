@@ -1,16 +1,16 @@
 #!/usr/bin/env tsx
 /**
- * Reusable Dallas, TX market coverage refresh orchestrator.
+ * Reusable Columbus, OH market coverage refresh orchestrator.
  *
- * This runner keeps Dallas enrichment repeatable without hiding the underlying
- * source-specific scripts. It intentionally uses public/legal source scripts
- * and keeps paid API fallbacks outside the default path.
+ * Columbus keeps market-specific public sources for Franklin County, but reuses
+ * the same bounded orchestration framework as Dallas/Indianapolis: repeatable
+ * steps, dry-run support, paid fallback gates, audits, and unified dashboard
+ * regeneration.
  *
  * Usage:
- *   npx tsx scripts/refresh-dallas-market.ts
- *   npx tsx scripts/refresh-dallas-market.ts --dry-run
- *   npx tsx scripts/refresh-dallas-market.ts --skip-rents
- *   npx tsx scripts/refresh-dallas-market.ts --include-paid --paid-max-calls=100
+ *   npx tsx scripts/refresh-columbus-market.ts
+ *   npx tsx scripts/refresh-columbus-market.ts --dry-run
+ *   npx tsx scripts/refresh-columbus-market.ts --include-paid --paid-max-calls=1500
  */
 
 import "dotenv/config";
@@ -26,10 +26,13 @@ hydrateWindowsUserEnv();
 
 const args = process.argv.slice(2);
 const hasFlag = (name: string) => args.includes(`--${name}`);
+const valueArg = (name: string, fallback: string) =>
+  args.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? fallback;
 
 const DRY_RUN = hasFlag("dry-run");
+const SKIP_PARCELS = hasFlag("skip-parcels");
 const SKIP_CLASSIFY = hasFlag("skip-classify");
-const SKIP_REDFIN_DETAILS = hasFlag("skip-redfin-details");
+const SKIP_LISTINGS = hasFlag("skip-listings");
 const SKIP_AGENT_CONTACTS = hasFlag("skip-agent-contacts");
 const SKIP_AGENT_EMAILS = hasFlag("skip-agent-emails");
 const SKIP_RECORDER = hasFlag("skip-recorder");
@@ -37,12 +40,18 @@ const SKIP_CREATIVE = hasFlag("skip-creative");
 const SKIP_RENTS = hasFlag("skip-rents");
 const SKIP_AUDITS = hasFlag("skip-audits");
 const INCLUDE_PAID = hasFlag("include-paid");
-const PAID_MAX_CALLS = Math.max(0, Number(args.find(a => a.startsWith("--paid-max-calls="))?.split("=")[1] ?? "0"));
+const PAID_MAX_CALLS = Math.max(0, Number(valueArg("paid-max-calls", "0")));
 const dryLimit = (value: string, dryValue: string) => DRY_RUN ? dryValue : value;
-const RECORDER_DAYS = dryLimit("7", "1");
 
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
+const COUNTY_ID = 1698985;
+const recorderEnd = new Date().toISOString().split("T")[0];
+const recorderStart = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() - (DRY_RUN ? 1 : 7));
+  return d.toISOString().split("T")[0];
+})();
 
 type Step = {
   name: string;
@@ -80,7 +89,7 @@ async function pg(query: string): Promise<Record<string, unknown>[]> {
     return response.json();
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Dallas refresh cannot reach ${PG_URL}. Check SUPABASE_URL/pg-query service or MXRE_DIRECT_PG_URL. Detail: ${detail}`);
+    throw new Error(`Columbus refresh cannot reach ${PG_URL}. Start the DB tunnel and check local env. Detail: ${detail}`);
   }
 }
 
@@ -170,12 +179,12 @@ async function main() {
   const startedAt = new Date();
   const stamp = startedAt.toISOString().replace(/[:.]/g, "-");
   const logDir = join(repoRoot, "logs", "market-refresh");
-  const resultPath = join(logDir, `dallas-tx-${stamp}.json`);
+  const resultPath = join(logDir, `columbus-oh-${stamp}.json`);
   const results: StepResult[] = [];
 
   await mkdir(logDir, { recursive: true });
 
-  console.log("MXRE Dallas, TX market refresh");
+  console.log("MXRE Columbus, OH market refresh");
   console.log("=".repeat(48));
   console.log(`Dry run: ${DRY_RUN}`);
   console.log(`Paid fallback: ${INCLUDE_PAID ? `enabled, max calls ${PAID_MAX_CALLS}` : "disabled"}`);
@@ -186,88 +195,100 @@ async function main() {
 
   const steps: Step[] = [
     {
-      name: "Classify Dallas parcel asset types",
-      command: ["npx", "tsx", "scripts/classify-market-assets.ts", "--state=TX", "--city=DALLAS", "--county_id=7", `--batch-size=${dryLimit("2500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Ingest Franklin County public parcels",
+      command: ["npx", "tsx", "scripts/ingest-franklin-oh.ts"],
+      required: true,
+      supportsDryRun: false,
+      skip: SKIP_PARCELS,
+      timeoutMs: 45 * 60_000,
+    },
+    {
+      name: "Classify Columbus parcel asset types",
+      command: ["npx", "tsx", "scripts/classify-market-assets.ts", "--state=OH", "--city=COLUMBUS", `--county_id=${COUNTY_ID}`, `--batch-size=${dryLimit("2500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: true,
       supportsDryRun: true,
       skip: SKIP_CLASSIFY,
+      timeoutMs: DRY_RUN ? 10 * 60_000 : 30 * 60_000,
     },
     {
-      name: "Refresh Dallas Redfin listing signals",
-      command: ["npx", "tsx", "scripts/ingest-listings-fast.ts", "--state", "TX", "--county", "Dallas", "--concurrency", dryLimit("3", "1"), ...(DRY_RUN ? ["--dry-run", "--skip-match"] : [])],
+      name: "Backfill Franklin OH classification details",
+      command: ["npx", "tsx", "scripts/backfill-franklin-oh-classification.ts", "--city=COLUMBUS", `--county_id=${COUNTY_ID}`, `--limit=${dryLimit("50000", "500")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
-      skip: SKIP_REDFIN_DETAILS,
+      skip: SKIP_CLASSIFY,
+      timeoutMs: DRY_RUN ? 5 * 60_000 : 30 * 60_000,
+    },
+    {
+      name: "Refresh Columbus Redfin listing signals",
+      command: ["npx", "tsx", "scripts/ingest-listings-fast.ts", "--state", "OH", "--county", "Franklin", "--concurrency", dryLimit("3", "1"), ...(DRY_RUN ? ["--dry-run", "--skip-match"] : [])],
+      required: false,
+      supportsDryRun: true,
+      skip: SKIP_LISTINGS,
       timeoutMs: DRY_RUN ? 10 * 60_000 : 45 * 60_000,
     },
     {
-      name: "Enrich Dallas Redfin listing detail pages",
-      command: ["npx", "tsx", "scripts/enrich-redfin-detail-pages.ts", "--state=TX", "--city=DALLAS", `--limit=${dryLimit("5000", "5")}`, `--delay-ms=${dryLimit("500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Enrich Columbus Redfin listing detail pages",
+      command: ["npx", "tsx", "scripts/enrich-redfin-detail-pages.ts", "--state=OH", "--city=COLUMBUS", `--limit=${dryLimit("5000", "25")}`, `--delay-ms=${dryLimit("500", "200")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
-      skip: SKIP_REDFIN_DETAILS,
+      skip: SKIP_LISTINGS,
+      timeoutMs: DRY_RUN ? 5 * 60_000 : 90 * 60_000,
     },
     {
-      name: "Link Dallas active listings to parcels",
-      command: ["npx", "tsx", "scripts/link-dallas-listings-to-parcels.ts", `--limit=${dryLimit("5000", "100")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
-      required: false,
-      supportsDryRun: true,
-      skip: SKIP_REDFIN_DETAILS,
-    },
-    {
-      name: "Normalize Dallas listing agent contacts",
-      command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--state=TX", "--city=DALLAS", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Normalize Columbus listing agent contacts",
+      command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--state=OH", "--city=COLUMBUS", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AGENT_CONTACTS,
     },
     {
-      name: "Search public Dallas agent email profiles",
+      name: "Bounded public Columbus agent email profiles",
       command: [
         "npx", "tsx", "scripts/enrich-agent-emails-public.ts",
-        "--state=TX", "--city=DALLAS",
-        `--limit=${dryLimit("500", "5")}`,
-        `--delay-ms=${dryLimit("1500", "250")}`,
-        `--max-search-queries=${dryLimit("6", "2")}`,
-        `--max-search-links=${dryLimit("10", "4")}`,
-        `--max-direct-profile-urls=${dryLimit("4", "1")}`,
-        `--max-profile-links-per-page=${dryLimit("6", "3")}`,
-        `--fetch-timeout-ms=${dryLimit("8000", "3000")}`,
-        `--row-timeout-ms=${dryLimit("45000", "15000")}`,
+        "--state=OH", "--city=COLUMBUS",
+        `--limit=${dryLimit("75", "5")}`,
+        `--delay-ms=${dryLimit("750", "200")}`,
+        `--max-search-queries=${dryLimit("3", "1")}`,
+        `--max-search-links=${dryLimit("4", "2")}`,
+        `--max-direct-profile-urls=${dryLimit("2", "1")}`,
+        `--max-profile-links-per-page=${dryLimit("3", "2")}`,
+        `--fetch-timeout-ms=${dryLimit("5000", "2500")}`,
+        `--row-timeout-ms=${dryLimit("15000", "8000")}`,
         ...(DRY_RUN ? ["--dry-run", "--disable-duckduckgo"] : []),
       ],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AGENT_EMAILS,
-      timeoutMs: DRY_RUN ? 5 * 60_000 : 90 * 60_000,
+      timeoutMs: DRY_RUN ? 3 * 60_000 : 25 * 60_000,
     },
     {
-      name: "Ingest Dallas County recorded deeds and mortgages",
-      command: ["npx", "tsx", "scripts/ingest-recorder-tx.ts", "--county=Dallas", `--days=${RECORDER_DAYS}`, `--max-docs=${dryLimit("1000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Ingest Franklin County recorder docs",
+      command: ["npx", "tsx", "scripts/ingest-oh-publicsearch.ts", "--county=Franklin", `--start=${recorderStart}`, `--end=${recorderEnd}`],
+      required: false,
+      supportsDryRun: false,
+      skip: SKIP_RECORDER,
+      timeoutMs: 25 * 60_000,
+    },
+    {
+      name: "Link Franklin mortgages to properties",
+      command: ["npx", "tsx", "scripts/link-mortgage-records.ts", "--state=OH", "--county=Franklin", `--limit=${dryLimit("10000", "100")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_RECORDER,
-      timeoutMs: 20 * 60_000,
+      timeoutMs: DRY_RUN ? 5 * 60_000 : 30 * 60_000,
     },
     {
-      name: "Normalize Dallas public recorder rows",
-      command: ["npx", "tsx", "scripts/normalize-dallas-publicsearch-recorder.ts", ...(DRY_RUN ? ["--dry-run"] : [])],
-      required: false,
-      supportsDryRun: true,
-      skip: SKIP_RECORDER,
-    },
-    {
-      name: "Score Dallas creative finance signals",
-      command: ["npx", "tsx", "scripts/score-creative-finance-signals.ts", "--state=TX", "--city=DALLAS", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Score Columbus creative finance signals",
+      command: ["npx", "tsx", "scripts/score-creative-finance-signals.ts", "--state=OH", "--city=COLUMBUS", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_CREATIVE,
     },
     {
-      name: "Paid Dallas Property Detail enrichment",
+      name: "Paid Columbus Property Detail enrichment",
       command: [
         "npx", "tsx", "scripts/enrich-on-market-realestateapi.ts",
-        "--state=TX", "--city=Dallas",
+        "--state=OH", "--city=Columbus",
         `--limit=${dryLimit(String(Math.max(PAID_MAX_CALLS, 1)), "5")}`,
         `--max-calls=${dryLimit(String(PAID_MAX_CALLS), "0")}`,
         ...(DRY_RUN ? ["--dry-run"] : []),
@@ -275,46 +296,63 @@ async function main() {
       required: false,
       supportsDryRun: true,
       skip: !INCLUDE_PAID,
-      timeoutMs: 60 * 60_000,
+      timeoutMs: 90 * 60_000,
     },
     {
-      name: "Paid Dallas Zillow/RapidAPI listing fallback",
+      name: "Paid Columbus Zillow/RapidAPI listing fallback",
       command: [
         "npx", "tsx", "scripts/enrich-on-market-zillow-rapidapi.ts",
-        "--state=TX", "--city=Dallas",
+        "--state=OH", "--city=Columbus",
         `--limit=${dryLimit(String(Math.max(PAID_MAX_CALLS, 1)), "5")}`,
         `--max-calls=${dryLimit(String(PAID_MAX_CALLS), "0")}`,
+        "--concurrency=4",
         ...(DRY_RUN ? ["--dry-run"] : []),
       ],
       required: false,
       supportsDryRun: true,
       skip: !INCLUDE_PAID,
-      timeoutMs: 60 * 60_000,
+      timeoutMs: 90 * 60_000,
     },
     {
-      name: "Refresh Dallas multifamily rent snapshots",
-      command: ["npx", "tsx", "scripts/scrape-rents-bulk.ts", "--city=Dallas", "--state=TX", "--county_id=7", `--limit=${dryLimit("250", "5")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Discover Columbus multifamily websites",
+      command: ["npx", "tsx", "scripts/discover-market-websites-free.ts", "--state=OH", "--city=Columbus", `--county_id=${COUNTY_ID}`, `--limit=${dryLimit("500", "10")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_RENTS,
+      timeoutMs: DRY_RUN ? 5 * 60_000 : 30 * 60_000,
     },
     {
-      name: "Audit Dallas agent coverage",
-      command: ["npx", "tsx", "scripts/audit-on-market-agent-coverage.ts", "--state=TX", "--city=DALLAS"],
+      name: "Refresh Columbus multifamily rent snapshots",
+      command: ["npx", "tsx", "scripts/scrape-rents-bulk.ts", "--state=OH", "--city=Columbus", `--county_id=${COUNTY_ID}`, "--stale_days=1", `--limit=${dryLimit("500", "5")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      required: false,
+      supportsDryRun: true,
+      skip: SKIP_RENTS,
+      timeoutMs: DRY_RUN ? 5 * 60_000 : 45 * 60_000,
+    },
+    {
+      name: "Audit Columbus agent coverage",
+      command: ["npx", "tsx", "scripts/audit-on-market-agent-coverage.ts", "--state=OH", "--city=COLUMBUS"],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AUDITS,
     },
     {
-      name: "Audit Dallas readiness",
-      command: ["npx", "tsx", "scripts/market-readiness-summary.ts", "--state=TX", "--city=DALLAS", "--county_id=7"],
+      name: "Audit Columbus rent coverage",
+      command: ["npx", "tsx", "scripts/audit-indy-multifamily-rent-coverage.ts", "--state=OH", "--city=COLUMBUS", `--county_id=${COUNTY_ID}`],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AUDITS,
     },
     {
-      name: "Regenerate Dallas coverage dashboard",
-      command: ["npx", "tsx", "scripts/generate-dallas-coverage-dashboard.ts"],
+      name: "Audit Columbus readiness",
+      command: ["npx", "tsx", "scripts/market-readiness-summary.ts", "--state=OH", "--city=COLUMBUS", `--county_id=${COUNTY_ID}`],
+      required: false,
+      supportsDryRun: true,
+      skip: SKIP_AUDITS,
+    },
+    {
+      name: "Regenerate unified coverage dashboard",
+      command: ["npx", "tsx", "scripts/generate-market-coverage-dashboard.ts"],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AUDITS,
@@ -329,7 +367,10 @@ async function main() {
   const failedRequired = results.some((result) => result.required && result.status === "failed");
   const summary = {
     status: failedRequired ? "failed" : "ok",
+    market: "columbus-oh",
     dry_run: DRY_RUN,
+    include_paid: INCLUDE_PAID,
+    paid_max_calls: PAID_MAX_CALLS,
     started_at: startedAt.toISOString(),
     finished_at: finishedAt.toISOString(),
     duration_ms: finishedAt.getTime() - startedAt.getTime(),
@@ -338,7 +379,7 @@ async function main() {
 
   await writeFile(resultPath, JSON.stringify(summary, null, 2));
 
-  console.log("\nDallas market refresh summary");
+  console.log("\nColumbus market refresh summary");
   console.log("=".repeat(48));
   console.log(`Status: ${summary.status}`);
   console.log(`OK: ${results.filter((result) => result.status === "ok").length}`);
@@ -350,6 +391,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("Fatal Dallas market refresh error:", error instanceof Error ? error.message : error);
+  console.error("Fatal Columbus market refresh error:", error instanceof Error ? error.message : error);
   process.exit(1);
 });

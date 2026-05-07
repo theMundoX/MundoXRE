@@ -73,6 +73,10 @@ const SOURCE_PATTERNS: Array<{ pattern: string; county_name: string; state_code:
   { pattern: "dallas.tx.publicsearch.us", county_name: "Dallas", state_code: "TX" },
   { pattern: "denton.tx.publicsearch.us", county_name: "Denton", state_code: "TX" },
   { pattern: "tarrant.tx.publicsearch.us", county_name: "Tarrant", state_code: "TX" },
+  { pattern: "butler.oh.publicsearch", county_name: "Butler", state_code: "OH" },
+  { pattern: "franklin.oh.publicsearch", county_name: "Franklin", state_code: "OH" },
+  { pattern: "cuyahoga.oh.publicsearch", county_name: "Cuyahoga", state_code: "OH" },
+  { pattern: "stark.oh.publicsearch", county_name: "Stark", state_code: "OH" },
   // Florida
   { pattern: "levyclerk.com", county_name: "Levy", state_code: "FL" },
   { pattern: "martinclerk.com", county_name: "Martin", state_code: "FL" },

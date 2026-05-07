@@ -12,9 +12,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
+hydrateWindowsUserEnv();
 
 interface MarketRefreshJob {
   id: string;
