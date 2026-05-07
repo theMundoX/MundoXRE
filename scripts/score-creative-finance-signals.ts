@@ -39,8 +39,8 @@ const POSITIVE_PATTERNS: Array<[string, RegExp]> = [
 ];
 
 const NEGATIVE_PATTERNS: Array<[string, RegExp]> = [
-  ["no_seller_financing", /\b(no|not|won'?t|will\s+not|cannot|can't|seller\s+will\s+not)\s+(?:consider\s+)?(?:seller\s+)?financ\w+\b/i],
-  ["no_owner_financing", /\b(no|not|won'?t|will\s+not|cannot|can't|owner\s+will\s+not)\s+(?:consider\s+)?(?:owner\s+)?financ\w+\b/i],
+  ["no_seller_financing", /\b(?:no\s+seller\s+financ\w+|(?:not|won'?t|will\s+not|cannot|can't|seller\s+will\s+not)\s+(?:be\s+)?(?:open\s+to|accept(?:ing)?|offer(?:ing)?|consider(?:ing)?)?\s*(?:seller\s+)?financ\w+)\b/i],
+  ["no_owner_financing", /\b(?:no\s+owner\s+financ\w+|(?:not|won'?t|will\s+not|cannot|can't|owner\s+will\s+not)\s+(?:be\s+)?(?:open\s+to|accept(?:ing)?|offer(?:ing)?|consider(?:ing)?)?\s*(?:owner\s+)?financ\w+)\b/i],
   ["seller_financing_unavailable", /\bseller\s+financ\w+\s+(?:is\s+)?(?:not\s+available|unavailable|not\s+offered|will\s+not\s+be\s+considered)\b/i],
   ["owner_financing_unavailable", /\bowner\s+financ\w+\s+(?:is\s+)?(?:not\s+available|unavailable|not\s+offered|will\s+not\s+be\s+considered)\b/i],
   ["no_seller_carry", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:consider\s+)?seller\s+(?:carry|carryback|terms)\b/i],

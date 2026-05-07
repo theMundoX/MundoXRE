@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
+import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
@@ -30,6 +31,14 @@ type MarketConfig = {
   targetCountyHints?: string[];
   progressFiles?: string[];
   rerunCommands: string[];
+};
+
+type RefreshJobStatus = {
+  marketKey: string;
+  state: "running" | "queued" | "idle";
+  detail: string;
+  latestLog: string | null;
+  latestLogAt: string | null;
 };
 
 const MARKETS: MarketConfig[] = [
@@ -298,6 +307,98 @@ function healthTile(label: string, value: number, detail: string) {
     <div class="track"><div class="fill" style="width:${safeValue}%"></div></div>
     <div class="note">${esc(detail)}</div>
   </div>`;
+}
+
+function refreshScriptName(marketKey: string): string | null {
+  if (marketKey === "dallas-tx") return "refresh-dallas-market.ts";
+  if (marketKey === "indianapolis-in") return "refresh-indianapolis-market.ts";
+  if (marketKey === "columbus-oh") return "refresh-columbus-market.ts";
+  if (marketKey === "west-chester-pa") return "refresh-west-chester-market.ts";
+  return null;
+}
+
+function logPatterns(market: MarketConfig): RegExp[] {
+  const escapedKey = market.key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const first = market.key.split("-")[0];
+  return [
+    new RegExp(escapedKey, "i"),
+    new RegExp(`heartbeat-${first}`, "i"),
+    new RegExp(first, "i"),
+  ];
+}
+
+async function latestMarketLog(market: MarketConfig): Promise<{ name: string; at: string } | null> {
+  const dir = join(process.cwd(), "logs", "market-refresh");
+  const patterns = logPatterns(market);
+  try {
+    const files = await readdir(dir);
+    const matches = await Promise.all(files
+      .filter(file => patterns.some(pattern => pattern.test(file)))
+      .map(async file => ({ file, stats: await stat(join(dir, file)) })));
+    const latest = matches
+      .filter(match => match.stats.isFile())
+      .sort((a, b) => b.stats.mtimeMs - a.stats.mtimeMs)[0];
+    return latest ? { name: latest.file, at: latest.stats.mtime.toLocaleString() } : null;
+  } catch {
+    return null;
+  }
+}
+
+function runningProcessText(): string {
+  try {
+    return execSync(
+      "powershell -NoProfile -Command \"Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'refresh-|ingest-|enrich-|score-creative|scrape-rents' } | Select-Object -ExpandProperty CommandLine\"",
+      { encoding: "utf8", timeout: 5_000, windowsHide: true },
+    );
+  } catch {
+    return "";
+  }
+}
+
+async function collectRefreshJobStatuses(markets: MarketConfig[]): Promise<Map<string, RefreshJobStatus>> {
+  const processText = runningProcessText();
+  const statuses = new Map<string, RefreshJobStatus>();
+  for (const market of markets) {
+    const script = refreshScriptName(market.key);
+    const latest = await latestMarketLog(market);
+    const running = script ? processText.toLowerCase().includes(script.toLowerCase()) : false;
+    statuses.set(market.key, {
+      marketKey: market.key,
+      state: running ? "running" : market.sourceDiscoveryOnly ? "queued" : "idle",
+      detail: running
+        ? `running ${script}`
+        : market.sourceDiscoveryOnly
+          ? "source discovery queued"
+          : "no refresh process detected",
+      latestLog: latest?.name ?? null,
+      latestLogAt: latest?.at ?? null,
+    });
+  }
+  return statuses;
+}
+
+function renderCompletionSummary(
+  markets: Awaited<ReturnType<typeof collectMarket>>[],
+  jobStatuses: Map<string, RefreshJobStatus>,
+) {
+  return `<section class="panel summary-panel">
+    <div class="panel-head">
+      <div><h2>Market Completion & Running Jobs</h2><div class="note">This is the at-a-glance control board: completion, active rows, creative positives, and whether an automation worker is currently running.</div></div>
+    </div>
+    <div class="summary-grid">
+      ${markets.map(data => {
+        const coverage = categoryCoverage(data);
+        const status = jobStatuses.get(data.market.key);
+        const state = status?.state ?? "idle";
+        return `<a class="summary-tile ${healthClass(coverage.overall)} job-${state}" href="#${esc(data.market.key)}">
+          <div class="summary-top"><strong>${esc(data.market.label)}</strong><span>${esc(state.toUpperCase())}</span></div>
+          <div class="summary-main">${coverage.overall.toFixed(0)}%</div>
+          <div class="summary-sub">${fmt(data.listings.active_properties)} active properties · ${fmt(data.listings.creative_positive)} creative</div>
+          <div class="note">${esc(status?.detail ?? "not checked")}${status?.latestLog ? ` · latest ${esc(status.latestLog)} ${esc(status.latestLogAt)}` : ""}</div>
+        </a>`;
+      }).join("")}
+    </div>
+  </section>`;
 }
 
 function findProgressFile(market: MarketConfig): string | null {
@@ -886,6 +987,15 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
 }
 
 async function main() {
+  try {
+    await pg("select 1 as ok;");
+  } catch (error) {
+    throw new Error(
+      `DB bridge unavailable; refusing to overwrite dashboard with fallback zero metrics. ` +
+      `Start the tunnel with scripts/start-mxre-db-tunnel.ps1. Root error: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
   const markets = [];
   for (const market of MARKETS) {
     console.log(`Collecting ${market.label}...`);
@@ -901,6 +1011,7 @@ async function main() {
       markets.push(fallback);
     }
   }
+  const jobStatuses = await collectRefreshJobStatuses(MARKETS);
 
   const html = `<!doctype html>
 <html lang="en">
@@ -923,6 +1034,18 @@ async function main() {
     .overall-value { margin-top:10px; font-size:54px; line-height:.95; font-weight:850; }
     .health-grid { display:grid; grid-template-columns:repeat(3,minmax(150px,1fr)); gap:10px; }
     .health-value { margin:8px 0 8px; font-size:28px; line-height:1; font-weight:850; }
+    .summary-panel { margin-top:0; margin-bottom:18px; }
+    .summary-grid { display:grid; grid-template-columns:repeat(4,minmax(190px,1fr)); gap:10px; }
+    .summary-tile { display:block; color:#16212f; text-decoration:none; border:1px solid #d8e0e8; border-radius:8px; padding:13px; background:#fff; }
+    .summary-tile.good { border-color:#94c9bc; background:#f3fbf8; }
+    .summary-tile.warn { border-color:#e1c37a; background:#fffaf0; }
+    .summary-tile.bad { border-color:#df9da4; background:#fff5f6; }
+    .summary-tile.job-running { box-shadow: inset 4px 0 0 #1f9d7a; }
+    .summary-tile.job-queued { box-shadow: inset 4px 0 0 #c27803; }
+    .summary-top { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:13px; }
+    .summary-top span { font-size:11px; font-weight:850; color:#4b5d70; background:#eef3f7; border-radius:999px; padding:3px 7px; }
+    .summary-main { font-size:32px; line-height:1; font-weight:850; margin:10px 0 4px; }
+    .summary-sub { color:#26384c; font-size:13px; font-weight:700; }
     .grid { display:grid; grid-template-columns:repeat(4,minmax(170px,1fr)); gap:14px; } .card,.panel,.status { background:#fff; border:1px solid #d8e0e8; border-radius:8px; padding:16px; }
     .card { min-height:116px; } .label { color:#5a6b7e; font-size:13px; font-weight:700; } .metric { margin-top:9px; font-size:30px; line-height:1; font-weight:800; }
     section { margin-top:22px; } h2 { margin:0 0 12px; font-size:18px; letter-spacing:0; } .bars { display:grid; gap:12px; } .row { display:grid; grid-template-columns:210px 1fr 76px; gap:12px; align-items:center; font-size:14px; }
@@ -931,7 +1054,13 @@ async function main() {
     code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size:12px; } .status { margin-top:14px; display:flex; gap:10px; align-items:flex-start; } .status.ready { border-color:#94c9bc; background:#f3fbf8; } .status.building { border-color:#e1c37a; background:#fffaf0; }
     .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:12px; } .open-link { border:1px solid #c9d4df; color:#1f5f56; background:#fff; border-radius:6px; padding:9px 11px; text-decoration:none; font-weight:750; white-space:nowrap; }
     .live-frame { width:100%; height:460px; border:1px solid #d8e0e8; border-radius:6px; background:#f8fafc; } .empty-progress { display:grid; gap:9px; border:1px dashed #c9d4df; border-radius:6px; padding:14px; background:#f8fafc; color:#5a6b7e; line-height:1.45; }
-    @media (max-width:960px){ .hero-metrics,.health-grid,.grid,.two{grid-template-columns:1fr;} .row{grid-template-columns:150px 1fr 62px;} header,main{padding-left:18px;padding-right:18px;} }
+    .api-form { display:grid; grid-template-columns:2fr 1fr 90px 110px 1.2fr 130px; gap:10px; align-items:end; }
+    .api-field { display:grid; gap:5px; } .api-field label { color:#5a6b7e; font-size:12px; font-weight:800; text-transform:uppercase; }
+    .api-field input { width:100%; border:1px solid #c9d4df; border-radius:6px; padding:10px 11px; font:inherit; background:#fff; }
+    .api-button { border:1px solid #1f5f56; background:#1f5f56; color:#fff; border-radius:6px; padding:10px 12px; font-weight:850; cursor:pointer; }
+    .api-button:disabled { opacity:.6; cursor:wait; } .api-result { margin-top:12px; min-height:180px; max-height:520px; overflow:auto; border:1px solid #d8e0e8; border-radius:6px; background:#0f1720; color:#d7f8e8; padding:12px; font-size:12px; line-height:1.45; white-space:pre-wrap; }
+    @media (max-width:960px){ .hero-metrics,.health-grid,.summary-grid,.grid,.two{grid-template-columns:1fr;} .row{grid-template-columns:150px 1fr 62px;} header,main{padding-left:18px;padding-right:18px;} }
+    @media (max-width:1180px){ .api-form{grid-template-columns:1fr 1fr;} }
   </style>
 </head>
 <body>
@@ -944,6 +1073,21 @@ async function main() {
     </div>
   </header>
   <main>
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Live API Address Lookup</h2><div class="note">Calls the BBC exact-address endpoint and prints the raw JSON. API key is stored only in this browser session.</div></div>
+      </div>
+      <form id="apiLookupForm" class="api-form">
+        <div class="api-field"><label for="apiAddress">Address</label><input id="apiAddress" autocomplete="street-address" placeholder="9105 Kinlock Dr" required></div>
+        <div class="api-field"><label for="apiCity">City</label><input id="apiCity" autocomplete="address-level2" value="Indianapolis" required></div>
+        <div class="api-field"><label for="apiState">State</label><input id="apiState" autocomplete="address-level1" value="IN" required></div>
+        <div class="api-field"><label for="apiZip">ZIP</label><input id="apiZip" autocomplete="postal-code" placeholder="optional"></div>
+        <div class="api-field"><label for="apiKey">BBC API Key</label><input id="apiKey" type="password" autocomplete="off" placeholder="paste once per session"></div>
+        <button id="apiLookupButton" class="api-button" type="submit">Run Lookup</button>
+      </form>
+      <pre id="apiLookupResult" class="api-result">Enter an address and run lookup.</pre>
+    </section>
+    ${renderCompletionSummary(markets, jobStatuses)}
     ${markets.map(renderMarket).join("")}
   </main>
   <script>
@@ -961,6 +1105,44 @@ async function main() {
     tabs.forEach(tab => tab.addEventListener("click", () => activate(tab.dataset.target)));
     const initial = location.hash ? "panel-" + location.hash.slice(1) : null;
     if (initial && document.getElementById(initial)) activate(initial);
+    const apiForm = document.getElementById("apiLookupForm");
+    const apiResult = document.getElementById("apiLookupResult");
+    const apiKeyInput = document.getElementById("apiKey");
+    const savedApiKey = sessionStorage.getItem("mxre_bbc_api_key") || "";
+    if (savedApiKey) apiKeyInput.value = savedApiKey;
+    apiForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = document.getElementById("apiLookupButton");
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        apiResult.textContent = "Paste the BBC sandbox API key first. It stays in sessionStorage for this browser tab only.";
+        return;
+      }
+      sessionStorage.setItem("mxre_bbc_api_key", apiKey);
+      const params = new URLSearchParams({
+        address: document.getElementById("apiAddress").value.trim(),
+        city: document.getElementById("apiCity").value.trim(),
+        state: document.getElementById("apiState").value.trim(),
+      });
+      const zip = document.getElementById("apiZip").value.trim();
+      if (zip) params.set("zip", zip);
+      const url = "/api/bbc/property?" + params.toString();
+      button.disabled = true;
+      apiResult.textContent = "GET " + url + "\\nLoading...";
+      try {
+        const response = await fetch(url, {
+          headers: { "x-client-id": "buy_box_club_sandbox", "x-api-key": apiKey },
+        });
+        const text = await response.text();
+        let body = text;
+        try { body = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+        apiResult.textContent = "HTTP " + response.status + " " + response.statusText + "\\nGET " + url + "\\n\\n" + body;
+      } catch (error) {
+        apiResult.textContent = "Lookup failed: " + (error && error.message ? error.message : String(error));
+      } finally {
+        button.disabled = false;
+      }
+    });
   </script>
 </body>
 </html>`;
