@@ -13,6 +13,7 @@ const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_
 
 const ARCGIS_URL = "https://services.arcgis.com/OYwao4bWJR5ergop/arcgis/rest/services/MCEO_TaxParcelQuery/FeatureServer/0";
 const PAGE_SIZE = 1000;
+const INT_MAX = 2_147_483_647;
 
 const FIELDS = [
   "TAXPINNO","PARLOC","OWNER_NAME1","OWNER_NAME2",
@@ -40,7 +41,9 @@ async function fetchPage(offset: number): Promise<Record<string, unknown>[]> {
 async function main() {
   console.log("MXRE — Ingest Montgomery County OH Properties\n");
   const offsetArg = process.argv.find(a => a.startsWith("--offset="));
+  const maxPagesArg = process.argv.find(a => a.startsWith("--max-pages="));
   let offset = offsetArg ? parseInt(offsetArg.split("=")[1]) : 0;
+  const maxPages = maxPagesArg ? Math.max(parseInt(maxPagesArg.split("=")[1]), 1) : null;
 
   let { data: county } = await db.from("counties").select("id").eq("county_name", "Montgomery").eq("state_code", "OH").single();
   if (!county) {
@@ -65,9 +68,11 @@ async function main() {
     return { city: "", zip: "" };
   }
 
-  let inserted = 0, emptyPages = 0;
+  let inserted = 0, emptyPages = 0, pages = 0;
   while (true) {
+    if (maxPages != null && pages >= maxPages) break;
     const rows = await fetchPage(offset);
+    pages++;
     if (rows.length === 0) { if (++emptyPages >= 3) break; offset += PAGE_SIZE; continue; }
     emptyPages = 0;
 
@@ -87,7 +92,8 @@ async function main() {
         property_type: "residential" as string,
         land_sqft: (() => {
           const acres = parseFloat(String(r.ACREAGE ?? ""));
-          return acres > 0 ? Math.round(acres * 43560) : null;
+          const sqft = acres > 0 ? Math.round(acres * 43560) : null;
+          return sqft != null && sqft <= INT_MAX ? sqft : null;
         })(),
         source: "montgomery-oh-mceo",
       };
