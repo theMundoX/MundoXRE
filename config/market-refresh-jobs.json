@@ -27,12 +27,12 @@
       "id": "columbus-oh",
       "label": "Columbus, OH",
       "enabled": true,
-      "phase": "coverage_backfill",
-      "dailyRefreshEligible": false,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "required": true,
       "continueOnFailure": true,
-      "command": ["npx", "tsx", "scripts/refresh-columbus-market.ts", "--include-paid", "--paid-max-calls=1500"]
+      "command": ["npx", "tsx", "scripts/refresh-columbus-market.ts", "--include-paid", "--paid-max-calls=250"]
     },
     {
       "id": "dayton-oh",

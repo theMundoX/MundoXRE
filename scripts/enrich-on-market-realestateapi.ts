@@ -57,6 +57,9 @@ const hasReapiFreeClearSql = `
     select 1 from realestateapi_property_details rfc
     where rfc.property_id = p.id
       and jsonb_typeof(rfc.response_body) = 'object'
+      and rfc.status = 'ok'
+      and rfc.response_body <> '{}'::jsonb
+      and coalesce(rfc.response_body->>'id', rfc.response_body->>'propertyId', rfc.response_body->>'apn', rfc.response_body->>'address', rfc.response_body->>'formattedAddress', rfc.response_body->>'owner1FullName') is not null
       and coalesce(jsonb_array_length(case when jsonb_typeof(rfc.response_body->'currentMortgages') = 'array' then rfc.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
       and coalesce(nullif(regexp_replace(coalesce(rfc.response_body->>'estimatedMortgageBalance', rfc.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
   )
@@ -190,17 +193,20 @@ try {
         continue;
       }
 
-      const response = await callRealEstateApi(requestBody);
       stats.apiCalls++;
-      await cacheResponse(candidate.property_id, requestBody, response);
+      const response = await callRealEstateApi(requestBody);
+      await cacheResponse(candidate, requestBody, response);
       await normalizeAndStore(candidate, response, requestBody);
       await markQueueComplete(candidate.property_id, candidate.reasons);
       stats.normalized++;
-      addProgress(candidate, "api_normalized", "paid_api", response, summarizeProgressResponse(response));
+      addProgress(candidate, "api_normalized", "paid_api", response, summarizeProgressResponse(response, candidate.mls_list_price ?? null));
       await writeProgress("running");
-      await sleep(350);
+      await sleep(100);
     } catch (error) {
       stats.failed++;
+      if (!dryRun && isProviderNoData(error)) {
+        await cacheNoData(candidate, requestBody, error instanceof Error ? error.message : String(error));
+      }
       await markQueueFailed(candidate.property_id, candidate.reasons, error instanceof Error ? error.message : String(error));
       addProgress(candidate, "failed", "error", null, error instanceof Error ? error.message : String(error));
       await writeProgress("running");
@@ -216,7 +222,7 @@ console.log(JSON.stringify(stats, null, 2));
 console.log(JSON.stringify({ progressHtml }, null, 2));
 
 function addProgress(candidate: Candidate, status: string, source: string, response: ReapiResponse | null, detail: string) {
-  const summary = response ? summarizeResponse(response) : null;
+  const summary = response ? summarizeResponse(response, candidate.mls_list_price ?? null) : null;
   const agent = response ? bestAgent(response) : null;
   progressRows.unshift({
     at: new Date().toISOString(),
@@ -239,8 +245,8 @@ function addProgress(candidate: Candidate, status: string, source: string, respo
   if (progressRows.length > 250) progressRows.pop();
 }
 
-function summarizeProgressResponse(response: ReapiResponse) {
-  const summary = summarizeResponse(response);
+function summarizeProgressResponse(response: ReapiResponse, fallbackMarketValue: number | null = null) {
+  const summary = summarizeResponse(response, fallbackMarketValue);
   return [
     `currentMortgages=${summary.currentMortgageCount}`,
     `mortgageHistory=${summary.mortgageHistoryCount}`,
@@ -510,10 +516,17 @@ async function loadCandidates(): Promise<Candidate[]> {
       where q.provider = 'realestateapi'
         and q.status in ('queued','failed')
         and p.state_code = $1
+        and (
+          $4::boolean = true
+          or not exists (
+            select 1 from realestateapi_property_details nd
+            where nd.property_id = p.id and nd.status = 'no_data'
+          )
+        )
       group by p.id, p.address, p.city, p.state_code, p.zip, l.id, l.address, l.city, l.zip, l.mls_list_price
       order by min(q.priority), p.id
       limit $3;
-    `, [state, city, limit]);
+    `, [state, city, limit, force]);
     return rows;
   }
 
@@ -546,10 +559,17 @@ async function loadCandidates(): Promise<Candidate[]> {
       and q.status in ('queued','failed')
       and q.next_run_at <= now()
       and p.state_code = $1
+      and (
+        $4::boolean = true
+        or not exists (
+          select 1 from realestateapi_property_details nd
+          where nd.property_id = p.id and nd.status = 'no_data'
+        )
+      )
     group by p.id, p.address, p.city, p.state_code, p.zip, l.id, l.address, l.city, l.zip, l.mls_list_price
     order by min(q.priority), p.id
     limit $3;
-  `, [state, city, limit]);
+  `, [state, city, limit, force]);
   return rows;
 }
 
@@ -560,7 +580,10 @@ async function loadFreshCache(propertyId: number) {
   }>(`
     select request_body, response_body
     from realestateapi_property_details
-    where property_id = $1 and expires_at > now()
+    where property_id = $1
+      and status = 'ok'
+      and expires_at > now()
+      and response_body <> '{}'::jsonb
     limit 1
   `, [propertyId]);
   return rows[0] ?? null;
@@ -581,11 +604,14 @@ async function loadAnyCache(propertyId: number) {
 }
 
 function buildRequest(candidate: Candidate) {
+  const address = candidate.search_address ?? candidate.address;
+  const requestCity = candidate.search_city ?? candidate.city;
+  const requestZip = candidate.search_zip ?? candidate.zip;
   const label = [
-    candidate.search_address ?? candidate.address,
-    candidate.search_city ?? candidate.city,
+    address,
+    requestCity,
     candidate.state_code,
-    candidate.search_zip ?? candidate.zip,
+    requestZip,
   ].filter(Boolean).join(", ");
   return {
     address: label,
@@ -614,12 +640,27 @@ async function callRealEstateApi(body: Record<string, unknown>): Promise<ReapiRe
 }
 
 function normalizeResponseEnvelope(response: ReapiResponse): ReapiResponse {
+  const nestedStatus = numberOrNull(response.statusCode);
+  if (nestedStatus != null && nestedStatus >= 400) {
+    throw new Error(`RealEstateAPI ${nestedStatus}: ${stringOrNull(response.message) ?? stringOrNull(response.statusMessage) ?? "provider returned no property detail"}`);
+  }
   const data = response.data;
-  if (data && typeof data === "object" && !Array.isArray(data)) return data as ReapiResponse;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const normalized = data as ReapiResponse;
+    if (Object.keys(normalized).length === 0) {
+      throw new Error("RealEstateAPI no_data: provider returned empty property detail");
+    }
+    return normalized;
+  }
   return response;
 }
 
-async function cacheResponse(propertyId: number, requestBody: Record<string, unknown>, response: ReapiResponse) {
+function isProviderNoData(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /RealEstateAPI (?:404|no_data)|provider returned empty property detail|provider returned no property detail|must contain at least one of \[zip, city\]/i.test(message);
+}
+
+async function cacheResponse(candidate: Candidate, requestBody: Record<string, unknown>, response: ReapiResponse) {
   await client.query(`
     insert into realestateapi_property_details(
       property_id, realestateapi_id, request_body, response_body, normalized_summary, status, fetched_at, expires_at, updated_at
@@ -636,11 +677,34 @@ async function cacheResponse(propertyId: number, requestBody: Record<string, unk
       expires_at = excluded.expires_at,
       updated_at = now()
   `, [
-    propertyId,
+    candidate.property_id,
     stringOrNull(response.id),
     JSON.stringify(requestBody),
     JSON.stringify(response),
-    JSON.stringify(summarizeResponse(response)),
+    JSON.stringify(summarizeResponse(response, candidate.mls_list_price ?? null)),
+    staleDays,
+  ]);
+}
+
+async function cacheNoData(candidate: Candidate, requestBody: Record<string, unknown>, reason: string) {
+  await client.query(`
+    insert into realestateapi_property_details(
+      property_id, request_body, response_body, normalized_summary, status, fetched_at, expires_at, updated_at
+    )
+    values ($1, $2::jsonb, '{}'::jsonb, $3::jsonb, 'no_data', now(), now() + ($4::text || ' days')::interval, now())
+    on conflict(property_id)
+    do update set
+      request_body = excluded.request_body,
+      response_body = excluded.response_body,
+      normalized_summary = excluded.normalized_summary,
+      status = 'no_data',
+      fetched_at = now(),
+      expires_at = excluded.expires_at,
+      updated_at = now()
+  `, [
+    candidate.property_id,
+    JSON.stringify(requestBody),
+    JSON.stringify({ coverageState: "no_data", reason: reason.slice(0, 500) }),
     staleDays,
   ]);
 }
@@ -881,18 +945,44 @@ async function markQueueFailed(propertyId: number, reasons: string[], error: str
   `, [propertyId, reasons, error.slice(0, 1000)]);
 }
 
-function summarizeResponse(response: ReapiResponse) {
+function summarizeResponse(response: ReapiResponse, fallbackMarketValue: number | null = null) {
+  const currentMortgageCount = arrayOfObjects(response.currentMortgages).length;
+  const hasPropertyIdentity = stringOrNull(response.id)
+    ?? stringOrNull(response.propertyId)
+    ?? stringOrNull(response.apn)
+    ?? stringOrNull(response.address)
+    ?? stringOrNull(response.formattedAddress)
+    ?? stringOrNull(response.owner1FullName);
+  if (!hasPropertyIdentity && Object.keys(response).length === 0) {
+    throw new Error("Cannot summarize empty RealEstateAPI response as coverage.");
+  }
+  const estimatedMortgageBalance = numberOrNull(response.estimatedMortgageBalance);
+  const openMortgageBalance = numberOrNull(response.openMortgageBalance);
+  const isFreeClear = currentMortgageCount === 0
+    && (estimatedMortgageBalance == null || estimatedMortgageBalance === 0)
+    && (openMortgageBalance == null || openMortgageBalance === 0);
+  const marketValue = numberOrNull(response.estimatedValue)
+    ?? numberOrNull(response.value)
+    ?? numberOrNull(response.price)
+    ?? fallbackMarketValue;
+  const effectiveOpenBalance = isFreeClear ? 0 : openMortgageBalance;
+  const effectiveEstimatedBalance = isFreeClear ? 0 : estimatedMortgageBalance;
+  const estimatedEquity = numberOrNull(response.estimatedEquity)
+    ?? (isFreeClear && marketValue != null ? marketValue : null);
+  const equityPercent = numberOrNull(response.equityPercent)
+    ?? (isFreeClear && marketValue != null && marketValue > 0 ? 100 : null);
   return {
     id: stringOrNull(response.id),
     hasMortgageHistory: arrayOfObjects(response.mortgageHistory).length > 0,
     mortgageHistoryCount: arrayOfObjects(response.mortgageHistory).length,
-    currentMortgageCount: arrayOfObjects(response.currentMortgages).length,
+    currentMortgageCount,
     saleHistoryCount: arrayOfObjects(response.saleHistory).length,
     mlsHistoryCount: arrayOfObjects(response.mlsHistory).length,
-    estimatedMortgageBalance: numberOrNull(response.estimatedMortgageBalance),
-    openMortgageBalance: numberOrNull(response.openMortgageBalance),
-    estimatedEquity: numberOrNull(response.estimatedEquity),
-    equityPercent: numberOrNull(response.equityPercent),
+    estimatedMortgageBalance: effectiveEstimatedBalance,
+    openMortgageBalance: effectiveOpenBalance,
+    estimatedEquity,
+    equityPercent,
+    freeClear: isFreeClear,
     lastUpdateDate: stringOrNull(response.lastUpdateDate),
   };
 }
