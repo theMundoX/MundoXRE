@@ -32,7 +32,7 @@ const POSITIVE_PATTERNS: Array<[string, RegExp]> = [
   ["seller_finance", /\bseller\s+finance\b/i],
   ["owner_financing", /\b(owner|owners)\s+(financ\w+|carry|will\s+carry|carryback)\b/i],
   ["owner_finance", /\bowner\s+finance\b/i],
-  ["subject_to", /\b(subject\s+to|sub[\s-]?to|sub\s*2)\b/i],
+  ["subject_to", /\b(subject\s+to\s+(?:existing\s+)?(?:mortgage|loan|financ\w+|debt|seller|owner|wrap|terms|underlying)|sub[\s-]?to|sub\s*2)\b/i],
   ["creative_financing", /\bcreative\s+financ\w+\b/i],
   ["contract_for_deed", /\b(contract\s+for\s+deed|land\s+contract)\b/i],
   ["seller_terms", /\b(seller|owner)\s+(terms|carry\s+terms)\b/i],
