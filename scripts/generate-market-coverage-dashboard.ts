@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -21,6 +22,9 @@ type MarketConfig = {
   listingScopeNote: string;
   parcelScopeNote: string;
   recorderSourcePattern?: string;
+  sourceDiscoveryOnly?: boolean;
+  targetCountyHints?: string[];
+  progressFiles?: string[];
   rerunCommands: string[];
 };
 
@@ -37,6 +41,7 @@ const MARKETS: MarketConfig[] = [
     listingScopeNote: "Current on-market rows are source-limited Redfin/paid-enrichment rows, not a guaranteed full MLS feed.",
     parcelScopeNote: "Dallas County parcel/account rows are tracked separately from the Dallas city situs subset.",
     recorderSourcePattern: "dallas.tx.publicsearch.us",
+    progressFiles: ["realestateapi-dallas-tx-progress.html", "dallas-reapi-progress.html"],
     rerunCommands: [
       "npm run market:dallas:refresh",
       "npm run market:dallas:refresh -- --include-paid --paid-max-calls=1500",
@@ -54,6 +59,7 @@ const MARKETS: MarketConfig[] = [
     listingScopeNote: "Indianapolis combines Redfin, Movoto, and local refresh sources where available.",
     parcelScopeNote: "Core dashboard view uses Marion County / Indianapolis city coverage.",
     recorderSourcePattern: "inmarion.fidlar.com/INMarion",
+    progressFiles: ["realestateapi-indianapolis-in-progress.html", "indianapolis-reapi-progress.html"],
     rerunCommands: [
       "npm run market:indy:refresh",
       "npm run market:indy:listings",
@@ -71,8 +77,9 @@ const MARKETS: MarketConfig[] = [
     listingScopeNote: "Columbus is a pilot market and currently source-limited.",
     parcelScopeNote: "Franklin County parcel coverage is tracked separately from Columbus city situs rows.",
     recorderSourcePattern: "franklin.oh.publicsearch",
+    progressFiles: ["realestateapi-columbus-oh-progress.html", "columbus-reapi-progress.html"],
     rerunCommands: [
-      "npx tsx scripts/run-columbus-overnight.ps1",
+      "npm run market:columbus:refresh -- --include-paid --paid-max-calls=1500",
       "npx tsx scripts/market-readiness-summary.ts --city=Columbus --state=OH --county_id=1698985",
     ],
   },
@@ -86,10 +93,141 @@ const MARKETS: MarketConfig[] = [
     listingCity: "WEST CHESTER",
     listingScopeNote: "West Chester is a pilot market covering borough-first listing/rent signals.",
     parcelScopeNote: "Chester County parcel rows are the county universe; West Chester city rows are a subset.",
+    progressFiles: ["realestateapi-west-chester-pa-progress.html", "west-chester-reapi-progress.html"],
     rerunCommands: [
       "npm run market:west-chester:refresh",
       "npm run market:west-chester:refresh:dry",
     ],
+  },
+  {
+    key: "dayton-oh",
+    label: "Dayton, OH",
+    city: "DAYTON",
+    state: "OH",
+    countyName: "Montgomery",
+    targetCountyHints: ["Montgomery County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: Montgomery County.",
+    progressFiles: ["realestateapi-dayton-oh-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Dayton --state=OH"],
+  },
+  {
+    key: "toledo-oh",
+    label: "Toledo, OH",
+    city: "TOLEDO",
+    state: "OH",
+    countyName: "Lucas",
+    targetCountyHints: ["Lucas County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: Lucas County.",
+    progressFiles: ["realestateapi-toledo-oh-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Toledo --state=OH"],
+  },
+  {
+    key: "cleveland-oh",
+    label: "Cleveland, OH",
+    city: "CLEVELAND",
+    state: "OH",
+    countyName: "Cuyahoga",
+    targetCountyHints: ["Cuyahoga County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: Cuyahoga County.",
+    progressFiles: ["realestateapi-cleveland-oh-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Cleveland --state=OH"],
+  },
+  {
+    key: "akron-oh",
+    label: "Akron, OH",
+    city: "AKRON",
+    state: "OH",
+    countyName: "Summit",
+    targetCountyHints: ["Summit County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: Summit County.",
+    progressFiles: ["realestateapi-akron-oh-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Akron --state=OH"],
+  },
+  {
+    key: "fort-wayne-in",
+    label: "Fort Wayne, IN",
+    city: "FORT WAYNE",
+    state: "IN",
+    countyName: "Allen",
+    targetCountyHints: ["Allen County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: Allen County.",
+    progressFiles: ["realestateapi-fort-wayne-in-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Fort Wayne --state=IN"],
+  },
+  {
+    key: "south-bend-in",
+    label: "South Bend, IN",
+    city: "SOUTH BEND",
+    state: "IN",
+    countyName: "St. Joseph",
+    targetCountyHints: ["St. Joseph County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: St. Joseph County.",
+    progressFiles: ["realestateapi-south-bend-in-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=South Bend --state=IN"],
+  },
+  {
+    key: "peoria-il",
+    label: "Peoria, IL",
+    city: "PEORIA",
+    state: "IL",
+    countyName: "Peoria",
+    targetCountyHints: ["Peoria County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: Peoria County.",
+    progressFiles: ["realestateapi-peoria-il-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Peoria --state=IL"],
+  },
+  {
+    key: "birmingham-al",
+    label: "Birmingham, AL",
+    city: "BIRMINGHAM",
+    state: "AL",
+    countyName: "Jefferson",
+    targetCountyHints: ["Jefferson County", "Shelby County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting counties: Jefferson County first, then Shelby County expansion.",
+    progressFiles: ["realestateapi-birmingham-al-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Birmingham --state=AL"],
+  },
+  {
+    key: "memphis-tn",
+    label: "Memphis, TN",
+    city: "MEMPHIS",
+    state: "TN",
+    countyName: "Shelby",
+    targetCountyHints: ["Shelby County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: Shelby County.",
+    progressFiles: ["realestateapi-memphis-tn-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Memphis --state=TN"],
+  },
+  {
+    key: "detroit-mi",
+    label: "Detroit, MI",
+    city: "DETROIT",
+    state: "MI",
+    countyName: "Wayne",
+    targetCountyHints: ["Wayne County"],
+    sourceDiscoveryOnly: true,
+    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
+    parcelScopeNote: "Expected starting county: Wayne County plus Detroit city parcel data.",
+    progressFiles: ["realestateapi-detroit-mi-progress.html"],
+    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Detroit --state=MI"],
   },
 ];
 
@@ -135,6 +273,121 @@ function bar(label: string, value: unknown, total: unknown) {
   return `<div class="row"><div>${esc(label)}</div><div class="track"><div class="fill${klass}" style="width:${Math.min(100, p)}%"></div></div><strong>${p}%</strong></div>`;
 }
 
+function findProgressFile(market: MarketConfig): string | null {
+  for (const file of market.progressFiles ?? []) {
+    if (existsSync(join(process.cwd(), "logs", "market-refresh", file))) return file;
+  }
+  return null;
+}
+
+function renderProgressPanel(market: MarketConfig) {
+  const progressFile = findProgressFile(market);
+  const commands = market.rerunCommands.map(command => `<code>${esc(command)}</code>`).join("<br>");
+  if (progressFile) {
+    return `<section class="panel live-progress">
+      <div class="panel-head">
+        <div><h2>Live Enrichment Progress</h2><div class="note">Per-property enrichment progress for ${esc(market.label)}. Refresh this dashboard to pick up new generated files.</div></div>
+        <a class="open-link" href="${esc(progressFile)}" target="_blank" rel="noopener">Open full progress view</a>
+      </div>
+      <iframe class="live-frame" title="${esc(market.label)} live enrichment progress" src="${esc(progressFile)}"></iframe>
+    </section>`;
+  }
+  return `<section class="panel live-progress">
+    <div class="panel-head">
+      <div><h2>Live Enrichment Progress</h2><div class="note">${market.sourceDiscoveryOnly ? "This queued market has not started enrichment yet." : "No live enrichment progress file exists yet for this market."}</div></div>
+    </div>
+    <div class="empty-progress">
+      <strong>${market.sourceDiscoveryOnly ? "Queued for source discovery" : "Waiting for first enrichment run"}</strong>
+      <span>Expected progress files: ${esc((market.progressFiles ?? []).join(", ") || "none configured")}</span>
+      <span>Next command:<br>${commands}</span>
+    </div>
+  </section>`;
+}
+
+function emptyMarketData(market: MarketConfig) {
+  const zero = {
+    total: 0,
+    active_properties: 0,
+    unlinked_listings: 0,
+    distinct_listing_urls: 0,
+    source_count: 0,
+    sources: [],
+    price: 0,
+    agent_name: 0,
+    first_last: 0,
+    phone: 0,
+    email: 0,
+    brokerage: 0,
+    redfin_detail: 0,
+    mls_description: 0,
+    creative_evaluated: 0,
+    creative_positive: 0,
+    creative_negative: 0,
+    creative_no_data: 0,
+    parcel_id: 0,
+    address: 0,
+    asset_type: 0,
+    owner: 0,
+    value: 0,
+    total_units: 0,
+    year_built: 0,
+    sqft: 0,
+    cities: 0,
+    price_changed: 0,
+    listed: 0,
+    latest_event: null,
+    records: 0,
+    paid_records: 0,
+    public_records: 0,
+    properties: 0,
+    amount_rows: 0,
+    payment_rows: 0,
+    total_amount: 0,
+    total_estimated_payment: 0,
+    latest_recording: null,
+    source_docs: 0,
+    mortgage_docs: 0,
+    lien_docs: 0,
+    debt_docs: 0,
+    linked_docs: 0,
+    linked_properties: 0,
+    amount_docs: 0,
+    payment_docs: 0,
+    cached_details: 0,
+    latest_fetch: null,
+    complex_count: 0,
+    website_properties: 0,
+    floorplan_properties: 0,
+    floorplan_rows: 0,
+    rent_properties: 0,
+    rent_rows: 0,
+    fresh_rent_rows: 0,
+    rent_amount_rows: 0,
+    rent_per_door_rows: 0,
+    total_monthly_rows: 0,
+    latest_rent_observed: null,
+    reported_total_monthly_rent: 0,
+  };
+  return {
+    market,
+    countyId: null,
+    listings: zero,
+    cityParcels: zero,
+    countyParcels: zero,
+    events: zero,
+    debt: zero,
+    recorder: zero,
+    paidDetails: zero,
+    mf: zero,
+    lienSamples: [] as Row[],
+    rentSamples: [] as Row[],
+    readinessGaps: [
+      `source discovery queued for ${market.targetCountyHints?.join(", ") || market.countyName || market.label}`,
+      "ingestion has not started yet",
+    ],
+  };
+}
+
 async function resolveCountyId(market: MarketConfig): Promise<number | null> {
   if (market.countyId) return market.countyId;
   if (!market.countyName) return null;
@@ -150,6 +403,11 @@ async function resolveCountyId(market: MarketConfig): Promise<number | null> {
 }
 
 async function collectMarket(market: MarketConfig) {
+  if (market.sourceDiscoveryOnly) {
+    console.log(`  ${market.label}: source discovery queued; skipping DB coverage queries`);
+    return emptyMarketData(market);
+  }
+
   const countyId = await resolveCountyId(market);
   const stateSql = sql(market.state);
   const listingCitySql = sql((market.listingCity ?? market.city).toUpperCase());
@@ -393,6 +651,8 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
       <span>${readinessGaps.length ? esc(readinessGaps.join("; ")) : "No dashboard blocking gaps detected by the current coverage checks."}</span>
     </div>
 
+    ${renderProgressPanel(market)}
+
     <section class="two">
       <div class="panel"><h2>Listing & Agent Coverage</h2><div class="bars">
         ${bar("MLS/list price", listings.price, listings.total)}
@@ -466,7 +726,17 @@ async function main() {
   const markets = [];
   for (const market of MARKETS) {
     console.log(`Collecting ${market.label}...`);
-    markets.push(await collectMarket(market));
+    try {
+      markets.push(await collectMarket(market));
+    } catch (error) {
+      console.warn(`Dashboard coverage collection failed for ${market.label}: ${error instanceof Error ? error.message : error}`);
+      const fallback = emptyMarketData(market);
+      fallback.readinessGaps = [
+        `coverage query failed during dashboard generation: ${error instanceof Error ? error.message : String(error)}`,
+        "live progress and rerun commands are still shown",
+      ];
+      markets.push(fallback);
+    }
   }
 
   const html = `<!doctype html>
@@ -487,6 +757,8 @@ async function main() {
     .track { height:12px; border-radius:999px; background:#e7edf3; overflow:hidden; } .fill { height:100%; background:#2f7d70; border-radius:999px; } .fill.warn { background:#c27803; } .fill.bad { background:#b53b45; }
     .two { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; } table { width:100%; border-collapse:collapse; font-size:14px; } th,td { padding:10px 8px; border-bottom:1px solid #e4eaf0; text-align:left; vertical-align:top; } th { color:#5a6b7e; font-size:12px; text-transform:uppercase; }
     code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size:12px; } .status { margin-top:14px; display:flex; gap:10px; align-items:flex-start; } .status.ready { border-color:#94c9bc; background:#f3fbf8; } .status.building { border-color:#e1c37a; background:#fffaf0; }
+    .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:12px; } .open-link { border:1px solid #c9d4df; color:#1f5f56; background:#fff; border-radius:6px; padding:9px 11px; text-decoration:none; font-weight:750; white-space:nowrap; }
+    .live-frame { width:100%; height:460px; border:1px solid #d8e0e8; border-radius:6px; background:#f8fafc; } .empty-progress { display:grid; gap:9px; border:1px dashed #c9d4df; border-radius:6px; padding:14px; background:#f8fafc; color:#5a6b7e; line-height:1.45; }
     @media (max-width:960px){ .grid,.two{grid-template-columns:1fr;} .row{grid-template-columns:150px 1fr 62px;} header,main{padding-left:18px;padding-right:18px;} }
   </style>
 </head>
@@ -523,7 +795,13 @@ async function main() {
 
   await mkdir(join(process.cwd(), "logs", "market-refresh"), { recursive: true });
   await writeFile(join(process.cwd(), OUT), html, "utf8");
-  console.log(JSON.stringify({ wrote: OUT, markets: MARKETS.map(m => m.key), generated_at: new Date().toISOString() }, null, 2));
+  const aliases: string[] = [];
+  if (OUT.replace(/\\/g, "/").endsWith("market-coverage-dashboard.html")) {
+    const dallasAlias = "logs/market-refresh/dallas-coverage-dashboard.html";
+    await writeFile(join(process.cwd(), dallasAlias), html, "utf8");
+    aliases.push(dallasAlias);
+  }
+  console.log(JSON.stringify({ wrote: OUT, aliases, markets: MARKETS.map(m => m.key), generated_at: new Date().toISOString() }, null, 2));
 }
 
 main().catch(error => {
