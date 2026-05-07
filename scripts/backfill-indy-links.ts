@@ -268,37 +268,53 @@ async function backfillSdf(index: PropertyIndex): Promise<void> {
 
 async function backfillListings(index: PropertyIndex): Promise<void> {
   console.log("\nBackfilling Indianapolis listing signals...");
-  const { data, error } = await db.from("listing_signals")
-    .select("id,address,city,state_code,zip,raw")
-    .eq("state_code", "IN")
-    .ilike("city", "INDIANAPOLIS")
-    .is("property_id", null)
-    .limit(5000);
-  if (error) throw new Error(`Failed to load listing signals: ${error.message}`);
-
   let updated = 0;
   let noMatch = 0;
-  for (const listing of (data ?? []) as Array<Record<string, any>>) {
-    const raw = listing.raw ?? {};
-    const lat = Number(raw.latitude);
-    const lng = Number(raw.longitude);
-    const point = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
-    const property = chooseByAddress(index, listing.address, listing.zip, point);
-    if (!property) {
-      noMatch++;
-      continue;
+  let loaded = 0;
+
+  while (true) {
+    const { data, error } = await db.from("listing_signals")
+      .select("id,address,city,state_code,zip,raw")
+      .eq("state_code", "IN")
+      .ilike("city", "INDIANAPOLIS")
+      .is("property_id", null)
+      .not("address", "is", null)
+      .order("id")
+      .limit(1000);
+    if (error) throw new Error(`Failed to load listing signals: ${error.message}`);
+    if (!data || data.length === 0) break;
+
+    loaded += data.length;
+    let batchUpdated = 0;
+    let batchNoMatch = 0;
+    for (const listing of data as Array<Record<string, any>>) {
+      const raw = listing.raw ?? {};
+      const lat = Number(raw.latitude);
+      const lng = Number(raw.longitude);
+      const point = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+      const property = chooseByAddress(index, listing.address, listing.zip, point);
+      if (!property) {
+        noMatch++;
+        batchNoMatch++;
+        continue;
+      }
+      if (!DRY_RUN) {
+        const { error: updateError } = await db.from("listing_signals")
+          .update({ property_id: property.id, updated_at: new Date().toISOString() })
+          .eq("id", listing.id)
+          .is("property_id", null);
+        if (updateError) throw new Error(`Failed to update listing ${listing.id}: ${updateError.message}`);
+      }
+      updated++;
+      batchUpdated++;
     }
-    if (!DRY_RUN) {
-      const { error: updateError } = await db.from("listing_signals")
-        .update({ property_id: property.id, updated_at: new Date().toISOString() })
-        .eq("id", listing.id)
-        .is("property_id", null);
-      if (updateError) throw new Error(`Failed to update listing ${listing.id}: ${updateError.message}`);
-    }
-    updated++;
+
+    console.log(`  Batch loaded ${data.length.toLocaleString()}: updated ${DRY_RUN ? "dry-run " : ""}${batchUpdated.toLocaleString()}, no match ${batchNoMatch.toLocaleString()}`);
+
+    if (batchUpdated === 0 || data.length < 1000) break;
   }
 
-  console.log(`  Loaded:   ${(data ?? []).length.toLocaleString()}`);
+  console.log(`  Loaded:   ${loaded.toLocaleString()}`);
   console.log(`  Updated:  ${DRY_RUN ? "dry-run " : ""}${updated.toLocaleString()}`);
   console.log(`  No match: ${noMatch.toLocaleString()}`);
 }
