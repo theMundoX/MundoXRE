@@ -431,6 +431,7 @@ async function ensureQueue(): Promise<Candidate[]> {
     limit $4;
   `, [state, city, force, limit, onlyMissingEquity]);
 
+  const queueRows: Array<{ propertyId: number; reason: string; priority: number }> = [];
   for (const candidate of rows) {
     const reasons = onlyMissingEquity ? candidate.reasons.filter((reason) => reason === "missing_mortgage_balance") : candidate.reasons;
     candidate.reasons = reasons.length > 0 ? reasons : ["missing_mortgage_balance"];
@@ -439,18 +440,27 @@ async function ensureQueue(): Promise<Candidate[]> {
         stats.queued++;
         continue;
       }
-      await client.query(`
-        insert into property_enrichment_queue(property_id, provider, reason, status, priority, next_run_at)
-        values ($1, 'realestateapi', $2, 'queued', $3, now())
-        on conflict(property_id, provider, reason)
-        do update set
-          status = case when property_enrichment_queue.status = 'completed' then 'queued' else property_enrichment_queue.status end,
-          priority = least(property_enrichment_queue.priority, excluded.priority),
-          next_run_at = least(property_enrichment_queue.next_run_at, excluded.next_run_at),
-          updated_at = now()
-      `, [candidate.property_id, reason, priorityForReason(reason)]);
-      stats.queued++;
+      queueRows.push({ propertyId: candidate.property_id, reason, priority: priorityForReason(reason) });
     }
+  }
+
+  if (queueRows.length > 0) {
+    await client.query(`
+      insert into property_enrichment_queue(property_id, provider, reason, status, priority, next_run_at)
+      select property_id, 'realestateapi', reason, 'queued', priority, now()
+      from unnest($1::int[], $2::text[], $3::int[]) as q(property_id, reason, priority)
+      on conflict(property_id, provider, reason)
+      do update set
+        status = case when property_enrichment_queue.status = 'completed' then 'queued' else property_enrichment_queue.status end,
+        priority = least(property_enrichment_queue.priority, excluded.priority),
+        next_run_at = least(property_enrichment_queue.next_run_at, excluded.next_run_at),
+        updated_at = now()
+    `, [
+      queueRows.map((row) => row.propertyId),
+      queueRows.map((row) => row.reason),
+      queueRows.map((row) => row.priority),
+    ]);
+    stats.queued += queueRows.length;
   }
 
   return rows;
