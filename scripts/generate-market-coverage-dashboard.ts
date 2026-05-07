@@ -309,6 +309,32 @@ function healthTile(label: string, value: number, detail: string) {
   </div>`;
 }
 
+function unknownHealthTile(label: string, detail: string) {
+  return `<div class="health neutral">
+    <div class="label">${esc(label)}</div>
+    <div class="health-value">N/A</div>
+    <div class="note">${esc(detail)}</div>
+  </div>`;
+}
+
+function categoryRowsForOverall(coverage: {
+  listingCoverage: number | null;
+  agentCoverage: number | null;
+  parcelCoverage: number | null;
+  creativeCoverage: number | null;
+  debtCoverage: number | null;
+  rentCoverage: number | null;
+}) {
+  return [
+    coverage.listingCoverage,
+    coverage.agentCoverage,
+    coverage.parcelCoverage,
+    coverage.creativeCoverage,
+    coverage.debtCoverage,
+    coverage.rentCoverage,
+  ].filter((value): value is number => value != null);
+}
+
 function refreshScriptName(marketKey: string): string | null {
   if (marketKey === "dallas-tx") return "refresh-dallas-market.ts";
   if (marketKey === "indianapolis-in") return "refresh-indianapolis-market.ts";
@@ -383,7 +409,7 @@ function renderCompletionSummary(
 ) {
   return `<section class="panel summary-panel">
     <div class="panel-head">
-      <div><h2>Market Completion & Running Jobs</h2><div class="note">This is the at-a-glance control board: completion, active rows, creative positives, and whether an automation worker is currently running.</div></div>
+      <div><h2>Market Coverage Composite & Running Jobs</h2><div class="note">This is a blended data-quality score, not a publishability verdict. It combines listing, contact, parcel, creative, debt, and applicable rent coverage from the latest dashboard generation.</div></div>
     </div>
     <div class="summary-grid">
       ${markets.map(data => {
@@ -824,19 +850,19 @@ function categoryCoverage(data: Awaited<ReturnType<typeof collectMarket>>) {
   const countyParcelRows = n(countyParcels.total);
   const mfCount = n(mf.complex_count);
 
-  const listingCoverage = averagePct([
+  const listingCoverage = listingRows > 0 ? averagePct([
     pctNumber(n(listings.total) - n(listings.unlinked_listings), listingRows),
     pctNumber(listings.price, listingRows),
     pctNumber(listings.mls_description, listingRows),
-  ]);
-  const agentCoverage = averagePct([
+  ]) : null;
+  const agentCoverage = listingRows > 0 ? averagePct([
     pctNumber(listings.agent_name, listingRows),
     pctNumber(listings.first_last, listingRows),
     pctNumber(listings.phone, listingRows),
     pctNumber(listings.email, listingRows),
     pctNumber(listings.brokerage, listingRows),
-  ]);
-  const parcelCoverage = averagePct([
+  ]) : null;
+  const parcelCoverage = countyParcelRows > 0 ? averagePct([
     pctNumber(countyParcels.parcel_id, countyParcelRows),
     pctNumber(countyParcels.address, countyParcelRows),
     pctNumber(countyParcels.asset_type, countyParcelRows),
@@ -845,27 +871,27 @@ function categoryCoverage(data: Awaited<ReturnType<typeof collectMarket>>) {
     pctNumber(cityParcels.total_units, cityParcelRows),
     pctNumber(cityParcels.year_built, cityParcelRows),
     pctNumber(cityParcels.sqft, cityParcelRows),
-  ]);
-  const creativeCoverage = pctNumber(listings.creative_evaluated, listingRows);
-  const debtCoverage = averagePct([
+  ]) : null;
+  const creativeCoverage = listingRows > 0 ? pctNumber(listings.creative_evaluated, listingRows) : null;
+  const debtCoverage = activeProperties > 0 ? averagePct([
     pctNumber(paidDetails.cached_details, activeProperties),
     pctNumber(debt.properties, activeProperties),
-  ]);
+  ]) : null;
   const rentCoverage = mfCount > 0
     ? averagePct([
         pctNumber(mf.website_properties, mfCount),
         pctNumber(mf.floorplan_properties, mfCount),
         pctNumber(mf.rent_properties, mfCount),
       ])
-    : 0;
-  const overall = averagePct([
+    : null;
+  const overall = averagePct(categoryRowsForOverall({
     listingCoverage,
     agentCoverage,
     parcelCoverage,
     creativeCoverage,
     debtCoverage,
     rentCoverage,
-  ]);
+  }));
 
   return {
     overall,
@@ -885,17 +911,19 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
   return `<section id="${panelId}" class="market-panel${index === 0 ? " active" : ""}" role="tabpanel" aria-labelledby="tab-${market.key}">
     <div class="hero-metrics">
       <div class="overall-card ${healthClass(coverage.overall)}">
-        <div class="label">Overall Coverage</div>
+        <div class="label">Coverage Composite</div>
         <div class="overall-value">${coverage.overall.toFixed(0)}%</div>
-        <div class="note">Composite of listings, agent contact, parcels, creative scoring, debt/detail cache, and rent/floorplans.</div>
+        <div class="note">Data-quality composite, not publishability. Rent/floorplans are included only when multifamily candidates exist.</div>
       </div>
       <div class="health-grid">
-        ${healthTile("Listings", coverage.listingCoverage, `${fmt(listings.active_properties)} unique active properties; ${fmt(listings.total)} raw rows`)}
-        ${healthTile("Agent Contact", coverage.agentCoverage, `${pct(listings.email, listings.total)} verified email; ${pct(listings.phone, listings.total)} phone`)}
-        ${healthTile("Parcels", coverage.parcelCoverage, `${fmt(countyParcels.total)} county parcels; ${fmt(cityParcels.total)} city subset`)}
-        ${healthTile("Creative", coverage.creativeCoverage, `${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative; ${fmt(listings.mls_description)} descriptions`)}
-        ${healthTile("Debt / Liens", coverage.debtCoverage, `${fmt(paidDetails.cached_details)} paid detail cache; ${fmt(debt.properties)} linked debt properties`)}
-        ${healthTile("Rent", coverage.rentCoverage, `${fmt(mf.rent_properties)} rent properties / ${fmt(mf.complex_count)} multifamily candidates`)}
+        ${coverage.listingCoverage == null ? unknownHealthTile("Listings", "No active listing rows found for this dashboard scope.") : healthTile("Listings", coverage.listingCoverage, `${fmt(listings.active_properties)} unique active properties; ${fmt(listings.total)} raw rows`)}
+        ${coverage.agentCoverage == null ? unknownHealthTile("Agent Contact", "No active listing rows found for this dashboard scope.") : healthTile("Agent Contact", coverage.agentCoverage, `${pct(listings.email, listings.total)} verified email; ${pct(listings.phone, listings.total)} phone`)}
+        ${coverage.parcelCoverage == null ? unknownHealthTile("Parcels", "Parcel query returned no dashboard total or timed out; this is unknown, not zero coverage.") : healthTile("Parcels", coverage.parcelCoverage, `${fmt(countyParcels.total)} county parcels; ${fmt(cityParcels.total)} city subset`)}
+        ${coverage.creativeCoverage == null ? unknownHealthTile("Creative", "No active listing rows found for this dashboard scope.") : healthTile("Creative", coverage.creativeCoverage, `${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative; ${fmt(listings.mls_description)} descriptions`)}
+        ${coverage.debtCoverage == null ? unknownHealthTile("Debt / Liens", "No linked active properties available for debt coverage calculation.") : healthTile("Debt / Liens", coverage.debtCoverage, `${fmt(paidDetails.cached_details)} paid detail cache; ${fmt(debt.properties)} linked debt properties`)}
+        ${coverage.rentCoverage == null
+          ? unknownHealthTile("Rent", "No multifamily candidates in this market subset, so rent is not included in the composite.")
+          : healthTile("Rent", coverage.rentCoverage, `${fmt(mf.rent_properties)} rent properties / ${fmt(mf.complex_count)} multifamily candidates`)}
       </div>
     </div>
 

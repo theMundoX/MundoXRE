@@ -398,6 +398,7 @@ async function ensureQueue(): Promise<Candidate[]> {
         and p.state_code = $1
         and l.state_code = $1
         and upper(coalesce(l.city,'')) = $2
+        and nullif(coalesce(nullif(l.address,''), p.address), '') is not null
         and (
           $3::boolean = true
           or $5::boolean = true
@@ -526,6 +527,7 @@ async function loadCandidates(): Promise<Candidate[]> {
       where q.provider = 'realestateapi'
         and q.status in ('queued','failed')
         and p.state_code = $1
+        and nullif(coalesce(nullif(l.address,''), p.address), '') is not null
         and (
           $4::boolean = true
           or not exists (
@@ -569,6 +571,7 @@ async function loadCandidates(): Promise<Candidate[]> {
       and q.status in ('queued','failed')
       and q.next_run_at <= now()
       and p.state_code = $1
+      and nullif(coalesce(nullif(l.address,''), p.address), '') is not null
       and (
         $4::boolean = true
         or not exists (
