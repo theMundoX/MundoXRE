@@ -153,6 +153,7 @@ const stats = {
   foundBrokerage: 0,
   foundDescription: 0,
   failed: 0,
+  failureCached: 0,
 };
 
 try {
@@ -202,7 +203,9 @@ async function processCandidate(candidate: Candidate) {
       await sleep(250);
     } catch (error) {
       stats.failed++;
-      console.error(`Failed Zillow lookup for ${candidate.property_id}:`, error instanceof Error ? error.message : error);
+      const message = error instanceof Error ? error.message : String(error);
+      await markLookupFailure(candidate, message);
+      console.error(`Failed Zillow lookup for ${candidate.property_id}:`, message);
     }
 }
 
@@ -231,6 +234,7 @@ async function loadCandidates(): Promise<Candidate[]> {
         or (
           $5::boolean = false
           and coalesce(l.raw, '{}'::jsonb)->'zillow_rapidapi_detail' is null
+          and coalesce(l.raw, '{}'::jsonb)->'zillow_rapidapi_error' is null
         )
         or (
           $5::boolean = true
@@ -289,6 +293,30 @@ async function loadCandidates(): Promise<Candidate[]> {
     limit $4
   `, [state, city, force, limit, descriptionsOnly, contactsOnly]);
   return rows;
+}
+
+async function markLookupFailure(candidate: Candidate, message: string) {
+  await client.query(`
+    update listing_signals
+    set
+      raw = jsonb_set(
+        coalesce(raw, '{}'::jsonb),
+        '{zillow_rapidapi_error}',
+        $2::jsonb,
+        true
+      ),
+      updated_at = now()
+    where property_id = $1
+      and is_on_market = true
+  `, [
+    candidate.property_id,
+    JSON.stringify({
+      provider: `zillow_api_${provider}`,
+      observedAt: new Date().toISOString(),
+      message: message.slice(0, 1000),
+    }),
+  ]);
+  stats.failureCached++;
 }
 
 async function lookupContact(candidate: Candidate): Promise<Enrichment | null> {
