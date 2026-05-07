@@ -23,7 +23,117 @@
       "enabled": true,
       "required": true,
       "continueOnFailure": true,
-      "command": ["npx", "tsx", "scripts/refresh-columbus-market.ts"]
+      "command": ["npx", "tsx", "scripts/refresh-columbus-market.ts", "--include-paid", "--paid-max-calls=1500"]
+    },
+    {
+      "id": "dayton-oh",
+      "label": "Dayton, OH",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 10,
+      "targetCountyHints": ["Montgomery"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Dayton", "--state=OH"]
+    },
+    {
+      "id": "toledo-oh",
+      "label": "Toledo, OH",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 20,
+      "targetCountyHints": ["Lucas"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Toledo", "--state=OH"]
+    },
+    {
+      "id": "cleveland-oh",
+      "label": "Cleveland, OH",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 30,
+      "targetCountyHints": ["Cuyahoga"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Cleveland", "--state=OH"]
+    },
+    {
+      "id": "akron-oh",
+      "label": "Akron, OH",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 40,
+      "targetCountyHints": ["Summit"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Akron", "--state=OH"]
+    },
+    {
+      "id": "fort-wayne-in",
+      "label": "Fort Wayne, IN",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 50,
+      "targetCountyHints": ["Allen"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Fort Wayne", "--state=IN"]
+    },
+    {
+      "id": "south-bend-in",
+      "label": "South Bend, IN",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 60,
+      "targetCountyHints": ["St. Joseph"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=South Bend", "--state=IN"]
+    },
+    {
+      "id": "peoria-il",
+      "label": "Peoria, IL",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 70,
+      "targetCountyHints": ["Peoria"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Peoria", "--state=IL"]
+    },
+    {
+      "id": "birmingham-al",
+      "label": "Birmingham, AL",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 80,
+      "targetCountyHints": ["Jefferson", "Shelby"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Birmingham", "--state=AL"]
+    },
+    {
+      "id": "memphis-tn",
+      "label": "Memphis, TN",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 90,
+      "targetCountyHints": ["Shelby"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Memphis", "--state=TN"]
+    },
+    {
+      "id": "detroit-mi",
+      "label": "Detroit, MI",
+      "enabled": false,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "source_discovery",
+      "priority": 100,
+      "targetCountyHints": ["Wayne"],
+      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Detroit", "--state=MI"]
     }
   ]
 }
