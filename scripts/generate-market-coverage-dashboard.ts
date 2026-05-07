@@ -265,16 +265,39 @@ const pctNumber = (value: unknown, total: unknown) => {
   return Math.round((n(value) / denominator) * 10000) / 100;
 };
 const pct = (value: unknown, total: unknown) => `${pctNumber(value, total)}%`;
+const clampPct = (value: number) => Math.max(0, Math.min(100, value));
 const esc = (value: unknown) => String(value ?? "")
   .replace(/&/g, "&amp;")
   .replace(/</g, "&lt;")
   .replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;");
 
+function averagePct(values: number[]): number {
+  const usable = values.filter(value => Number.isFinite(value));
+  if (!usable.length) return 0;
+  return clampPct(usable.reduce((sum, value) => sum + clampPct(value), 0) / usable.length);
+}
+
 function bar(label: string, value: unknown, total: unknown) {
   const p = pctNumber(value, total);
   const klass = p >= 85 ? "" : p >= 25 ? " warn" : " bad";
   return `<div class="row"><div>${esc(label)}</div><div class="track"><div class="fill${klass}" style="width:${Math.min(100, p)}%"></div></div><strong>${p}%</strong></div>`;
+}
+
+function healthClass(value: number) {
+  if (value >= 85) return "good";
+  if (value >= 60) return "warn";
+  return "bad";
+}
+
+function healthTile(label: string, value: number, detail: string) {
+  const safeValue = clampPct(value);
+  return `<div class="health ${healthClass(safeValue)}">
+    <div class="label">${esc(label)}</div>
+    <div class="health-value">${safeValue.toFixed(0)}%</div>
+    <div class="track"><div class="fill" style="width:${safeValue}%"></div></div>
+    <div class="note">${esc(detail)}</div>
+  </div>`;
 }
 
 function findProgressFile(market: MarketConfig): string | null {
@@ -324,6 +347,9 @@ function emptyMarketData(market: MarketConfig) {
     brokerage: 0,
     redfin_detail: 0,
     mls_description: 0,
+    zillow_rapidapi_detail: 0,
+    zillow_rapidapi_contact: 0,
+    zillow_rapidapi_error: 0,
     creative_evaluated: 0,
     creative_positive: 0,
     creative_negative: 0,
@@ -399,6 +425,7 @@ function firstOr<T extends Row>(rows: T[], fallback: T): T {
 const zeroListings = {
   total: 0, active_properties: 0, unlinked_listings: 0, distinct_listing_urls: 0, source_count: 0, sources: [],
   price: 0, agent_name: 0, first_last: 0, phone: 0, email: 0, brokerage: 0, redfin_detail: 0, mls_description: 0,
+  zillow_rapidapi_detail: 0, zillow_rapidapi_contact: 0, zillow_rapidapi_error: 0,
   creative_evaluated: 0, creative_positive: 0, creative_negative: 0, creative_no_data: 0,
 };
 const zeroParcels = {
@@ -446,7 +473,7 @@ async function collectMarket(market: MarketConfig) {
   const propertyCitySql = sql((market.propertyCityLike ?? market.city).toUpperCase());
   const countyClause = countyId ? `county_id = ${countyId}` : "false";
   const countyPropertyWhere = `${countyClause} and state_code = '${stateSql}'`;
-  const cityPropertyWhere = `${countyPropertyWhere} and upper(coalesce(city,'')) like '%${propertyCitySql}%'`;
+  const cityPropertyWhere = `${countyPropertyWhere} and city = '${propertyCitySql}'`;
   const listingWhere = `is_on_market = true and state_code = '${stateSql}' and upper(coalesce(city,'')) = '${listingCitySql}'`;
   const mfWhere = `${cityPropertyWhere} and (coalesce(total_units,1) >= 2 or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily'))`;
   const recorderWhere = market.recorderSourcePattern
@@ -473,7 +500,28 @@ async function collectMarket(market: MarketConfig) {
            )::int as email,
            count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage,
            count(*) filter (where raw ? 'redfinDetail')::int as redfin_detail,
-           count(*) filter (where raw #>> '{redfinDetail,publicRemarks}' is not null)::int as mls_description,
+           count(*) filter (
+             where nullif(coalesce(
+               raw #>> '{description}',
+               raw #>> '{publicRemarks}',
+               raw #>> '{public_remarks}',
+               raw #>> '{remarks}',
+               raw #>> '{listingRemarks}',
+               raw #>> '{marketingRemarks}',
+               raw #>> '{propertyDescription}',
+               raw #>> '{redfinDetail,publicRemarks}',
+               raw #>> '{redfinDetail,description}',
+               raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+               raw #>> '{zillow_rapidapi_detail,raw,description}',
+               raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+               raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
+               raw #>> '{mls,remarks}',
+               raw #>> '{mls,description}'
+             ), '') is not null
+           )::int as mls_description,
+           count(*) filter (where raw ? 'zillow_rapidapi_detail')::int as zillow_rapidapi_detail,
+           count(*) filter (where raw ? 'zillow_rapidapi_contact')::int as zillow_rapidapi_contact,
+           count(*) filter (where raw ? 'zillow_rapidapi_error')::int as zillow_rapidapi_error,
            count(*) filter (where creative_finance_status is not null)::int as creative_evaluated,
            count(*) filter (where creative_finance_status = 'positive')::int as creative_positive,
            count(*) filter (where creative_finance_status = 'negative')::int as creative_negative,
@@ -667,14 +715,94 @@ async function collectMarket(market: MarketConfig) {
   };
 }
 
+function categoryCoverage(data: Awaited<ReturnType<typeof collectMarket>>) {
+  const { listings, cityParcels, countyParcels, debt, paidDetails, mf } = data;
+  const listingRows = n(listings.total);
+  const activeProperties = n(listings.active_properties);
+  const cityParcelRows = n(cityParcels.total);
+  const countyParcelRows = n(countyParcels.total);
+  const mfCount = n(mf.complex_count);
+
+  const listingCoverage = averagePct([
+    pctNumber(n(listings.total) - n(listings.unlinked_listings), listingRows),
+    pctNumber(listings.price, listingRows),
+    pctNumber(listings.mls_description, listingRows),
+  ]);
+  const agentCoverage = averagePct([
+    pctNumber(listings.agent_name, listingRows),
+    pctNumber(listings.first_last, listingRows),
+    pctNumber(listings.phone, listingRows),
+    pctNumber(listings.email, listingRows),
+    pctNumber(listings.brokerage, listingRows),
+  ]);
+  const parcelCoverage = averagePct([
+    pctNumber(countyParcels.parcel_id, countyParcelRows),
+    pctNumber(countyParcels.address, countyParcelRows),
+    pctNumber(countyParcels.asset_type, countyParcelRows),
+    pctNumber(countyParcels.owner, countyParcelRows),
+    pctNumber(countyParcels.value, countyParcelRows),
+    pctNumber(cityParcels.total_units, cityParcelRows),
+    pctNumber(cityParcels.year_built, cityParcelRows),
+    pctNumber(cityParcels.sqft, cityParcelRows),
+  ]);
+  const creativeCoverage = pctNumber(listings.creative_evaluated, listingRows);
+  const debtCoverage = averagePct([
+    pctNumber(paidDetails.cached_details, activeProperties),
+    pctNumber(debt.properties, activeProperties),
+  ]);
+  const rentCoverage = mfCount > 0
+    ? averagePct([
+        pctNumber(mf.website_properties, mfCount),
+        pctNumber(mf.floorplan_properties, mfCount),
+        pctNumber(mf.rent_properties, mfCount),
+      ])
+    : 0;
+  const overall = averagePct([
+    listingCoverage,
+    agentCoverage,
+    parcelCoverage,
+    creativeCoverage,
+    debtCoverage,
+    rentCoverage,
+  ]);
+
+  return {
+    overall,
+    listingCoverage,
+    agentCoverage,
+    parcelCoverage,
+    creativeCoverage,
+    debtCoverage,
+    rentCoverage,
+  };
+}
+
 function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: number) {
   const { market, listings, cityParcels, countyParcels, events, debt, recorder, paidDetails, mf, lienSamples, rentSamples, readinessGaps } = data;
+  const coverage = categoryCoverage(data);
   const panelId = `panel-${market.key}`;
   return `<section id="${panelId}" class="market-panel${index === 0 ? " active" : ""}" role="tabpanel" aria-labelledby="tab-${market.key}">
+    <div class="hero-metrics">
+      <div class="overall-card ${healthClass(coverage.overall)}">
+        <div class="label">Overall Coverage</div>
+        <div class="overall-value">${coverage.overall.toFixed(0)}%</div>
+        <div class="note">Composite of listings, agent contact, parcels, creative scoring, debt/detail cache, and rent/floorplans.</div>
+      </div>
+      <div class="health-grid">
+        ${healthTile("Listings", coverage.listingCoverage, `${fmt(listings.active_properties)} unique active properties; ${fmt(listings.total)} raw rows`)}
+        ${healthTile("Agent Contact", coverage.agentCoverage, `${pct(listings.email, listings.total)} verified email; ${pct(listings.phone, listings.total)} phone`)}
+        ${healthTile("Parcels", coverage.parcelCoverage, `${fmt(countyParcels.total)} county parcels; ${fmt(cityParcels.total)} city subset`)}
+        ${healthTile("Creative", coverage.creativeCoverage, `${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative; ${fmt(listings.mls_description)} descriptions`)}
+        ${healthTile("Debt / Liens", coverage.debtCoverage, `${fmt(paidDetails.cached_details)} paid detail cache; ${fmt(debt.properties)} linked debt properties`)}
+        ${healthTile("Rent", coverage.rentCoverage, `${fmt(mf.rent_properties)} rent properties / ${fmt(mf.complex_count)} multifamily candidates`)}
+      </div>
+    </div>
+
     <div class="grid">
       <div class="card"><div class="label">County Parcels</div><div class="metric">${fmt(countyParcels.total)}</div><div class="note">${pct(countyParcels.parcel_id, countyParcels.total)} have parcel IDs across ${fmt(countyParcels.cities)} city labels. City subset: ${fmt(cityParcels.total)}.</div></div>
       <div class="card"><div class="label">Raw Active Listing Rows</div><div class="metric">${fmt(listings.total)}</div><div class="note">${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows; ${fmt(listings.unlinked_listings)} unlinked. ${esc(market.listingScopeNote)}</div></div>
       <div class="card"><div class="label">BBC Searchable Properties</div><div class="metric">${fmt(listings.active_properties)}</div><div class="note">Unique active properties with property_id; this is the API-searchable denominator, not raw source rows.</div></div>
+      <div class="card creative-card"><div class="label">Creative Listings</div><div class="metric">${fmt(listings.creative_positive)}</div><div class="note">${fmt(listings.creative_negative)} explicit negatives; ${pct(listings.creative_evaluated, listings.total)} scored coverage; ${fmt(listings.mls_description)} descriptions saved.</div></div>
       <div class="card"><div class="label">Recorded / Paid Debt</div><div class="metric">${fmt(debt.records)}</div><div class="note">${fmt(debt.properties)} active linked properties; ${fmt(debt.amount_rows)} amount rows and ${fmt(debt.payment_rows)} payment rows.</div></div>
       <div class="card"><div class="label">Rent / Floorplans</div><div class="metric">${fmt(mf.rent_rows)}</div><div class="note">${fmt(mf.floorplan_rows)} floorplans; ${fmt(mf.rent_properties)} complexes with rent snapshots. Latest: ${esc(mf.latest_rent_observed ?? "-")}.</div></div>
     </div>
@@ -715,6 +843,7 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
         <tr><td>Sources</td><td>${fmt(listings.source_count)}</td><td>-</td><td>${esc(Array.isArray(listings.sources) ? listings.sources.join(", ") : "")}</td></tr>
         <tr><td>Creative evaluated</td><td>${fmt(listings.creative_evaluated)} / ${fmt(listings.total)}</td><td>${pct(listings.creative_evaluated, listings.total)}</td><td>Coverage means rows were evaluated and status was saved. Hits are a yield, not coverage.</td></tr>
         <tr><td>Creative hits</td><td>${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative</td><td>${pct(n(listings.creative_positive) + n(listings.creative_negative), listings.total)}</td><td>MLS descriptions saved: ${fmt(listings.mls_description)}.</td></tr>
+        <tr><td>Paid listing fallback attempts</td><td>${fmt(listings.zillow_rapidapi_detail)} details / ${fmt(listings.zillow_rapidapi_error)} failed lookups</td><td>${pct(n(listings.zillow_rapidapi_detail) + n(listings.zillow_rapidapi_error), listings.total)}</td><td>Property-scoped Zillow/RapidAPI attempts cached on listing rows to prevent repeat paid calls.</td></tr>
         <tr><td>Price-change tracking</td><td>${fmt(events.price_changed)} price changes / ${fmt(events.total)} events</td><td>-</td><td>Latest event: ${esc(events.latest_event ?? "-")}.</td></tr>
         <tr><td>Listing-property matching</td><td>${fmt(n(listings.total) - n(listings.unlinked_listings))} linked / ${fmt(listings.unlinked_listings)} unlinked</td><td>${pct(n(listings.total) - n(listings.unlinked_listings), listings.total)}</td><td>Unlinked rows should not be counted as unique active properties.</td></tr>
         <tr><td>BBC searchable properties</td><td>${fmt(listings.active_properties)} unique properties</td><td>-</td><td>API search uses linked rows with property_id. Raw source rows may include duplicates and unlinked listings.</td></tr>
@@ -785,6 +914,15 @@ async function main() {
     .eyebrow { color:#5a6b7e; font-size:13px; font-weight:700; text-transform:uppercase; } h1 { margin:5px 0 4px; font-size:30px; letter-spacing:0; } .sub,.note { color:#5a6b7e; font-size:13px; line-height:1.35; }
     .tabs { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; } .tab { appearance:none; border:1px solid #c9d4df; background:#fff; color:#233143; border-radius:6px; padding:9px 12px; font-weight:750; cursor:pointer; }
     .tab.active { background:#1f5f56; color:#fff; border-color:#1f5f56; } main { padding:24px 32px 36px; } .market-panel { display:none; } .market-panel.active { display:block; }
+    .hero-metrics { display:grid; grid-template-columns:minmax(220px,300px) 1fr; gap:14px; margin-bottom:16px; }
+    .overall-card,.health { background:#fff; border:1px solid #d8e0e8; border-radius:8px; padding:16px; }
+    .overall-card.good,.health.good { border-color:#94c9bc; background:#f3fbf8; }
+    .overall-card.warn,.health.warn { border-color:#e1c37a; background:#fffaf0; }
+    .overall-card.bad,.health.bad { border-color:#df9da4; background:#fff5f6; }
+    .creative-card { border-color:#b9d5cd; background:#f5fbf9; }
+    .overall-value { margin-top:10px; font-size:54px; line-height:.95; font-weight:850; }
+    .health-grid { display:grid; grid-template-columns:repeat(3,minmax(150px,1fr)); gap:10px; }
+    .health-value { margin:8px 0 8px; font-size:28px; line-height:1; font-weight:850; }
     .grid { display:grid; grid-template-columns:repeat(4,minmax(170px,1fr)); gap:14px; } .card,.panel,.status { background:#fff; border:1px solid #d8e0e8; border-radius:8px; padding:16px; }
     .card { min-height:116px; } .label { color:#5a6b7e; font-size:13px; font-weight:700; } .metric { margin-top:9px; font-size:30px; line-height:1; font-weight:800; }
     section { margin-top:22px; } h2 { margin:0 0 12px; font-size:18px; letter-spacing:0; } .bars { display:grid; gap:12px; } .row { display:grid; grid-template-columns:210px 1fr 76px; gap:12px; align-items:center; font-size:14px; }
@@ -793,7 +931,7 @@ async function main() {
     code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size:12px; } .status { margin-top:14px; display:flex; gap:10px; align-items:flex-start; } .status.ready { border-color:#94c9bc; background:#f3fbf8; } .status.building { border-color:#e1c37a; background:#fffaf0; }
     .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:12px; } .open-link { border:1px solid #c9d4df; color:#1f5f56; background:#fff; border-radius:6px; padding:9px 11px; text-decoration:none; font-weight:750; white-space:nowrap; }
     .live-frame { width:100%; height:460px; border:1px solid #d8e0e8; border-radius:6px; background:#f8fafc; } .empty-progress { display:grid; gap:9px; border:1px dashed #c9d4df; border-radius:6px; padding:14px; background:#f8fafc; color:#5a6b7e; line-height:1.45; }
-    @media (max-width:960px){ .grid,.two{grid-template-columns:1fr;} .row{grid-template-columns:150px 1fr 62px;} header,main{padding-left:18px;padding-right:18px;} }
+    @media (max-width:960px){ .hero-metrics,.health-grid,.grid,.two{grid-template-columns:1fr;} .row{grid-template-columns:150px 1fr 62px;} header,main{padding-left:18px;padding-right:18px;} }
   </style>
 </head>
 <body>
