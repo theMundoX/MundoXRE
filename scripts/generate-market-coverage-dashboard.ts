@@ -388,6 +388,34 @@ function emptyMarketData(market: MarketConfig) {
   };
 }
 
+function firstOr<T extends Row>(rows: T[], fallback: T): T {
+  return rows[0] ?? fallback;
+}
+
+const zeroListings = {
+  total: 0, active_properties: 0, unlinked_listings: 0, distinct_listing_urls: 0, source_count: 0, sources: [],
+  price: 0, agent_name: 0, first_last: 0, phone: 0, email: 0, brokerage: 0, redfin_detail: 0, mls_description: 0,
+  creative_evaluated: 0, creative_positive: 0, creative_negative: 0, creative_no_data: 0,
+};
+const zeroParcels = {
+  total: 0, parcel_id: 0, address: 0, asset_type: 0, owner: 0, value: 0, total_units: 0, year_built: 0, sqft: 0, cities: 0,
+};
+const zeroEvents = { total: 0, price_changed: 0, listed: 0, latest_event: null };
+const zeroDebt = {
+  records: 0, paid_records: 0, public_records: 0, properties: 0, amount_rows: 0, payment_rows: 0,
+  total_amount: 0, total_estimated_payment: 0, latest_recording: null,
+};
+const zeroRecorder = {
+  source_docs: 0, mortgage_docs: 0, lien_docs: 0, debt_docs: 0, linked_docs: 0, linked_properties: 0,
+  amount_docs: 0, payment_docs: 0, latest_recording: null,
+};
+const zeroPaidDetails = { cached_details: 0, latest_fetch: null };
+const zeroMf = {
+  complex_count: 0, website_properties: 0, floorplan_properties: 0, floorplan_rows: 0, rent_properties: 0,
+  rent_rows: 0, fresh_rent_rows: 0, rent_amount_rows: 0, rent_per_door_rows: 0, total_monthly_rows: 0,
+  latest_rent_observed: null, reported_total_monthly_rent: 0,
+};
+
 async function resolveCountyId(market: MarketConfig): Promise<number | null> {
   if (market.countyId) return market.countyId;
   if (!market.countyName) return null;
@@ -421,7 +449,7 @@ async function collectMarket(market: MarketConfig) {
     ? `source_url ilike '%${sql(market.recorderSourcePattern)}%'`
     : "false";
 
-  const [listings] = await pg(`
+  const listings = firstOr(await pgOptional(`
     select count(*)::int as total,
            count(distinct property_id)::int as active_properties,
            count(*) filter (where property_id is null)::int as unlinked_listings,
@@ -448,10 +476,10 @@ async function collectMarket(market: MarketConfig) {
            count(*) filter (where creative_finance_status = 'no_data')::int as creative_no_data
       from listing_signals
      where ${listingWhere};
-  `);
+  `, `${market.label} listings`), zeroListings);
   console.log(`  ${market.label}: listings`);
 
-  const [cityParcels] = await pg(`
+  const cityParcels = firstOr(await pgOptional(`
     select count(*)::int as total,
            count(*) filter (where parcel_id is not null and parcel_id <> '')::int as parcel_id,
            count(*) filter (where nullif(address,'') is not null)::int as address,
@@ -463,10 +491,10 @@ async function collectMarket(market: MarketConfig) {
            count(*) filter (where total_sqft is not null or living_sqft is not null)::int as sqft
       from properties
      where ${cityPropertyWhere};
-  `);
+  `, `${market.label} city parcels`), zeroParcels);
   console.log(`  ${market.label}: city parcels`);
 
-  const [countyParcels] = await pg(`
+  const countyParcels = firstOr(await pgOptional(`
     select count(*)::int as total,
            count(*) filter (where parcel_id is not null and parcel_id <> '')::int as parcel_id,
            count(*) filter (where nullif(address,'') is not null)::int as address,
@@ -479,10 +507,10 @@ async function collectMarket(market: MarketConfig) {
            count(distinct upper(coalesce(city,'')))::int as cities
       from properties
      where ${countyPropertyWhere};
-  `);
+  `, `${market.label} county parcels`), zeroParcels);
   console.log(`  ${market.label}: county parcels`);
 
-  const [events] = await pg(`
+  const events = firstOr(await pgOptional(`
     select count(*)::int as total,
            count(*) filter (where event_type = 'price_changed')::int as price_changed,
            count(*) filter (where event_type = 'listed')::int as listed,
@@ -490,10 +518,10 @@ async function collectMarket(market: MarketConfig) {
       from listing_signal_events
      where state_code = '${stateSql}'
        and upper(coalesce(city,'')) = '${listingCitySql}';
-  `);
+  `, `${market.label} listing events`), zeroEvents);
   console.log(`  ${market.label}: events`);
 
-  const [debt] = await pg(`
+  const debt = firstOr(await pgOptional(`
     with active_market_properties as (
       select distinct property_id
         from listing_signals
@@ -511,10 +539,10 @@ async function collectMarket(market: MarketConfig) {
            max(recording_date)::text as latest_recording
       from mortgage_records mr
      where mr.property_id in (select property_id from active_market_properties);
-  `);
+  `, `${market.label} linked debt`), zeroDebt);
   console.log(`  ${market.label}: linked debt`);
 
-  const [recorder] = await pg(`
+  const recorder = firstOr(await pgOptional(`
     select count(*)::int as source_docs,
            count(*) filter (where document_type = 'mortgage')::int as mortgage_docs,
            count(*) filter (where document_type in ('lien','tax_lien','mechanics_lien','judgment_lien'))::int as lien_docs,
@@ -526,10 +554,10 @@ async function collectMarket(market: MarketConfig) {
            max(recording_date)::text as latest_recording
       from mortgage_records
      where ${recorderWhere};
-  `);
+  `, `${market.label} recorder`), zeroRecorder);
   console.log(`  ${market.label}: recorder`);
 
-  const [paidDetails] = await pg(`
+  const paidDetails = firstOr(await pgOptional(`
     with active_market_properties as (
       select distinct property_id
         from listing_signals
@@ -540,10 +568,10 @@ async function collectMarket(market: MarketConfig) {
            max(rapi.fetched_at)::text as latest_fetch
       from realestateapi_property_details rapi
       join active_market_properties amp on amp.property_id = rapi.property_id;
-  `);
+  `, `${market.label} paid details`), zeroPaidDetails);
   console.log(`  ${market.label}: paid details`);
 
-  const [mf] = await pg(`
+  const mf = firstOr(await pgOptional(`
     with mf as (
       select id from properties where ${mfWhere}
     )
@@ -563,7 +591,7 @@ async function collectMarket(market: MarketConfig) {
       left join property_websites pw on pw.property_id = mf.id and pw.active = true
       left join floorplans fp on fp.property_id = mf.id
       left join rent_snapshots rs on rs.property_id = mf.id;
-  `);
+  `, `${market.label} multifamily`), zeroMf);
   console.log(`  ${market.label}: multifamily`);
 
   const lienSamples = await pgOptional(`
