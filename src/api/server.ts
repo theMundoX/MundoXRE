@@ -6086,7 +6086,13 @@ function buildBuyBoxClubPropertyResponse(response: ReturnType<typeof buildProper
       history: response.liens.history,
     },
     sales: response.sales,
-    rent: response.rent,
+    rent: {
+      ...response.rent,
+      // BBC's original integration/docs used rentEstimate. Keep it as a stable alias
+      // so clients do not collapse a populated currentRent/FMR fallback to zero.
+      rentEstimate: response.rent.currentRent,
+      rentEstimateSource: response.rent.rentSource,
+    },
     market: response.market,
     publicSignals: response.publicSignals,
     signals: {
