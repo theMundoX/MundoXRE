@@ -74,6 +74,7 @@ try {
     with active as (
       select distinct on (p.id)
         p.id,
+        coalesce(nullif(l.address,''), p.address) as paid_search_address,
         l.listing_agent_email,
         l.listing_agent_phone,
         l.listing_agent_name,
@@ -96,9 +97,15 @@ try {
       join properties p on p.id = l.property_id
       left join realestateapi_property_details r on r.property_id = p.id
       where l.is_on_market = true
-        and p.state_code = $1
-        and upper(coalesce(p.city,'')) = $2
+        and l.state_code = $1
+        and upper(coalesce(l.city,'')) = $2
       order by p.id, l.last_seen_at desc nulls last, l.updated_at desc nulls last
+    ),
+    scoped as (
+      select *,
+        nullif(paid_search_address, '') is not null
+        and paid_search_address !~* '^\\s*(lot|0\\b)' as has_usable_paid_search_address
+      from active
     )
     select
       count(*) as active_properties,
@@ -112,6 +119,26 @@ try {
             or not has_reapi_mls_history
           )
       ) as reapi_paid_call_candidates,
+      count(*) filter (
+        where reapi_cached is null
+          and has_usable_paid_search_address
+          and (
+            nullif(listing_agent_email,'') is null
+            or nullif(listing_agent_phone,'') is null
+            or not has_reapi_balance
+            or not has_reapi_mls_history
+          )
+      ) as usable_reapi_paid_call_candidates,
+      count(*) filter (
+        where reapi_cached is null
+          and not has_usable_paid_search_address
+          and (
+            nullif(listing_agent_email,'') is null
+            or nullif(listing_agent_phone,'') is null
+            or not has_reapi_balance
+            or not has_reapi_mls_history
+          )
+      ) as skipped_invalid_paid_address_candidates,
       count(*) filter (
         where reapi_cached is not null
           and (
@@ -142,7 +169,7 @@ try {
             or nullif(listing_brokerage,'') is null
           )
       ) as rapidapi_fallback_attempted_still_missing
-    from active
+    from scoped
   `, [state, city]);
 
   console.log(JSON.stringify({

@@ -30,8 +30,14 @@ const pct = (value: unknown, total: unknown) => {
 async function main() {
   const citySql = CITY.replace(/'/g, "''");
   const stateSql = STATE.replace(/'/g, "''");
-  const propWhere = `county_id = ${COUNTY_ID} and state_code = '${stateSql}' and upper(coalesce(city,'')) like '%${citySql}%'`;
   const listingWhere = `is_on_market = true and state_code = '${stateSql}' and upper(coalesce(city,'')) = '${citySql}'`;
+  const activeMarketPropertyIds = `
+    select distinct property_id
+      from listing_signals
+     where ${listingWhere}
+       and property_id is not null
+  `;
+  const propWhere = `id in (${activeMarketPropertyIds})`;
   const mfWhere = `${propWhere} and (coalesce(total_units,1) >= 2 or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily'))`;
 
   const [parcels] = await pg(`

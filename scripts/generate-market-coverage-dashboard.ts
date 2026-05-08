@@ -24,6 +24,7 @@ type MarketConfig = {
   countyName?: string;
   propertyCityLike?: string;
   listingCity?: string;
+  propertyScope?: "city_situs" | "active_listing_properties";
   listingScopeNote: string;
   parcelScopeNote: string;
   recorderSourcePattern?: string;
@@ -117,13 +118,19 @@ const MARKETS: MarketConfig[] = [
     label: "Dayton, OH",
     city: "DAYTON",
     state: "OH",
+    countyId: 1698991,
     countyName: "Montgomery",
     targetCountyHints: ["Montgomery County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: Montgomery County.",
+    listingCity: "DAYTON",
+    propertyCityLike: "DAYTON",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "Dayton is source-limited to public Redfin-derived active rows plus property-scoped paid detail backfill.",
+    parcelScopeNote: "Coverage tiles use linked active Dayton listing properties; Montgomery County parcel universe is loaded separately because active listings may resolve to nearby city situs values.",
     progressFiles: ["realestateapi-dayton-oh-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Dayton --state=OH"],
+    rerunCommands: [
+      "npm run market:dayton:refresh",
+      "npm run market:dayton:refresh -- --include-paid --paid-max-calls=100",
+    ],
   },
   {
     key: "toledo-oh",
@@ -600,8 +607,22 @@ async function collectMarket(market: MarketConfig) {
   const propertyCitySql = sql((market.propertyCityLike ?? market.city).toUpperCase());
   const countyClause = countyId ? `county_id = ${countyId}` : "false";
   const countyPropertyWhere = `${countyClause} and state_code = '${stateSql}'`;
-  const cityPropertyWhere = `${countyPropertyWhere} and city = '${propertyCitySql}'`;
   const listingWhere = `is_on_market = true and state_code = '${stateSql}' and upper(coalesce(city,'')) = '${listingCitySql}'`;
+  const activeListingPropertyIds = `(
+      select distinct property_id
+        from listing_signals
+       where ${listingWhere}
+         and property_id is not null
+    )`;
+  const activeListingPropertyWhere = `
+    id in ${activeListingPropertyIds}
+    and state_code = '${stateSql}'`;
+  const cityPropertyWhere = market.propertyScope === "active_listing_properties"
+    ? activeListingPropertyWhere
+    : `${countyPropertyWhere} and city = '${propertyCitySql}'`;
+  const rentSamplePropertyWhere = market.propertyScope === "active_listing_properties"
+    ? `p.id in ${activeListingPropertyIds} and p.state_code = '${stateSql}'`
+    : `${countyId ? `p.county_id = ${countyId}` : "false"} and p.state_code = '${stateSql}' and p.city = '${propertyCitySql}'`;
   const mfWhere = `${cityPropertyWhere} and (coalesce(total_units,1) >= 2 or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily'))`;
   const recorderWhere = market.recorderSourcePattern
     ? `source_url ilike '%${sql(market.recorderSourcePattern)}%'`
@@ -809,7 +830,7 @@ async function collectMarket(market: MarketConfig) {
       join properties p on p.id = rs.property_id
       left join floorplans fp on fp.id = rs.floorplan_id
       left join property_complex_profiles cp on cp.property_id = p.id
-     where ${cityPropertyWhere}
+     where ${rentSamplePropertyWhere}
        and coalesce(rs.effective_rent, rs.asking_rent, 0) > 0
      order by rs.observed_at desc nulls last
      limit 10;

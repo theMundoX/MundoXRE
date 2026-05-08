@@ -37,15 +37,15 @@
     {
       "id": "dayton-oh",
       "label": "Dayton, OH",
-      "enabled": false,
-      "required": false,
+      "enabled": true,
+      "required": true,
       "continueOnFailure": true,
-      "phase": "source_discovery",
-      "dailyRefreshEligible": false,
-      "paidPolicy": "no_paid_calls",
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
+      "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 10,
       "targetCountyHints": ["Montgomery"],
-      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Dayton", "--state=OH"]
+      "command": ["npx", "tsx", "scripts/refresh-dayton-market.ts", "--include-paid", "--paid-max-calls=100"]
     },
     {
       "id": "toledo-oh",

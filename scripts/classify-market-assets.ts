@@ -4,6 +4,7 @@ import "dotenv/config";
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const DRY_RUN = process.argv.includes("--dry-run");
+const ACTIVE_LISTINGS_ONLY = process.argv.includes("--active-listings-only");
 
 const arg = (name: string, fallback?: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? fallback;
@@ -62,15 +63,30 @@ async function updateBatched(label: string, setSql: string, whereSql: string) {
 }
 
 async function main() {
-  const marketWhere = `
-    county_id = ${COUNTY_ID}
-    and state_code = '${STATE.replace(/'/g, "''")}'
-    and upper(coalesce(city,'')) like '%${CITY.replace(/'/g, "''")}%'
-  `;
+  const stateSql = STATE.replace(/'/g, "''");
+  const citySql = CITY.replace(/'/g, "''");
+  const marketWhere = ACTIVE_LISTINGS_ONLY
+    ? `
+      id in (
+        select distinct property_id
+          from listing_signals
+         where is_on_market = true
+           and state_code = '${stateSql}'
+           and upper(coalesce(city,'')) = '${citySql}'
+           and property_id is not null
+      )
+      and state_code = '${stateSql}'
+    `
+    : `
+      county_id = ${COUNTY_ID}
+      and state_code = '${stateSql}'
+      and upper(coalesce(city,'')) like '%${citySql}%'
+    `;
 
   console.log("MXRE - Market asset classification");
   console.log(`Market: ${CITY}, ${STATE}`);
   console.log(`County ID: ${COUNTY_ID}`);
+  console.log(`Scope: ${ACTIVE_LISTINGS_ONLY ? "active linked on-market properties" : "county/city parcel subset"}`);
   console.log(`Dry run: ${DRY_RUN}`);
 
   await updateBatched(
