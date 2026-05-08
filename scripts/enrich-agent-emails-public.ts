@@ -15,6 +15,7 @@ const FETCH_TIMEOUT_MS = Math.max(2_500, parseInt(process.argv.find(a => a.start
 const ROW_TIMEOUT_MS = Math.max(5_000, parseInt(process.argv.find(a => a.startsWith("--row-timeout-ms="))?.split("=")[1] ?? "45000", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
 const DISABLE_DUCKDUCKGO = process.argv.includes("--disable-duckduckgo");
+const ALLOW_NO_PHONE = process.argv.includes("--allow-no-phone");
 const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 const STATE = arg("state")?.toUpperCase();
@@ -460,8 +461,8 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const emails = extractEmails(html);
   if (emails.length > 0) stats.pages_with_email++;
   const hasVerifiedIdentity = FAST_SEARCH
-    ? hasName && (hasPhone || hasBrokerage)
-    : hasName && hasPhone && hasBrokerage;
+    ? hasName && (hasPhone || (ALLOW_NO_PHONE && !phone && hasBrokerage))
+    : hasName && ((hasPhone && hasBrokerage) || (ALLOW_NO_PHONE && !phone && hasBrokerage));
   if (!hasVerifiedIdentity) {
     if (emails.length > 0) stats.rejected_identity++;
     return null;
@@ -664,6 +665,7 @@ async function main() {
   console.log(`Limit: ${LIMIT}; delay ${DELAY_MS}ms; concurrency ${CONCURRENCY}; fast search ${FAST_SEARCH}; dry run ${DRY_RUN}`);
   console.log(`Search caps: ${MAX_SEARCH_QUERIES} queries, ${MAX_SEARCH_LINKS} links`);
   console.log(`Timeouts: fetch ${FETCH_TIMEOUT_MS}ms, row ${ROW_TIMEOUT_MS}ms`);
+  console.log(`Allow no-phone rows: ${ALLOW_NO_PHONE}`);
   if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
   if (BROKERAGE_PATTERN) console.log(`Brokerage filter: ${BROKERAGE_PATTERN}`);
 
@@ -680,7 +682,8 @@ async function main() {
     from listing_signals
     where is_on_market = true
       and listing_agent_email is null
-      and listing_agent_phone is not null
+      and (${ALLOW_NO_PHONE ? "true" : "listing_agent_phone is not null"})
+      and (listing_agent_phone is not null or listing_brokerage is not null)
       and coalesce(listing_agent_first_name, listing_agent_name) is not null
       ${filters ? `and ${filters}` : ""}
     order by last_seen_at desc nulls last
