@@ -98,10 +98,10 @@ function dollarQuotedString(value: string): string {
 }
 
 function bindSql(query: string, params: unknown[] = []): string {
-  return params.reduceRight((sql, value, index) => {
-    const token = new RegExp(`\\$${index + 1}(?!\\d)`, "g");
-    return sql.replace(token, sqlLiteral(value));
-  }, query);
+  return query.replace(/\$(\d+)(?!\d)/g, (token, indexText) => {
+    const index = Number(indexText) - 1;
+    return index >= 0 && index < params.length ? sqlLiteral(params[index]) : token;
+  });
 }
 
 function makeClient(): Queryable {
