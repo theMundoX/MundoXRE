@@ -137,13 +137,22 @@ const MARKETS: MarketConfig[] = [
     label: "Toledo, OH",
     city: "TOLEDO",
     state: "OH",
+    countyId: 2338836,
     countyName: "Lucas",
     targetCountyHints: ["Lucas County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: Lucas County.",
+    listingCity: "TOLEDO",
+    propertyCityLike: "TOLEDO",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "Toledo is in active build/backfill mode using Lucas County parcels, public Redfin-derived active rows, and property-scoped paid detail backfill.",
+    parcelScopeNote: "Coverage tiles use linked active Toledo listing properties; Lucas County parcel universe is loaded separately for market buildout.",
     progressFiles: ["realestateapi-toledo-oh-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Toledo --state=OH"],
+    rerunCommands: [
+      "npx tsx scripts/ingest-lucas-oh.ts --city=TOLEDO",
+      "npx tsx scripts/ingest-listings-fast.ts --state OH --county Lucas --concurrency 3 --skip-match",
+      "npx tsx scripts/link-market-listings-fast.ts --state=OH --city=TOLEDO --county_id=2338836 --create-shells",
+      "npx tsx scripts/enrich-redfin-detail-pages.ts --state=OH --city=TOLEDO --limit=500 --delay-ms=150",
+      "npx tsx scripts/enrich-on-market-realestateapi.ts --state=OH --city=TOLEDO --limit=100 --max-calls=100",
+    ],
   },
   {
     key: "cleveland-oh",
@@ -346,6 +355,8 @@ function refreshScriptName(marketKey: string): string | null {
   if (marketKey === "dallas-tx") return "refresh-dallas-market.ts";
   if (marketKey === "indianapolis-in") return "refresh-indianapolis-market.ts";
   if (marketKey === "columbus-oh") return "refresh-columbus-market.ts";
+  if (marketKey === "dayton-oh") return "refresh-dayton-market.ts";
+  if (marketKey === "toledo-oh") return "refresh-toledo-market.ts";
   if (marketKey === "west-chester-pa") return "refresh-west-chester-market.ts";
   return null;
 }

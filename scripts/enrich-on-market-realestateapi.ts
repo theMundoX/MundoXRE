@@ -69,7 +69,9 @@ const hasDebtCoverageSql = `(${hasOpenMortgageBalanceSql} or ${hasReapiFreeClear
 const paidSearchAddressSql = `coalesce(nullif(l.address,''), p.address)`;
 const hasUsablePaidSearchAddressSql = `
   nullif(${paidSearchAddressSql}, '') is not null
-  and ${paidSearchAddressSql} !~* '^\\s*(lot|0\\b)'
+  and ${paidSearchAddressSql} !~* '^[[:space:]]*(lot|0[[:>:]])'
+  and ${paidSearchAddressSql} ~* '^[[:space:]]*[0-9]+[[:>:]]'
+  and ${paidSearchAddressSql} !~* '(rent[- ]?free|offer\\s+plan|floor\\s*plan|\\bplan\\b)'
 `;
 
 if (!databaseUrl) throw new Error("Set MXRE_DIRECT_PG_URL, MXRE_PG_URL, DATABASE_URL, or POSTGRES_URL.");
