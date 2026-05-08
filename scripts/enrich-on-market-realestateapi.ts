@@ -66,6 +66,11 @@ const hasReapiFreeClearSql = `
 `;
 
 const hasDebtCoverageSql = `(${hasOpenMortgageBalanceSql} or ${hasReapiFreeClearSql})`;
+const paidSearchAddressSql = `coalesce(nullif(l.address,''), p.address)`;
+const hasUsablePaidSearchAddressSql = `
+  nullif(${paidSearchAddressSql}, '') is not null
+  and ${paidSearchAddressSql} !~* '^\\s*(lot|0\\b)'
+`;
 
 if (!databaseUrl) throw new Error("Set MXRE_DIRECT_PG_URL, MXRE_PG_URL, DATABASE_URL, or POSTGRES_URL.");
 if (!dryRun && maxCalls > 0 && !reapiKey) {
@@ -398,7 +403,7 @@ async function ensureQueue(): Promise<Candidate[]> {
         and p.state_code = $1
         and l.state_code = $1
         and upper(coalesce(l.city,'')) = $2
-        and nullif(coalesce(nullif(l.address,''), p.address), '') is not null
+        and ${hasUsablePaidSearchAddressSql}
         and (
           $3::boolean = true
           or $5::boolean = true
@@ -527,7 +532,7 @@ async function loadCandidates(): Promise<Candidate[]> {
       where q.provider = 'realestateapi'
         and q.status in ('queued','failed')
         and p.state_code = $1
-        and nullif(coalesce(nullif(l.address,''), p.address), '') is not null
+        and ${hasUsablePaidSearchAddressSql}
         and (
           $4::boolean = true
           or not exists (
@@ -571,7 +576,7 @@ async function loadCandidates(): Promise<Candidate[]> {
       and q.status in ('queued','failed')
       and q.next_run_at <= now()
       and p.state_code = $1
-      and nullif(coalesce(nullif(l.address,''), p.address), '') is not null
+      and ${hasUsablePaidSearchAddressSql}
       and (
         $4::boolean = true
         or not exists (
