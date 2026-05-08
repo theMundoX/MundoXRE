@@ -16,6 +16,7 @@ const ROW_TIMEOUT_MS = Math.max(5_000, parseInt(process.argv.find(a => a.startsW
 const DRY_RUN = process.argv.includes("--dry-run");
 const DISABLE_DUCKDUCKGO = process.argv.includes("--disable-duckduckgo");
 const ALLOW_NO_PHONE = process.argv.includes("--allow-no-phone");
+const ALLOW_NAME_EMAIL_PROFILE = process.argv.includes("--allow-name-email-profile");
 const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 const STATE = arg("state")?.toUpperCase();
@@ -38,7 +39,7 @@ type ListingRow = {
 type Candidate = {
   email: string;
   url: string;
-  confidence: "public_profile_verified";
+  confidence: "public_profile_verified" | "public_profile_name_email_verified" | "public_profile_name_email_proximity";
 };
 
 const stats = {
@@ -46,12 +47,16 @@ const stats = {
   homepage_urls: 0,
   search_pages: 0,
   search_links: 0,
+  search_result_snippets: 0,
   duckduckgo_links: 0,
   bing_links: 0,
+  yahoo_links: 0,
   search_pages_without_links: 0,
   profile_pages: 0,
   pages_with_email: 0,
   rejected_identity: 0,
+  accepted_name_email_profile: 0,
+  accepted_name_email_proximity: 0,
   no_direct_brokerage_hint: 0,
   row_timeouts: 0,
   row_errors: 0,
@@ -275,6 +280,14 @@ function isGenericOrHostedEmail(email: string): boolean {
   return false;
 }
 
+function emailAppearsNearName(text: string, fullName: string, email: string): boolean {
+  const lower = text.toLowerCase();
+  const nameIndex = lower.indexOf(fullName.toLowerCase());
+  const emailIndex = lower.indexOf(email.toLowerCase());
+  if (nameIndex < 0 || emailIndex < 0) return false;
+  return Math.abs(nameIndex - emailIndex) <= 600;
+}
+
 function sameSiteUrl(baseUrl: string, href: string): string | null {
   try {
     const url = new URL(href, baseUrl);
@@ -427,6 +440,54 @@ function extractLinksFromBing(html: string): string[] {
     .slice(0, 8);
 }
 
+function extractResultsFromBing(html: string): Array<{ url: string; text: string }> {
+  const decodedHtml = decodeHtml(html);
+  const results: Array<{ url: string; text: string }> = [];
+  for (const match of decodedHtml.matchAll(/<li[^>]+class=["'][^"']*\bb_algo\b[^"']*["'][\s\S]*?<\/li>/gi)) {
+    const block = match[0];
+    const link = block.match(/<a[^>]+href=["']([^"']+)["']/i)?.[1];
+    const url = link ? normalizeSearchResultUrl(link) : null;
+    if (!url) continue;
+    const text = cleanText(block);
+    results.push({ url, text });
+  }
+  return results
+    .filter(result => !/bing\.com|microsoft\.com|facebook\.com|instagram\.com|linkedin\.com/i.test(result.url))
+    .slice(0, 8);
+}
+
+function extractResultsFromYahoo(html: string): Array<{ url: string; text: string }> {
+  const decodedHtml = decodeHtml(html);
+  const results: Array<{ url: string; text: string }> = [];
+  for (const match of decodedHtml.matchAll(/<(?:div|li)[^>]+class=["'][^"']*(?:algo|sr|compTitle)[^"']*["'][\s\S]*?(?=<(?:div|li)[^>]+class=["'][^"']*(?:algo|sr|compTitle)|<\/ol>|<\/body>)/gi)) {
+    const block = match[0];
+    const href = block.match(/<a[^>]+href=["']([^"']+)["']/i)?.[1];
+    if (!href) continue;
+    let url: string | null = null;
+    try {
+      const parsed = new URL(decodeHtml(href), "https://search.yahoo.com");
+      url = parsed.searchParams.get("RU") ?? parsed.searchParams.get("u") ?? parsed.searchParams.get("url") ?? parsed.toString();
+      url = decodeURIComponent(url);
+    } catch {
+      url = normalizeSearchResultUrl(href);
+    }
+    if (!url || !/^https?:\/\//i.test(url)) continue;
+    results.push({ url, text: cleanText(block) });
+  }
+  if (results.length === 0) {
+    for (const match of decodedHtml.matchAll(/<a[^>]+href=["'](https?:\/\/[^"']+)["'][\s\S]*?<\/a>/gi)) {
+      const url = normalizeSearchResultUrl(match[1]);
+      if (!url) continue;
+      const start = Math.max(0, match.index ?? 0);
+      const block = decodedHtml.slice(start, Math.min(decodedHtml.length, start + 1600));
+      results.push({ url, text: cleanText(block) });
+    }
+  }
+  return results
+    .filter(result => !/yahoo\.com|bing\.com|microsoft\.com|facebook\.com|instagram\.com|linkedin\.com/i.test(result.url))
+    .slice(0, 8);
+}
+
 async function fetchText(url: string): Promise<string | null> {
   try {
     const response = await fetch(url, {
@@ -460,24 +521,46 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const hasBrokerage = tokens.length > 0 && tokens.some(token => text.includes(token) || url.toLowerCase().includes(token));
   const emails = extractEmails(html);
   if (emails.length > 0) stats.pages_with_email++;
+  const personalEmails = emails.filter(email => !isGenericOrHostedEmail(email));
+  const nameMatchedPersonal = personalEmails.find(email => {
+    const local = email.split("@")[0].replace(/[^a-z]/g, "");
+    const firstClean = first.replace(/[^a-z]/g, "");
+    const lastClean = last.replace(/[^a-z]/g, "");
+    return local.includes(lastClean)
+      || (firstClean.length >= 4 && local.includes(firstClean))
+      || local.includes(`${firstClean.slice(0, 1)}${lastClean}`);
+  }) ?? null;
+  const proximityPersonal = personalEmails.find(email => emailAppearsNearName(text, name.full, email)) ?? null;
+  const personal = nameMatchedPersonal ?? proximityPersonal;
+  if (!personal) return null;
+
+  const realEstateContext = /agent|realtor|real estate|broker|brokerage|property|homes?|listing|mls/i.test(`${url} ${text}`);
+  const proximityVerified = ALLOW_NAME_EMAIL_PROFILE
+    && hasName
+    && realEstateContext
+    && Boolean(proximityPersonal);
+  const nameEmailProfileVerified = ALLOW_NAME_EMAIL_PROFILE
+    && hasName
+    && realEstateContext
+    && Boolean(personal);
   const hasVerifiedIdentity = FAST_SEARCH
-    ? hasName && (hasPhone || (ALLOW_NO_PHONE && !phone && hasBrokerage))
-    : hasName && ((hasPhone && hasBrokerage) || (ALLOW_NO_PHONE && !phone && hasBrokerage));
+    ? hasName && (hasPhone || (ALLOW_NO_PHONE && !phone && hasBrokerage) || nameEmailProfileVerified || proximityVerified)
+    : hasName && ((hasPhone && hasBrokerage) || (ALLOW_NO_PHONE && !phone && hasBrokerage) || nameEmailProfileVerified || proximityVerified);
   if (!hasVerifiedIdentity) {
     if (emails.length > 0) stats.rejected_identity++;
     return null;
   }
-  const personalEmails = emails.filter(email => !isGenericOrHostedEmail(email));
-  const personal = personalEmails.find(email => {
-    const local = email.split("@")[0].replace(/[^a-z]/g, "");
-    return local.includes(first.replace(/[^a-z]/g, "")) || local.includes(last.replace(/[^a-z]/g, ""));
-  }) ?? null;
-  if (!personal) return null;
+  if (proximityVerified) stats.accepted_name_email_proximity++;
+  else if (nameEmailProfileVerified && !hasPhone && !hasBrokerage) stats.accepted_name_email_profile++;
 
   return {
     email: personal,
     url,
-    confidence: "public_profile_verified",
+    confidence: proximityVerified
+      ? "public_profile_name_email_proximity"
+      : nameEmailProfileVerified && !hasPhone && !hasBrokerage
+        ? "public_profile_name_email_verified"
+        : "public_profile_verified",
   };
 }
 
@@ -621,6 +704,7 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
   ].filter((query, index, all) => query && all.indexOf(query) === index);
 
   const links: string[] = [];
+  const resultSnippets: Array<{ url: string; text: string }> = [];
   for (const query of queries.slice(0, MAX_SEARCH_QUERIES)) {
     if (!DISABLE_DUCKDUCKGO) {
       const duckUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -639,11 +723,29 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     if (bingHtml) {
       stats.search_pages++;
       const found = extractLinksFromBing(bingHtml);
+      const snippetResults = extractResultsFromBing(bingHtml);
       stats.bing_links += found.length;
+      stats.search_result_snippets += snippetResults.length;
       if (found.length === 0) stats.search_pages_without_links++;
       links.push(...found);
+      resultSnippets.push(...snippetResults);
+    }
+    const yahooUrl = `https://search.yahoo.com/search?p=${encodeURIComponent(query)}`;
+    const yahooHtml = await fetchText(yahooUrl);
+    if (yahooHtml) {
+      stats.search_pages++;
+      const yahooResults = extractResultsFromYahoo(yahooHtml);
+      stats.yahoo_links += yahooResults.length;
+      stats.search_result_snippets += yahooResults.length;
+      if (yahooResults.length === 0) stats.search_pages_without_links++;
+      resultSnippets.push(...yahooResults);
+      links.push(...yahooResults.map(result => result.url));
     }
     if (links.length >= MAX_SEARCH_LINKS * 2) break;
+  }
+  for (const result of resultSnippets) {
+    const candidate = verifyEmailPage(result.text, row, result.url);
+    if (candidate) return candidate;
   }
   const uniqueLinks = [...new Set(links)].slice(0, MAX_SEARCH_LINKS);
   stats.search_links += uniqueLinks.length;
@@ -666,6 +768,7 @@ async function main() {
   console.log(`Search caps: ${MAX_SEARCH_QUERIES} queries, ${MAX_SEARCH_LINKS} links`);
   console.log(`Timeouts: fetch ${FETCH_TIMEOUT_MS}ms, row ${ROW_TIMEOUT_MS}ms`);
   console.log(`Allow no-phone rows: ${ALLOW_NO_PHONE}`);
+  console.log(`Allow full-name + profile email verification: ${ALLOW_NAME_EMAIL_PROFILE}`);
   if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
   if (BROKERAGE_PATTERN) console.log(`Brokerage filter: ${BROKERAGE_PATTERN}`);
 
