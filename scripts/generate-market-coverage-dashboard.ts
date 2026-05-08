@@ -556,6 +556,7 @@ function emptyMarketData(market: MarketConfig) {
     mf: zero,
     lienSamples: [] as Row[],
     rentSamples: [] as Row[],
+    creativeListings: [] as Row[],
     readinessGaps: [
       `source discovery queued for ${market.targetCountyHints?.join(", ") || market.countyName || market.label}`,
       "ingestion has not started yet",
@@ -848,6 +849,46 @@ async function collectMarket(market: MarketConfig) {
   `, `${market.label} rent samples`);
   console.log(`  ${market.label}: rent samples`);
 
+  const creativeListings = await pgOptional(`
+    select id,
+           property_id,
+           address,
+           city,
+           state_code,
+           mls_list_price,
+           listing_source,
+           listing_url,
+           creative_finance_score,
+           creative_finance_status,
+           creative_finance_terms,
+           creative_finance_rate_text,
+           coalesce(
+             raw #>> '{description}',
+             raw #>> '{publicRemarks}',
+             raw #>> '{public_remarks}',
+             raw #>> '{remarks}',
+             raw #>> '{listingRemarks}',
+             raw #>> '{marketingRemarks}',
+             raw #>> '{propertyDescription}',
+             raw #>> '{redfinDetail,publicRemarks}',
+             raw #>> '{redfinDetail,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+             raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
+             raw #>> '{mls,remarks}',
+             raw #>> '{mls,description}'
+           ) as description
+      from listing_signals
+     where ${listingWhere}
+       and creative_finance_status = 'positive'
+     order by creative_finance_score desc nulls last,
+              coalesce(last_seen_at, first_seen_at) desc nulls last,
+              id desc
+     limit 200;
+  `, `${market.label} creative listing details`);
+  console.log(`  ${market.label}: creative listing details`);
+
   const readinessGaps = [
     n(listings.total) === 0 ? "active listing ingestion has no current rows" : null,
     n(listings.source_count) <= 1 ? "active listing coverage is source-limited" : null,
@@ -870,6 +911,7 @@ async function collectMarket(market: MarketConfig) {
     mf,
     lienSamples,
     rentSamples,
+    creativeListings,
     readinessGaps,
   };
 }
@@ -937,7 +979,7 @@ function categoryCoverage(data: Awaited<ReturnType<typeof collectMarket>>) {
 }
 
 function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: number) {
-  const { market, listings, cityParcels, countyParcels, events, debt, recorder, paidDetails, mf, lienSamples, rentSamples, readinessGaps } = data;
+  const { market, listings, cityParcels, countyParcels, events, debt, recorder, paidDetails, mf, lienSamples, rentSamples, creativeListings, readinessGaps } = data;
   const coverage = categoryCoverage(data);
   const panelId = `panel-${market.key}`;
   return `<section id="${panelId}" class="market-panel${index === 0 ? " active" : ""}" role="tabpanel" aria-labelledby="tab-${market.key}">
@@ -963,7 +1005,7 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
       <div class="card"><div class="label">County Parcels</div><div class="metric">${fmt(countyParcels.total)}</div><div class="note">${pct(countyParcels.parcel_id, countyParcels.total)} have parcel IDs across ${fmt(countyParcels.cities)} city labels. City subset: ${fmt(cityParcels.total)}.</div></div>
       <div class="card"><div class="label">Raw Active Listing Rows</div><div class="metric">${fmt(listings.total)}</div><div class="note">${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows; ${fmt(listings.unlinked_listings)} unlinked. ${esc(market.listingScopeNote)}</div></div>
       <div class="card"><div class="label">BBC Searchable Properties</div><div class="metric">${fmt(listings.active_properties)}</div><div class="note">Unique active properties with property_id; this is the API-searchable denominator, not raw source rows.</div></div>
-      <div class="card creative-card"><div class="label">Creative Listings</div><div class="metric">${fmt(listings.creative_positive)}</div><div class="note">${fmt(listings.creative_negative)} explicit negatives; ${pct(listings.creative_evaluated, listings.total)} scored coverage; ${fmt(listings.mls_description)} descriptions saved.</div></div>
+      <a class="card creative-card card-link" href="#creative-${esc(market.key)}"><div class="label">Creative Listings</div><div class="metric">${fmt(listings.creative_positive)}</div><div class="note">${fmt(listings.creative_negative)} explicit negatives; ${pct(listings.creative_evaluated, listings.total)} scored coverage; ${fmt(listings.mls_description)} descriptions saved. Click to inspect.</div></a>
       <div class="card"><div class="label">Recorded / Paid Debt</div><div class="metric">${fmt(debt.records)}</div><div class="note">${fmt(debt.properties)} active linked properties; ${fmt(debt.amount_rows)} amount rows and ${fmt(debt.payment_rows)} payment rows.</div></div>
       <div class="card"><div class="label">Rent / Floorplans</div><div class="metric">${fmt(mf.rent_rows)}</div><div class="note">${fmt(mf.floorplan_rows)} floorplans; ${fmt(mf.rent_properties)} complexes with rent snapshots. Latest: ${esc(mf.latest_rent_observed ?? "-")}.</div></div>
     </div>
@@ -974,6 +1016,40 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
     </div>
 
     ${renderProgressPanel(market)}
+
+    <section id="creative-${esc(market.key)}" class="panel creative-listings">
+      <div class="panel-head">
+        <div>
+          <h2>Creative Listing Details</h2>
+          <div class="note">Every positive creative-finance listing in this market tab, with saved listing description for verification. This is signal yield, not scoring coverage.</div>
+        </div>
+        <div class="count-pill">${fmt(creativeListings.length)} shown / ${fmt(listings.creative_positive)} total</div>
+      </div>
+      <div class="creative-list">
+        ${creativeListings.length ? creativeListings.map((r, i) => {
+          const price = n(r.mls_list_price) > 0 ? money(r.mls_list_price) : "-";
+          const description = String(r.description ?? "").trim();
+          return `<article class="creative-item">
+            <div class="creative-rank">${i + 1}</div>
+            <div class="creative-body">
+              <div class="creative-title">
+                <strong>${esc(r.address || "Address missing")}</strong>
+                <span>${esc([r.city, r.state_code].filter(Boolean).join(", "))}</span>
+                <span>${price}</span>
+              </div>
+              <div class="creative-meta">
+                <span>Score ${esc(r.creative_finance_score ?? "-")}</span>
+                <span>${esc(r.creative_finance_terms ?? r.creative_finance_rate_text ?? r.creative_finance_status ?? "positive")}</span>
+                <span>${esc(r.listing_source ?? "unknown source")}</span>
+                ${r.property_id ? `<span>property ${esc(r.property_id)}</span>` : `<span>unlinked</span>`}
+                ${r.listing_url ? `<a href="${esc(r.listing_url)}" target="_blank" rel="noopener">Source</a>` : ""}
+              </div>
+              <p>${description ? esc(description) : "No saved listing description is available for this positive creative signal."}</p>
+            </div>
+          </article>`;
+        }).join("") : `<div class="empty-progress"><strong>No positive creative listings found for this market.</strong><span>If the creative count above is nonzero, regenerate the dashboard after scoring finishes.</span></div>`}
+      </div>
+    </section>
 
     <section class="two">
       <div class="panel"><h2>Listing & Agent Coverage</h2><div class="bars">
@@ -1107,6 +1183,7 @@ async function main() {
     .summary-main { font-size:32px; line-height:1; font-weight:850; margin:10px 0 4px; }
     .summary-sub { color:#26384c; font-size:13px; font-weight:700; }
     .grid { display:grid; grid-template-columns:repeat(4,minmax(170px,1fr)); gap:14px; } .card,.panel,.status { background:#fff; border:1px solid #d8e0e8; border-radius:8px; padding:16px; }
+    .card-link { display:block; color:inherit; text-decoration:none; }
     .card { min-height:116px; } .label { color:#5a6b7e; font-size:13px; font-weight:700; } .metric { margin-top:9px; font-size:30px; line-height:1; font-weight:800; }
     section { margin-top:22px; } h2 { margin:0 0 12px; font-size:18px; letter-spacing:0; } .bars { display:grid; gap:12px; } .row { display:grid; grid-template-columns:210px 1fr 76px; gap:12px; align-items:center; font-size:14px; }
     .track { height:12px; border-radius:999px; background:#e7edf3; overflow:hidden; } .fill { height:100%; background:#2f7d70; border-radius:999px; } .fill.warn { background:#c27803; } .fill.bad { background:#b53b45; }
@@ -1114,6 +1191,16 @@ async function main() {
     code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size:12px; } .status { margin-top:14px; display:flex; gap:10px; align-items:flex-start; } .status.ready { border-color:#94c9bc; background:#f3fbf8; } .status.building { border-color:#e1c37a; background:#fffaf0; }
     .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:12px; } .open-link { border:1px solid #c9d4df; color:#1f5f56; background:#fff; border-radius:6px; padding:9px 11px; text-decoration:none; font-weight:750; white-space:nowrap; }
     .live-frame { width:100%; height:460px; border:1px solid #d8e0e8; border-radius:6px; background:#f8fafc; } .empty-progress { display:grid; gap:9px; border:1px dashed #c9d4df; border-radius:6px; padding:14px; background:#f8fafc; color:#5a6b7e; line-height:1.45; }
+    .count-pill { color:#1f5f56; background:#edf8f5; border:1px solid #b9d5cd; border-radius:999px; padding:7px 10px; font-size:12px; font-weight:850; white-space:nowrap; }
+    .creative-list { display:grid; gap:12px; }
+    .creative-item { display:grid; grid-template-columns:42px 1fr; gap:12px; border:1px solid #d8e0e8; border-radius:8px; padding:13px; background:#fbfdfe; }
+    .creative-rank { width:30px; height:30px; display:grid; place-items:center; border-radius:999px; background:#1f5f56; color:#fff; font-weight:850; }
+    .creative-title { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:baseline; font-size:16px; }
+    .creative-title strong { font-size:17px; }
+    .creative-title span { color:#4b5d70; font-weight:750; }
+    .creative-meta { display:flex; flex-wrap:wrap; gap:7px; margin:8px 0; }
+    .creative-meta span,.creative-meta a { border:1px solid #d8e0e8; background:#fff; color:#3d5066; border-radius:999px; padding:4px 8px; font-size:12px; font-weight:750; text-decoration:none; }
+    .creative-body p { margin:0; color:#26384c; line-height:1.48; font-size:14px; white-space:pre-wrap; }
     .api-form { display:grid; grid-template-columns:2fr 1fr 90px 110px 1.2fr 130px; gap:10px; align-items:end; }
     .api-field { display:grid; gap:5px; } .api-field label { color:#5a6b7e; font-size:12px; font-weight:800; text-transform:uppercase; }
     .api-field input { width:100%; border:1px solid #c9d4df; border-radius:6px; padding:10px 11px; font:inherit; background:#fff; }
