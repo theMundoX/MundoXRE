@@ -11,6 +11,9 @@
  */
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
+
+hydrateWindowsUserEnv();
 
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
   auth: { persistSession: false },
@@ -21,6 +24,9 @@ const OUT_FIELDS = "state_parcel_id,parcel_id,prop_add,prop_city,prop_state,prop
 const PAGE_SIZE = 2000;
 const BATCH_SIZE = 500;
 const MAX_RETRIES = 5;
+const arg = (name: string) => process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
+const COUNTY_ARG = arg("county")?.trim().toUpperCase();
+const COUNTY_FIPS_ARG = arg("county-fips")?.trim();
 
 const countyCache = new Map<string, number>();
 
@@ -88,8 +94,15 @@ function classifyPropClass(code: string): string {
   return "other";
 }
 
-async function fetchPage(offset: number): Promise<any[]> {
-  const url = `${SERVICE_URL}/query?where=1%3D1&outFields=${OUT_FIELDS}&returnGeometry=false&resultOffset=${offset}&resultRecordCount=${PAGE_SIZE}&f=json`;
+function requestedWhere(): string {
+  const fips = COUNTY_FIPS_ARG ?? (COUNTY_ARG ? IN_COUNTY_FIPS[COUNTY_ARG] : undefined);
+  if (!fips) return "1=1";
+  const fullFips = fips.length === 3 ? `18${fips}` : fips;
+  return `county_fips='${fullFips.replace(/'/g, "''")}'`;
+}
+
+async function fetchPage(offset: number, where: string): Promise<any[]> {
+  const url = `${SERVICE_URL}/query?where=${encodeURIComponent(where)}&outFields=${OUT_FIELDS}&returnGeometry=false&resultOffset=${offset}&resultRecordCount=${PAGE_SIZE}&f=json`;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -113,7 +126,9 @@ async function main() {
   console.log("Source:", SERVICE_URL);
   console.log();
 
-  const countResp = await fetch(`${SERVICE_URL}/query?where=1%3D1&returnCountOnly=true&f=json`);
+  const where = requestedWhere();
+  console.log(`Filter: ${where}`);
+  const countResp = await fetch(`${SERVICE_URL}/query?where=${encodeURIComponent(where)}&returnCountOnly=true&f=json`);
   const { count: totalCount } = await countResp.json();
   console.log(`Total parcels: ${totalCount.toLocaleString()}\n`);
 
@@ -125,7 +140,7 @@ async function main() {
   const startTime = Date.now();
 
   while (offset < totalCount) {
-    const records = await fetchPage(offset);
+    const records = await fetchPage(offset, where);
 
     if (records.length === 0) {
       console.log(`No records at offset ${offset}, done.`);
@@ -150,10 +165,12 @@ async function main() {
       const address = r.prop_add || r.dlgf_prop_address || "";
       const city = r.prop_city || r.dlgf_prop_address_city || "";
       const zip = r.prop_zip || r.dlgf_prop_address_zip || "";
+      const parcelId = r.state_parcel_id || r.parcel_id || "";
+      if (!String(parcelId).trim()) { totalErrors++; continue; }
 
       rows.push({
         county_id: countyId,
-        parcel_id: r.state_parcel_id || r.parcel_id || "",
+        parcel_id: parcelId,
         address: address.trim(),
         city: city.trim(),
         state_code: "IN",
