@@ -147,8 +147,10 @@ async function main() {
       }];
     });
 
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE);
+    const dedupedRows = Array.from(new Map(rows.map(row => [`${row.county_id}|${row.parcel_id}`, row])).values());
+
+    for (let i = 0; i < dedupedRows.length; i += BATCH_SIZE) {
+      const batch = dedupedRows.slice(i, i + BATCH_SIZE);
       const { error } = await db.from("properties").upsert(batch, {
         onConflict: "county_id,parcel_id",
         ignoreDuplicates: false,
