@@ -48,6 +48,8 @@
     "market:akron:refresh:dry": "tsx scripts/refresh-akron-market.ts --dry-run",
     "market:fort-wayne:refresh": "tsx scripts/refresh-fort-wayne-market.ts",
     "market:fort-wayne:refresh:dry": "tsx scripts/refresh-fort-wayne-market.ts --dry-run",
+    "market:south-bend:refresh": "tsx scripts/refresh-south-bend-market.ts",
+    "market:south-bend:refresh:dry": "tsx scripts/refresh-south-bend-market.ts --dry-run",
     "market:west-chester:refresh": "tsx scripts/refresh-west-chester-market.ts",
     "market:west-chester:refresh:dry": "tsx scripts/refresh-west-chester-market.ts --dry-run",
     "market:refresh:all": "tsx scripts/run-market-refresh-jobs.ts",
