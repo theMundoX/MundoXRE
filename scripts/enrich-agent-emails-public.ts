@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 
-const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+const PG_URL = process.env.MXRE_PG_URL ?? `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "100", 10));
 const FAST_SEARCH = process.argv.includes("--fast-search");
@@ -182,6 +182,7 @@ function brokerageDomainHints(brokerage: string | null): string[] {
   if (b.includes("carpenter")) hints.push("callcarpenter.com");
   if (b.includes("highgarden")) hints.push("highgarden.com");
   if (b.includes("trueblood")) hints.push("truebloodre.com");
+  if (b.includes("performance team") || b.includes("iptrealty")) hints.push("iptrealty.com");
   const words = b
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9 ]+/g, " ")
@@ -276,8 +277,20 @@ function isGenericOrHostedEmail(email: string): boolean {
   if (!local || !domain) return true;
   if (["info", "contact", "hello", "admin", "office", "support", "sales", "team", "homes", "realestate", "realtor", "filler"].includes(local)) return true;
   if (/^(no-?reply|donotreply|webmaster|privacy|marketing|leads?)$/.test(local)) return true;
+  if (/\.(edu|gov|mil)$/i.test(domain)) return true;
   if (/(godaddy|example|sentry|wixpress|squarespace|wordpress|cloudflare)\./i.test(domain)) return true;
   return false;
+}
+
+function emailLocalMatchesName(email: string, name: { first: string; last: string }): boolean {
+  const local = email.split("@")[0]?.replace(/[^a-z]/gi, "").toLowerCase() ?? "";
+  const firstClean = name.first.replace(/[^a-z]/gi, "").toLowerCase();
+  const lastClean = name.last.replace(/[^a-z]/gi, "").toLowerCase();
+  if (!local || !firstClean || !lastClean) return false;
+  return local.includes(lastClean)
+    || (firstClean.length >= 4 && local.includes(firstClean))
+    || local.includes(`${firstClean.slice(0, 1)}${lastClean}`)
+    || local.includes(`${firstClean}${lastClean.slice(0, 1)}`);
 }
 
 function emailAppearsNearName(text: string, fullName: string, email: string): boolean {
@@ -285,7 +298,7 @@ function emailAppearsNearName(text: string, fullName: string, email: string): bo
   const nameIndex = lower.indexOf(fullName.toLowerCase());
   const emailIndex = lower.indexOf(email.toLowerCase());
   if (nameIndex < 0 || emailIndex < 0) return false;
-  return Math.abs(nameIndex - emailIndex) <= 600;
+  return Math.abs(nameIndex - emailIndex) <= 320;
 }
 
 function sameSiteUrl(baseUrl: string, href: string): string | null {
@@ -522,15 +535,11 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const emails = extractEmails(html);
   if (emails.length > 0) stats.pages_with_email++;
   const personalEmails = emails.filter(email => !isGenericOrHostedEmail(email));
-  const nameMatchedPersonal = personalEmails.find(email => {
-    const local = email.split("@")[0].replace(/[^a-z]/g, "");
-    const firstClean = first.replace(/[^a-z]/g, "");
-    const lastClean = last.replace(/[^a-z]/g, "");
-    return local.includes(lastClean)
-      || (firstClean.length >= 4 && local.includes(firstClean))
-      || local.includes(`${firstClean.slice(0, 1)}${lastClean}`);
+  const nameMatchedPersonal = personalEmails.find(email => emailLocalMatchesName(email, name)) ?? null;
+  const proximityPersonal = personalEmails.find(email => {
+    if (!emailAppearsNearName(text, name.full, email)) return false;
+    return emailLocalMatchesName(email, name);
   }) ?? null;
-  const proximityPersonal = personalEmails.find(email => emailAppearsNearName(text, name.full, email)) ?? null;
   const personal = nameMatchedPersonal ?? proximityPersonal;
   if (!personal) return null;
 
