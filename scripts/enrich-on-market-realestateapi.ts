@@ -25,7 +25,13 @@ const args = process.argv.slice(2);
 hydrateWindowsUserEnv();
 const valueArg = (name: string) => {
   const prefix = `--${name}=`;
-  return args.find((arg) => arg.startsWith(prefix))?.slice(prefix.length) ?? null;
+  const index = args.findIndex((arg) => arg.startsWith(prefix));
+  if (index < 0) return null;
+  const parts = [args[index].slice(prefix.length)];
+  for (let i = index + 1; i < args.length && !args[i].startsWith("--"); i++) {
+    parts.push(args[i]);
+  }
+  return parts.join(" ").trim();
 };
 
 const dryRun = args.includes("--dry-run");

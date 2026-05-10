@@ -155,6 +155,45 @@ const MARKETS: MarketConfig[] = [
     ],
   },
   {
+    key: "san-antonio-tx",
+    label: "San Antonio, TX",
+    city: "SAN ANTONIO",
+    state: "TX",
+    countyId: 1741238,
+    countyName: "Bexar",
+    targetCountyHints: ["Bexar County"],
+    listingCity: "SAN ANTONIO",
+    propertyCityLike: "SAN ANTONIO",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "San Antonio is in active build/backfill mode using Bexar County parcels and public Redfin-derived active rows. Paid detail has not been broadly run yet.",
+    parcelScopeNote: "Coverage tiles use linked active San Antonio listing properties; Bexar County parcel universe is loaded separately for market buildout.",
+    recorderSourcePattern: "bexar",
+    progressFiles: ["realestateapi-san-antonio-tx-progress.html"],
+    rerunCommands: [
+      "npm run market:san-antonio:refresh",
+      "npm run market:san-antonio:refresh -- --include-paid --paid-max-calls=100",
+    ],
+  },
+  {
+    key: "memphis-tn",
+    label: "Memphis, TN",
+    city: "MEMPHIS",
+    state: "TN",
+    countyId: 1741244,
+    countyName: "Shelby",
+    targetCountyHints: ["Shelby County"],
+    listingCity: "MEMPHIS",
+    propertyCityLike: "MEMPHIS",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "Memphis is in active build/backfill mode using Shelby County parcels and public Redfin-derived active rows. Paid detail should wait until public ingestion/linking is complete.",
+    parcelScopeNote: "Coverage tiles use linked active Memphis listing properties; Shelby County parcel universe is loaded separately for market buildout.",
+    progressFiles: ["realestateapi-memphis-tn-progress.html"],
+    rerunCommands: [
+      "npm run market:memphis:refresh",
+      "npm run market:memphis:refresh -- --include-paid --paid-max-calls=100",
+    ],
+  },
+  {
     key: "cleveland-oh",
     label: "Cleveland, OH",
     city: "CLEVELAND",
@@ -231,19 +270,6 @@ const MARKETS: MarketConfig[] = [
     parcelScopeNote: "Expected starting counties: Jefferson County first, then Shelby County expansion.",
     progressFiles: ["realestateapi-birmingham-al-progress.html"],
     rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Birmingham --state=AL"],
-  },
-  {
-    key: "memphis-tn",
-    label: "Memphis, TN",
-    city: "MEMPHIS",
-    state: "TN",
-    countyName: "Shelby",
-    targetCountyHints: ["Shelby County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: Shelby County.",
-    progressFiles: ["realestateapi-memphis-tn-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Memphis --state=TN"],
   },
   {
     key: "detroit-mi",
@@ -357,6 +383,8 @@ function refreshScriptName(marketKey: string): string | null {
   if (marketKey === "columbus-oh") return "refresh-columbus-market.ts";
   if (marketKey === "dayton-oh") return "refresh-dayton-market.ts";
   if (marketKey === "toledo-oh") return "refresh-toledo-market.ts";
+  if (marketKey === "san-antonio-tx") return "refresh-san-antonio-market.ts";
+  if (marketKey === "memphis-tn") return "refresh-memphis-market.ts";
   if (marketKey === "west-chester-pa") return "refresh-west-chester-market.ts";
   return null;
 }

@@ -32,21 +32,10 @@ const PAGE_SIZE = 1000;
 const BATCH_SIZE = 500;
 const STATE_CODE = "TN";
 
-const FIELDS = [
-  "OBJECTID",
-  "PARCELID",
-  "MAP",
-  "OWNER",
-  "OWNER_EXT",
-  "PAR_ADRNO",
-  "PAR_ADRSTR",
-  "CLASS",
-  "LUC",
-  "MUNI",
-  "TAXYR",
-  "Longitude",
-  "Latitude",
-].join(",");
+// Shelby's ArcGIS layer intermittently rejects explicit field lists that include
+// valid fields such as CLASS/LUC/MUNI/Longitude after higher OBJECTID ranges.
+// outFields=* is stable across the full layer and avoids stalling the ingest.
+const FIELDS = "*";
 
 /**
  * Classify property_type from CLASS or LUC field values.
@@ -85,11 +74,18 @@ function classifyPropertyType(cls: unknown, luc: unknown): string {
 }
 
 async function fetchPage(minOid: number): Promise<{ features: Record<string, unknown>[]; maxOid: number }> {
+  const params = new URLSearchParams({
+    where: `OBJECTID > ${minOid}`,
+    outFields: FIELDS,
+    returnGeometry: "false",
+    resultRecordCount: String(PAGE_SIZE),
+    orderByFields: "OBJECTID ASC",
+    f: "json",
+  });
   const url =
-    `${PARCELS_URL}/query?where=OBJECTID+>+${minOid}` +
-    `&outFields=${encodeURIComponent(FIELDS)}&returnGeometry=false` +
-    `&resultRecordCount=${PAGE_SIZE}&orderByFields=OBJECTID+ASC&f=json`;
+    `${PARCELS_URL}/query?${params.toString()}`;
 
+  let lastError: unknown = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
@@ -106,11 +102,52 @@ async function fetchPage(minOid: number): Promise<{ features: Record<string, unk
       }, minOid);
       return { features, maxOid };
     } catch (err: unknown) {
-      if (attempt === 4) throw err;
+      lastError = err;
       await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
     }
   }
-  return { features: [], maxOid: minOid };
+
+  console.warn(
+    `\n  Page query failed after OBJECTID ${minOid.toLocaleString()}; falling back to individual OBJECTID scan. ` +
+    `Root: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+  );
+  return fetchIndividualWindow(minOid + 1, minOid + PAGE_SIZE);
+}
+
+async function fetchObject(oid: number): Promise<Record<string, unknown> | null> {
+  const params = new URLSearchParams({
+    where: `OBJECTID = ${oid}`,
+    outFields: FIELDS,
+    returnGeometry: "false",
+    f: "json",
+  });
+  const url = `${PARCELS_URL}/query?${params.toString()}`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as Record<string, unknown>;
+      if (json.error) throw new Error(JSON.stringify(json.error));
+      const feature = (json.features as Array<{ attributes: Record<string, unknown> }> | undefined)?.[0];
+      return feature?.attributes ?? null;
+    } catch {
+      if (attempt === 1) return null;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  return null;
+}
+
+async function fetchIndividualWindow(startOid: number, endOid: number): Promise<{ features: Record<string, unknown>[]; maxOid: number }> {
+  const features: Record<string, unknown>[] = [];
+  let failed = 0;
+  for (let oid = startOid; oid <= endOid; oid++) {
+    const row = await fetchObject(oid);
+    if (row) features.push(row);
+    else failed++;
+  }
+  console.warn(`  Individual fallback scanned ${startOid.toLocaleString()}-${endOid.toLocaleString()}: ${features.length.toLocaleString()} ok, ${failed.toLocaleString()} skipped/empty.`);
+  return { features, maxOid: endOid };
 }
 
 async function main() {
@@ -155,10 +192,17 @@ async function main() {
       if (existing.has(pin)) { dupes++; continue; }
       existing.add(pin);
 
-      // Build address from PAR_ADRNO + PAR_ADRSTR
-      const adrNo = String(f.PAR_ADRNO || "").trim();
-      const adrStr = String(f.PAR_ADRSTR || "").trim();
-      const address = `${adrNo} ${adrStr}`.trim().toUpperCase();
+      const address = String(f.PAR_ADDR1 || "").trim().toUpperCase()
+        || [
+          f.PAR_ADRNO,
+          f.PAR_ADRADD,
+          f.PAR_ADRPREDIR,
+          f.PAR_ADRSTR,
+          f.PAR_ADRSUF,
+          f.PAR_ADRPOSTDIR,
+          f.PAR_UNITDESC,
+          f.PAR_UNITNO,
+        ].map(value => String(value || "").trim()).filter(Boolean).join(" ").toUpperCase();
       if (!address) { skipped++; continue; }
 
       const city = String(f.MUNI || "MEMPHIS").trim().toUpperCase() || "MEMPHIS";
@@ -185,7 +229,7 @@ async function main() {
         address,
         city,
         state_code: STATE_CODE,
-        zip: "",                // Not present in this layer; keep explicitly blank.
+        zip: String(f.PAR_ZIP || "").trim(),
         market_value: null,     // Not available in this layer
         assessed_value: null,   // Not available in this layer
         land_value: null,       // Not available in this layer
