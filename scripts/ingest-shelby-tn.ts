@@ -36,6 +36,26 @@ const STATE_CODE = "TN";
 // valid fields such as CLASS/LUC/MUNI/Longitude after higher OBJECTID ranges.
 // outFields=* is stable across the full layer and avoids stalling the ingest.
 const FIELDS = "*";
+const FALLBACK_FIELDS = [
+  "OBJECTID",
+  "PARCELID",
+  "PARID",
+  "OWNER",
+  "OWNER_EXT",
+  "PAR_ADDR1",
+  "PAR_ADRNO",
+  "PAR_ADRADD",
+  "PAR_ADRPREDIR",
+  "PAR_ADRSTR",
+  "PAR_ADRSUF",
+  "PAR_ADRPOSTDIR",
+  "PAR_UNITDESC",
+  "PAR_UNITNO",
+  "PAR_ZIP",
+  "MUNI",
+  "CLASS",
+  "LUC",
+].join(",");
 
 /**
  * Classify property_type from CLASS or LUC field values.
@@ -117,7 +137,7 @@ async function fetchPage(minOid: number): Promise<{ features: Record<string, unk
 async function fetchObject(oid: number): Promise<Record<string, unknown> | null> {
   const params = new URLSearchParams({
     where: `OBJECTID = ${oid}`,
-    outFields: FIELDS,
+    outFields: FALLBACK_FIELDS,
     returnGeometry: "false",
     f: "json",
   });
@@ -134,36 +154,45 @@ async function fetchObject(oid: number): Promise<Record<string, unknown> | null>
   }
 }
 
-async function fetchObjectBatch(oids: number[]): Promise<{ rows: Record<string, unknown>[]; failed: number }> {
+async function queryObjectBatch(oids: number[], outFields: string, timeoutMs: number) {
   const params = new URLSearchParams({
     objectIds: oids.join(","),
-    outFields: FIELDS,
+    outFields,
     returnGeometry: "false",
     f: "json",
   });
   const url = `${PARCELS_URL}/query?${params.toString()}`;
 
+  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = (await res.json()) as Record<string, unknown>;
+  if (json.error) throw new Error(JSON.stringify(json.error));
+  return ((json.features as Array<{ attributes: Record<string, unknown> }> | undefined) || [])
+    .map((feature) => feature.attributes)
+    .filter(Boolean);
+}
+
+async function fetchObjectBatch(oids: number[]): Promise<{ rows: Record<string, unknown>[]; failed: number }> {
   if (oids.length === 1) {
     const row = await fetchObject(oids[0]);
     return row ? { rows: [row], failed: 0 } : { rows: [], failed: 1 };
   }
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = (await res.json()) as Record<string, unknown>;
-    if (json.error) throw new Error(JSON.stringify(json.error));
-    const rows = ((json.features as Array<{ attributes: Record<string, unknown> }> | undefined) || [])
-      .map((feature) => feature.attributes)
-      .filter(Boolean);
+    const rows = await queryObjectBatch(oids, FIELDS, 8_000);
     return { rows, failed: Math.max(0, oids.length - rows.length) };
   } catch {
-    const mid = Math.floor(oids.length / 2);
-    const [left, right] = await Promise.all([
-      fetchObjectBatch(oids.slice(0, mid)),
-      fetchObjectBatch(oids.slice(mid)),
-    ]);
-    return { rows: [...left.rows, ...right.rows], failed: left.failed + right.failed };
+    try {
+      const rows = await queryObjectBatch(oids, FALLBACK_FIELDS, 8_000);
+      return { rows, failed: Math.max(0, oids.length - rows.length) };
+    } catch {
+      const mid = Math.floor(oids.length / 2);
+      const [left, right] = await Promise.all([
+        fetchObjectBatch(oids.slice(0, mid)),
+        fetchObjectBatch(oids.slice(mid)),
+      ]);
+      return { rows: [...left.rows, ...right.rows], failed: left.failed + right.failed };
+    }
   }
 }
 
