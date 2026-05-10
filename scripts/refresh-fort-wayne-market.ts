@@ -181,7 +181,7 @@ async function main() {
     },
     {
       name: "Refresh Fort Wayne Redfin listing signals",
-      command: ["npx", "tsx", "scripts/ingest-listings-fast.ts", "--state", "IN", "--zips", FORT_WAYNE_ZIPS, "--concurrency", dryLimit("3", "1"), ...(DRY_RUN ? ["--dry-run", "--skip-match"] : ["--skip-match"])],
+      command: ["npx", "tsx", "scripts/ingest-listings-fast.ts", "--state", "IN", "--zips", FORT_WAYNE_ZIPS, "--concurrency", dryLimit("3", "1"), ...(DRY_RUN ? ["--dry-run", "--skip-match", "--allow-partial"] : ["--skip-match", "--allow-partial"])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_LISTINGS,
@@ -295,4 +295,5 @@ main().catch((error) => {
   console.error("Fatal Fort Wayne market refresh error:", error instanceof Error ? error.message : error);
   process.exit(1);
 });
+
 

@@ -18,6 +18,9 @@
  */
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
+
+hydrateWindowsUserEnv();
 
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!, {
   auth: { persistSession: false },

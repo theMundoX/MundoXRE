@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 /**
- * Repeatable Akron, OH market coverage refresh.
+ * Repeatable San Antonio, TX market coverage refresh.
  *
- * Akron uses Summit County public parcels plus shared listing, contact,
+ * San Antonio uses Bexar County public parcels plus shared listing, contact,
  * creative, paid-detail, audit, and dashboard steps. Paid calls are opt-in,
  * property-scoped, cached, address-validated, and bounded.
  */
@@ -36,11 +36,15 @@ const dryLimit = (value: string, dryValue: string) => DRY_RUN ? dryValue : value
 
 const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
-const COUNTY_ID = 1698989;
-const AKRON_ZIPS = [
-  "44301", "44302", "44303", "44304", "44305", "44306", "44307", "44308", "44309", "44310",
-  "44311", "44312", "44313", "44314", "44315", "44316", "44317", "44319", "44320", "44321",
-  "44325", "44326", "44328", "44333", "44334",
+const COUNTY_ID = 1741238;
+const SAN_ANTONIO_ZIPS = [
+  "78201", "78202", "78203", "78204", "78205", "78207", "78208", "78209", "78210",
+  "78211", "78212", "78213", "78214", "78215", "78216", "78217", "78218", "78219",
+  "78220", "78221", "78222", "78223", "78224", "78225", "78226", "78227", "78228",
+  "78229", "78230", "78231", "78232", "78233", "78234", "78235", "78236", "78237",
+  "78238", "78239", "78240", "78242", "78244", "78245", "78247", "78248", "78249",
+  "78250", "78251", "78252", "78253", "78254", "78255", "78256", "78257", "78258",
+  "78259", "78260", "78261", "78263", "78264", "78266",
 ].join(",");
 
 type Step = {
@@ -157,12 +161,12 @@ async function main() {
   const startedAt = new Date();
   const stamp = startedAt.toISOString().replace(/[:.]/g, "-");
   const logDir = join(repoRoot, "logs", "market-refresh");
-  const resultPath = join(logDir, `akron-oh-${stamp}.json`);
+  const resultPath = join(logDir, `san-antonio-tx-${stamp}.json`);
   const results: StepResult[] = [];
 
   await mkdir(logDir, { recursive: true });
 
-  console.log("MXRE Akron, OH market refresh");
+  console.log("MXRE San Antonio, TX market refresh");
   console.log("=".repeat(48));
   console.log(`Dry run: ${DRY_RUN}`);
   console.log(`Paid fallback: ${INCLUDE_PAID ? `enabled, max calls ${PAID_MAX_CALLS}` : "disabled"}`);
@@ -173,64 +177,64 @@ async function main() {
 
   const steps: Step[] = [
     {
-      name: "Ingest Summit County public parcels",
-      command: ["npx", "tsx", "scripts/ingest-summit-oh.ts"],
+      name: "Ingest Bexar County public parcels",
+      command: ["npx", "tsx", "scripts/ingest-bexar-tx.ts"],
       required: true,
       supportsDryRun: false,
       skip: SKIP_PARCELS,
       timeoutMs: DRY_RUN ? 10 * 60_000 : 60 * 60_000,
     },
     {
-      name: "Refresh Akron Redfin listing signals",
-      command: ["npx", "tsx", "scripts/ingest-listings-fast.ts", "--state", "OH", "--zips", AKRON_ZIPS, "--concurrency", dryLimit("3", "1"), ...(DRY_RUN ? ["--dry-run", "--skip-match", "--allow-partial"] : ["--skip-match", "--allow-partial"])],
+      name: "Refresh San Antonio Redfin listing signals",
+      command: ["npx", "tsx", "scripts/ingest-listings-fast.ts", "--state", "TX", "--zips", SAN_ANTONIO_ZIPS, "--concurrency", dryLimit("3", "1"), ...(DRY_RUN ? ["--dry-run", "--skip-match", "--allow-partial"] : ["--skip-match", "--allow-partial"])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_LISTINGS,
       timeoutMs: DRY_RUN ? 10 * 60_000 : 45 * 60_000,
     },
     {
-      name: "Link Akron active listings",
-      command: ["npx", "tsx", "scripts/link-market-listings-fast.ts", "--state=OH", "--city=AKRON", `--county_id=${COUNTY_ID}`, "--create-shells", ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Link San Antonio active listings",
+      command: ["npx", "tsx", "scripts/link-market-listings-fast.ts", "--state=TX", "--city=SAN ANTONIO", `--county_id=${COUNTY_ID}`, "--create-shells", ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_LISTINGS,
       timeoutMs: DRY_RUN ? 5 * 60_000 : 20 * 60_000,
     },
     {
-      name: "Enrich Akron Redfin listing detail pages",
-      command: ["npx", "tsx", "scripts/enrich-redfin-detail-pages.ts", "--state=OH", "--city=AKRON", `--limit=${dryLimit("5000", "25")}`, `--delay-ms=${dryLimit("300", "100")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Enrich San Antonio Redfin listing detail pages",
+      command: ["npx", "tsx", "scripts/enrich-redfin-detail-pages.ts", "--state=TX", "--city=SAN ANTONIO", `--limit=${dryLimit("5000", "25")}`, `--delay-ms=${dryLimit("300", "100")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_LISTINGS,
       timeoutMs: DRY_RUN ? 5 * 60_000 : 90 * 60_000,
     },
     {
-      name: "Classify Akron active parcel assets",
-      command: ["npx", "tsx", "scripts/classify-market-assets.ts", "--state=OH", "--city=AKRON", `--county_id=${COUNTY_ID}`, "--active-listings-only", `--batch-size=${dryLimit("1500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Classify San Antonio active parcel assets",
+      command: ["npx", "tsx", "scripts/classify-market-assets.ts", "--state=TX", "--city=SAN ANTONIO", `--county_id=${COUNTY_ID}`, "--active-listings-only", `--batch-size=${dryLimit("1500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_CLASSIFY,
       timeoutMs: DRY_RUN ? 5 * 60_000 : 20 * 60_000,
     },
     {
-      name: "Normalize Akron listing agent contacts",
-      command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--state=OH", "--city=AKRON", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Normalize San Antonio listing agent contacts",
+      command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--state=TX", "--city=SAN ANTONIO", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AGENT_CONTACTS,
     },
     {
-      name: "Score Akron creative finance signals",
-      command: ["npx", "tsx", "scripts/score-creative-finance-signals.ts", "--state=OH", "--city=AKRON", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      name: "Score San Antonio creative finance signals",
+      command: ["npx", "tsx", "scripts/score-creative-finance-signals.ts", "--state=TX", "--city=SAN ANTONIO", `--limit=${dryLimit("5000", "25")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: false,
       supportsDryRun: true,
       skip: SKIP_CREATIVE,
     },
     {
-      name: "Paid Akron Property Detail enrichment",
+      name: "Paid San Antonio Property Detail enrichment",
       command: [
         "npx", "tsx", "scripts/enrich-on-market-realestateapi.ts",
-        "--state=OH", "--city=AKRON",
+        "--state=TX", "--city=SAN ANTONIO",
         `--limit=${dryLimit(String(Math.max(PAID_MAX_CALLS, 1)), "5")}`,
         `--max-calls=${dryLimit(String(PAID_MAX_CALLS), "0")}`,
         ...(DRY_RUN ? ["--dry-run"] : []),
@@ -241,15 +245,15 @@ async function main() {
       timeoutMs: 60 * 60_000,
     },
     {
-      name: "Audit Akron agent coverage",
-      command: ["npx", "tsx", "scripts/audit-on-market-agent-coverage.ts", "--state=OH", "--city=AKRON"],
+      name: "Audit San Antonio agent coverage",
+      command: ["npx", "tsx", "scripts/audit-on-market-agent-coverage.ts", "--state=TX", "--city=SAN ANTONIO"],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AUDITS,
     },
     {
-      name: "Audit Akron readiness",
-      command: ["npx", "tsx", "scripts/market-readiness-summary.ts", "--state=OH", "--city=AKRON", `--county_id=${COUNTY_ID}`],
+      name: "Audit San Antonio readiness",
+      command: ["npx", "tsx", "scripts/market-readiness-summary.ts", "--state=TX", "--city=SAN ANTONIO", `--county_id=${COUNTY_ID}`],
       required: false,
       supportsDryRun: true,
       skip: SKIP_AUDITS,
@@ -270,7 +274,7 @@ async function main() {
   const failedRequired = results.some(result => result.required && result.status === "failed");
   const summary = {
     status: failedRequired ? "failed" : "ok",
-    market: "akron-oh",
+    market: "san-antonio-tx",
     dry_run: DRY_RUN,
     include_paid: INCLUDE_PAID,
     paid_max_calls: PAID_MAX_CALLS,
@@ -281,7 +285,7 @@ async function main() {
   };
 
   await writeFile(resultPath, JSON.stringify(summary, null, 2));
-  console.log("\nAkron market refresh summary");
+  console.log("\nSan Antonio market refresh summary");
   console.log("=".repeat(48));
   console.log(`Status: ${summary.status}`);
   console.log(`OK: ${results.filter(result => result.status === "ok").length}`);
@@ -293,7 +297,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("Fatal Akron market refresh error:", error instanceof Error ? error.message : error);
+  console.error("Fatal San Antonio market refresh error:", error instanceof Error ? error.message : error);
   process.exit(1);
 });
 

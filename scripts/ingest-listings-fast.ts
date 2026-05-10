@@ -10,6 +10,7 @@
  *   npx tsx scripts/ingest-listings-fast.ts --state TX --zips 76101,76102,76103
  *   npx tsx scripts/ingest-listings-fast.ts --state TX --county Tarrant --dry-run
  *   npx tsx scripts/ingest-listings-fast.ts --state TX --county Tarrant --concurrency 3
+ *   npx tsx scripts/ingest-listings-fast.ts --state TX --zips 76101 --allow-partial
  */
 
 import "dotenv/config";
@@ -34,6 +35,7 @@ interface FastIngestOptions {
   dryRun: boolean;
   concurrency: number;
   skipMatch: boolean;
+  allowPartial: boolean;
 }
 
 function parseArgs(): FastIngestOptions {
@@ -43,6 +45,7 @@ function parseArgs(): FastIngestOptions {
     dryRun: false,
     concurrency: CONCURRENCY,
     skipMatch: false,
+    allowPartial: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -71,6 +74,9 @@ function parseArgs(): FastIngestOptions {
         break;
       case "--skip-match":
         opts.skipMatch = true;
+        break;
+      case "--allow-partial":
+        opts.allowPartial = true;
         break;
     }
   }
@@ -416,6 +422,7 @@ async function main() {
   console.log(`ZIPs: ${zips.length}`);
   console.log(`Concurrency: ${opts.concurrency}`);
   console.log(`Dry run: ${opts.dryRun}`);
+  console.log(`Allow partial ZIP errors: ${opts.allowPartial}`);
   console.log(`ZIP codes: ${zips.join(", ")}`);
   console.log();
 
@@ -456,7 +463,7 @@ async function main() {
   }
 
   console.log("\nDone.");
-  process.exit(totalErrors > 0 ? 1 : 0);
+  process.exit(totalErrors > 0 && !opts.allowPartial ? 1 : 0);
 }
 
 main().catch((err) => {
