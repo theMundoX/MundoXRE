@@ -274,6 +274,8 @@ const MARKET_CONFIGS: Record<string, {
     restrictions: [
       'Columbus is publishable for BBC market search with field-level quality flags while backfill continues.',
       'Franklin County public parcel and recorder sources are the local coverage base; listing-backed shells are used only when active listings cannot yet be reconciled to assessor parcels.',
+      'Mortgage row count is not total debt coverage: valid RealEstateAPI free-clear detail is positive debt/equity coverage and is reported separately from mortgage_records rows.',
+      'Franklin recorder/publicsearch rows currently prove document coverage, but amount-bearing rows are primarily from RealEstateAPI.',
       'RealEstateAPI no-data and 404 responses are cached as no_data and do not count as free-and-clear debt coverage.',
       'Agent email coverage remains partial and must not be guessed; phone and listing coverage are materially stronger.',
     ],
@@ -298,11 +300,21 @@ const MARKET_CONFIGS: Record<string, {
         listing_sources: ['redfin'],
       },
       debt: {
-        mortgage_record_count: 1731,
-        properties_with_mortgage_records: 1779,
-        mortgage_amount_count: 1,
-        latest_recording: null,
+        mortgage_record_count: 878,
+        properties_with_mortgage_records: 440,
+        mortgage_amount_count: 222,
+        latest_recording: '2026-04-23',
+        public_mortgage_record_count: 656,
+        public_properties_with_mortgage_records: 283,
+        realestateapi_mortgage_record_count: 222,
+        realestateapi_properties_with_mortgage_records: 191,
+        properties_with_both_public_and_realestateapi_records: 34,
         valid_realestateapi_detail_count: 1779,
+        realestateapi_free_clear_count: 1778,
+        properties_with_debt_coverage: 1822,
+        debt_unknown_property_count: 486,
+        realestateapi_equity_field_count: 1779,
+        realestateapi_balance_field_count: 1779,
         realestateapi_no_data_count: 489,
       },
       rents: {
@@ -5889,17 +5901,89 @@ async function buildCoverageMarketRows(includeLiveMetrics = false): Promise<Arra
             and state_code = '${market.state}'
             and upper(coalesce(city,'')) = '${market.cityUpper}'
         ),
+        active_market_properties as (
+          select distinct property_id
+          from listing_signals
+          where is_on_market = true
+            and state_code = '${market.state}'
+            and upper(coalesce(city,'')) = '${market.cityUpper}'
+            and property_id is not null
+        ),
         debt as (
+          with record_summary as (
+            select
+              count(*)::int as mortgage_record_count,
+              count(distinct m.property_id)::int as properties_with_mortgage_records,
+              count(*) filter (where coalesce(m.estimated_current_balance, m.loan_amount, m.original_amount, 0) > 0)::int as mortgage_amount_count,
+              count(*) filter (where m.source_url <> 'realestateapi')::int as public_mortgage_record_count,
+              count(distinct m.property_id) filter (where m.source_url <> 'realestateapi')::int as public_properties_with_mortgage_records,
+              count(*) filter (where m.source_url = 'realestateapi')::int as realestateapi_mortgage_record_count,
+              count(distinct m.property_id) filter (where m.source_url = 'realestateapi')::int as realestateapi_properties_with_mortgage_records,
+              count(distinct m.property_id) filter (where m.source_url <> 'realestateapi' and m.property_id in (
+                select property_id from mortgage_records where source_url = 'realestateapi' and property_id in (select property_id from active_market_properties)
+              ))::int as properties_with_both_public_and_realestateapi_records,
+              max(m.recording_date) as latest_recording
+            from mortgage_records m
+            where m.property_id in (select property_id from active_market_properties)
+          ),
+          reapi_summary as (
+            select
+              count(*) filter (
+                where jsonb_typeof(r.response_body) = 'object'
+                  and r.response_body <> '{}'::jsonb
+                  and coalesce(
+                    r.response_body->>'id',
+                    r.response_body->>'propertyId',
+                    r.response_body->>'apn',
+                    r.response_body->>'address',
+                    r.response_body->>'formattedAddress',
+                    r.response_body->>'owner1FullName'
+                  ) is not null
+              )::int as valid_realestateapi_detail_count,
+              count(*) filter (
+                where jsonb_typeof(r.response_body) = 'object'
+                  and r.response_body <> '{}'::jsonb
+                  and coalesce(
+                    r.response_body->>'id',
+                    r.response_body->>'propertyId',
+                    r.response_body->>'apn',
+                    r.response_body->>'address',
+                    r.response_body->>'formattedAddress',
+                    r.response_body->>'owner1FullName'
+                  ) is not null
+                  and coalesce(jsonb_array_length(case when jsonb_typeof(r.response_body->'currentMortgages') = 'array' then r.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+                  and coalesce(nullif(regexp_replace(coalesce(r.response_body->>'estimatedMortgageBalance', r.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
+              )::int as realestateapi_free_clear_count,
+              count(*) filter (where nullif(r.response_body->>'estimatedEquity','') is not null)::int as realestateapi_equity_field_count,
+              count(*) filter (where nullif(r.response_body->>'estimatedMortgageBalance','') is not null or nullif(r.response_body->>'openMortgageBalance','') is not null)::int as realestateapi_balance_field_count
+            from realestateapi_property_details r
+            join active_market_properties amp on amp.property_id = r.property_id
+          ),
+          covered_properties as (
+            select property_id from mortgage_records where property_id in (select property_id from active_market_properties)
+            union
+            select r.property_id
+            from realestateapi_property_details r
+            where r.property_id in (select property_id from active_market_properties)
+              and jsonb_typeof(r.response_body) = 'object'
+              and r.response_body <> '{}'::jsonb
+              and coalesce(
+                r.response_body->>'id',
+                r.response_body->>'propertyId',
+                r.response_body->>'apn',
+                r.response_body->>'address',
+                r.response_body->>'formattedAddress',
+                r.response_body->>'owner1FullName'
+              ) is not null
+              and coalesce(jsonb_array_length(case when jsonb_typeof(r.response_body->'currentMortgages') = 'array' then r.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+              and coalesce(nullif(regexp_replace(coalesce(r.response_body->>'estimatedMortgageBalance', r.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
+          )
           select
-            count(*)::int as mortgage_record_count,
-            count(distinct m.property_id)::int as properties_with_mortgage_records,
-            count(*) filter (where coalesce(m.estimated_current_balance, m.loan_amount, m.original_amount, 0) > 0)::int as mortgage_amount_count,
-            max(m.recording_date) as latest_recording
-          from mortgage_records m
-          join properties p on p.id = m.property_id
-          where p.county_id = ${market.countyId}
-            and p.state_code = '${market.state}'
-            and upper(coalesce(p.city,'')) = '${market.cityUpper}'
+            rs.*,
+            rapi.*,
+            (select count(distinct property_id)::int from covered_properties) as properties_with_debt_coverage,
+            greatest((select count(*) from active_market_properties) - (select count(distinct property_id) from covered_properties), 0)::int as debt_unknown_property_count
+          from record_summary rs, reapi_summary rapi
         ),
         rents as (
           select
@@ -5984,8 +6068,36 @@ async function buildCoverageMarketRows(includeLiveMetrics = false): Promise<Arra
         creativeFinanceListings: numberOrNull(listings.creative_finance_count) ?? 0,
         mortgageRecords: numberOrNull(debt.mortgage_record_count) ?? 0,
         propertiesWithMortgageRecords: numberOrNull(debt.properties_with_mortgage_records) ?? 0,
+        propertiesWithDebtCoverage: numberOrNull(debt.properties_with_debt_coverage) ?? numberOrNull(debt.properties_with_mortgage_records) ?? 0,
+        propertiesWithDebtUnknown: numberOrNull(debt.debt_unknown_property_count) ?? null,
+        publicMortgageRecords: numberOrNull(debt.public_mortgage_record_count) ?? null,
+        publicPropertiesWithMortgageRecords: numberOrNull(debt.public_properties_with_mortgage_records) ?? null,
+        realEstateApiMortgageRecords: numberOrNull(debt.realestateapi_mortgage_record_count) ?? null,
+        realEstateApiPropertiesWithMortgageRecords: numberOrNull(debt.realestateapi_properties_with_mortgage_records) ?? null,
+        realEstateApiFreeClearProperties: numberOrNull(debt.realestateapi_free_clear_count) ?? null,
+        realEstateApiValidDetailProperties: numberOrNull(debt.valid_realestateapi_detail_count) ?? null,
         rentSnapshots: numberOrNull(rents.rent_snapshot_count) ?? 0,
         propertiesWithRentSnapshots: numberOrNull(rents.properties_with_rent_snapshots) ?? 0,
+      },
+      debtCoverageNarrative: {
+        activeListingProperties: numberOrNull(listings.active_property_count) ?? 0,
+        mxrePublicRecorder: {
+          mortgageOrLienRows: numberOrNull(debt.public_mortgage_record_count) ?? null,
+          properties: numberOrNull(debt.public_properties_with_mortgage_records) ?? null,
+          amountBearingRows: 0,
+          note: 'MXRE public/local recorder rows prove linked document coverage; in Columbus these public Franklin rows do not currently provide usable mortgage amounts.',
+        },
+        realEstateApi: {
+          mortgageRows: numberOrNull(debt.realestateapi_mortgage_record_count) ?? null,
+          propertiesWithMortgageRows: numberOrNull(debt.realestateapi_properties_with_mortgage_records) ?? null,
+          freeClearProperties: numberOrNull(debt.realestateapi_free_clear_count) ?? null,
+          validDetailProperties: numberOrNull(debt.valid_realestateapi_detail_count) ?? null,
+          amountBearingRows: numberOrNull(debt.mortgage_amount_count) ?? 0,
+          note: 'RealEstateAPI contributes amount-bearing mortgage rows and valid free-clear/currentMortgages-empty proof. Free-clear is coverage but does not create a mortgage_records row.',
+        },
+        overlapProperties: numberOrNull(debt.properties_with_both_public_and_realestateapi_records) ?? null,
+        coveredProperties: numberOrNull(debt.properties_with_debt_coverage) ?? numberOrNull(debt.properties_with_mortgage_records) ?? 0,
+        unknownProperties: numberOrNull(debt.debt_unknown_property_count) ?? null,
       },
       metricsError: typeof metrics.error === 'string' ? metrics.error : null,
       metricsFallback: typeof metrics.fallback === 'string' ? metrics.fallback : null,
@@ -5998,7 +6110,8 @@ async function buildCoverageMarketRows(includeLiveMetrics = false): Promise<Arra
         activeListingAgentEmailPct: pctOf(listings.agent_email_count, activeListingCount),
         activeListingAgentPhonePct: pctOf(listings.agent_phone_count, activeListingCount),
         activeListingBrokeragePct: pctOf(listings.brokerage_count, activeListingCount),
-        mortgageRecordPct: pctOf(debt.properties_with_mortgage_records, parcelCount),
+        mortgageRecordPct: pctOf(debt.properties_with_mortgage_records, activeListingCount),
+        debtCoveragePct: pctOf(debt.properties_with_debt_coverage ?? debt.properties_with_mortgage_records, numberOrNull(listings.active_property_count) ?? activeListingCount),
         mortgageAmountPct: pctOf(debt.mortgage_amount_count, numberOrNull(debt.mortgage_record_count) ?? 0),
         rentSnapshotPct: pctOf(rents.properties_with_rent_snapshots, parcelCount),
       },

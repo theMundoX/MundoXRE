@@ -580,7 +580,10 @@ const zeroParcels = {
 const zeroEvents = { total: 0, price_changed: 0, listed: 0, latest_event: null };
 const zeroDebt = {
   records: 0, paid_records: 0, public_records: 0, properties: 0, amount_rows: 0, payment_rows: 0,
+  paid_properties: 0, public_properties: 0, overlap_paid_public_properties: 0,
   total_amount: 0, total_estimated_payment: 0, latest_recording: null,
+  valid_reapi_details: 0, reapi_free_clear: 0, reapi_response_balance: 0, reapi_response_equity: 0,
+  debt_covered_properties: 0, debt_unknown_properties: 0,
 };
 const zeroRecorder = {
   source_docs: 0, mortgage_docs: 0, lien_docs: 0, debt_docs: 0, linked_docs: 0, linked_properties: 0,
@@ -739,18 +742,84 @@ async function collectMarket(market: MarketConfig) {
         from listing_signals
        where ${listingWhere}
          and property_id is not null
+    ),
+    record_summary as (
+      select count(*)::int as records,
+             count(*) filter (where source_url = 'realestateapi')::int as paid_records,
+             count(*) filter (where source_url <> 'realestateapi')::int as public_records,
+             count(distinct property_id)::int as properties,
+             count(distinct property_id) filter (where source_url = 'realestateapi')::int as paid_properties,
+             count(distinct property_id) filter (where source_url <> 'realestateapi')::int as public_properties,
+             count(distinct property_id) filter (where source_url <> 'realestateapi' and property_id in (
+               select property_id from mortgage_records where source_url = 'realestateapi' and property_id in (select property_id from active_market_properties)
+             ))::int as overlap_paid_public_properties,
+             count(*) filter (where coalesce(loan_amount, original_amount, estimated_current_balance, 0) > 0)::int as amount_rows,
+             count(*) filter (where coalesce(estimated_monthly_payment, 0) > 0)::int as payment_rows,
+             sum(coalesce(loan_amount, original_amount, estimated_current_balance, 0))::numeric as total_amount,
+             sum(coalesce(estimated_monthly_payment, 0))::numeric as total_estimated_payment,
+             max(recording_date)::text as latest_recording
+        from mortgage_records mr
+       where mr.property_id in (select property_id from active_market_properties)
+    ),
+    reapi_summary as (
+      select count(*) filter (
+               where jsonb_typeof(rapi.response_body) = 'object'
+                 and rapi.response_body <> '{}'::jsonb
+                 and coalesce(
+                   rapi.response_body->>'id',
+                   rapi.response_body->>'propertyId',
+                   rapi.response_body->>'apn',
+                   rapi.response_body->>'address',
+                   rapi.response_body->>'formattedAddress',
+                   rapi.response_body->>'owner1FullName'
+                 ) is not null
+             )::int as valid_reapi_details,
+             count(*) filter (
+               where jsonb_typeof(rapi.response_body) = 'object'
+                 and rapi.response_body <> '{}'::jsonb
+                 and coalesce(
+                   rapi.response_body->>'id',
+                   rapi.response_body->>'propertyId',
+                   rapi.response_body->>'apn',
+                   rapi.response_body->>'address',
+                   rapi.response_body->>'formattedAddress',
+                   rapi.response_body->>'owner1FullName'
+                 ) is not null
+                 and coalesce(jsonb_array_length(case when jsonb_typeof(rapi.response_body->'currentMortgages') = 'array' then rapi.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+                 and coalesce(nullif(regexp_replace(coalesce(rapi.response_body->>'estimatedMortgageBalance', rapi.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
+             )::int as reapi_free_clear,
+             count(*) filter (where nullif(rapi.response_body->>'estimatedMortgageBalance','') is not null or nullif(rapi.response_body->>'openMortgageBalance','') is not null)::int as reapi_response_balance,
+             count(*) filter (where nullif(rapi.response_body->>'estimatedEquity','') is not null)::int as reapi_response_equity
+        from realestateapi_property_details rapi
+        join active_market_properties amp on amp.property_id = rapi.property_id
+    ),
+    covered_properties as (
+      select property_id from mortgage_records where property_id in (select property_id from active_market_properties)
+      union
+      select rapi.property_id
+        from realestateapi_property_details rapi
+       where rapi.property_id in (select property_id from active_market_properties)
+         and jsonb_typeof(rapi.response_body) = 'object'
+         and rapi.response_body <> '{}'::jsonb
+         and coalesce(
+           rapi.response_body->>'id',
+           rapi.response_body->>'propertyId',
+           rapi.response_body->>'apn',
+           rapi.response_body->>'address',
+           rapi.response_body->>'formattedAddress',
+           rapi.response_body->>'owner1FullName'
+         ) is not null
+         and coalesce(jsonb_array_length(case when jsonb_typeof(rapi.response_body->'currentMortgages') = 'array' then rapi.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+         and coalesce(nullif(regexp_replace(coalesce(rapi.response_body->>'estimatedMortgageBalance', rapi.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
     )
-    select count(*)::int as records,
-           count(*) filter (where source_url = 'realestateapi')::int as paid_records,
-           count(*) filter (where source_url <> 'realestateapi')::int as public_records,
-           count(distinct property_id)::int as properties,
-           count(*) filter (where coalesce(loan_amount, original_amount, estimated_current_balance, 0) > 0)::int as amount_rows,
-           count(*) filter (where coalesce(estimated_monthly_payment, 0) > 0)::int as payment_rows,
-           sum(coalesce(loan_amount, original_amount, estimated_current_balance, 0))::numeric as total_amount,
-           sum(coalesce(estimated_monthly_payment, 0))::numeric as total_estimated_payment,
-           max(recording_date)::text as latest_recording
-      from mortgage_records mr
-     where mr.property_id in (select property_id from active_market_properties);
+    select rs.*,
+           rapi.valid_reapi_details,
+           rapi.reapi_free_clear,
+           rapi.reapi_response_balance,
+           rapi.reapi_response_equity,
+           (select count(distinct property_id)::int from covered_properties) as debt_covered_properties,
+           greatest((select count(*) from active_market_properties) - (select count(distinct property_id) from covered_properties), 0)::int as debt_unknown_properties
+      from record_summary rs, reapi_summary rapi;
   `, `${market.label} linked debt`), zeroDebt);
   console.log(`  ${market.label}: linked debt`);
 
@@ -949,7 +1018,7 @@ function categoryCoverage(data: Awaited<ReturnType<typeof collectMarket>>) {
   const creativeCoverage = listingRows > 0 ? pctNumber(listings.creative_evaluated, listingRows) : null;
   const debtCoverage = activeProperties > 0 ? averagePct([
     pctNumber(paidDetails.cached_details, activeProperties),
-    pctNumber(debt.properties, activeProperties),
+    pctNumber(debt.debt_covered_properties, activeProperties),
   ]) : null;
   const rentCoverage = mfCount > 0
     ? averagePct([
@@ -994,7 +1063,7 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
         ${coverage.agentCoverage == null ? unknownHealthTile("Agent Contact", "No active listing rows found for this dashboard scope.") : healthTile("Agent Contact", coverage.agentCoverage, `${pct(listings.email, listings.total)} verified email; ${pct(listings.phone, listings.total)} phone`)}
         ${coverage.parcelCoverage == null ? unknownHealthTile("Parcels", "Parcel query returned no dashboard total or timed out; this is unknown, not zero coverage.") : healthTile("Parcels", coverage.parcelCoverage, `${fmt(countyParcels.total)} county parcels; ${fmt(cityParcels.total)} city subset`)}
         ${coverage.creativeCoverage == null ? unknownHealthTile("Creative", "No active listing rows found for this dashboard scope.") : healthTile("Creative", coverage.creativeCoverage, `${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative; ${fmt(listings.mls_description)} descriptions`)}
-        ${coverage.debtCoverage == null ? unknownHealthTile("Debt / Liens", "No linked active properties available for debt coverage calculation.") : healthTile("Debt / Liens", coverage.debtCoverage, `${fmt(paidDetails.cached_details)} paid detail cache; ${fmt(debt.properties)} linked debt properties`)}
+        ${coverage.debtCoverage == null ? unknownHealthTile("Debt / Liens", "No linked active properties available for debt coverage calculation.") : healthTile("Debt / Liens", coverage.debtCoverage, `${fmt(debt.debt_covered_properties)} covered; ${fmt(debt.debt_unknown_properties)} unknown`)}
         ${coverage.rentCoverage == null
           ? unknownHealthTile("Rent", "No multifamily candidates in this market subset, so rent is not included in the composite.")
           : healthTile("Rent", coverage.rentCoverage, `${fmt(mf.rent_properties)} rent properties / ${fmt(mf.complex_count)} multifamily candidates`)}
@@ -1006,7 +1075,7 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
       <div class="card"><div class="label">Raw Active Listing Rows</div><div class="metric">${fmt(listings.total)}</div><div class="note">${fmt(n(listings.total) - n(listings.unlinked_listings))} linked rows; ${fmt(listings.unlinked_listings)} unlinked. ${esc(market.listingScopeNote)}</div></div>
       <div class="card"><div class="label">BBC Searchable Properties</div><div class="metric">${fmt(listings.active_properties)}</div><div class="note">Unique active properties with property_id; this is the API-searchable denominator, not raw source rows.</div></div>
       <a class="card creative-card card-link" href="#creative-${esc(market.key)}"><div class="label">Creative Listings</div><div class="metric">${fmt(listings.creative_positive)}</div><div class="note">${fmt(listings.creative_negative)} explicit negatives; ${pct(listings.creative_evaluated, listings.total)} scored coverage; ${fmt(listings.mls_description)} descriptions saved. Click to inspect.</div></a>
-      <div class="card"><div class="label">Recorded / Paid Debt</div><div class="metric">${fmt(debt.records)}</div><div class="note">${fmt(debt.properties)} active linked properties; ${fmt(debt.amount_rows)} amount rows and ${fmt(debt.payment_rows)} payment rows.</div></div>
+      <div class="card"><div class="label">Debt Coverage</div><div class="metric">${fmt(debt.debt_covered_properties)}</div><div class="note">${fmt(debt.properties)} with mortgage rows; ${fmt(debt.reapi_free_clear)} RealEstateAPI free-clear proofs; ${fmt(debt.debt_unknown_properties)} still unknown.</div></div>
       <div class="card"><div class="label">Rent / Floorplans</div><div class="metric">${fmt(mf.rent_rows)}</div><div class="note">${fmt(mf.floorplan_rows)} floorplans; ${fmt(mf.rent_properties)} complexes with rent snapshots. Latest: ${esc(mf.latest_rent_observed ?? "-")}.</div></div>
     </div>
 
@@ -1074,6 +1143,17 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
     </section>
 
     <section class="panel">
+      <h2>Debt Coverage In Human English</h2>
+      <div class="grid">
+        <div class="card"><div class="label">Active Listings</div><div class="metric">${fmt(listings.active_properties)}</div><div class="note">Unique active listing properties in this market tab. Raw rows: ${fmt(listings.total)}.</div></div>
+        <div class="card"><div class="label">MXRE Public Recorder</div><div class="metric">${fmt(debt.public_records)}</div><div class="note">${fmt(debt.public_properties)} properties with public recorder rows; public rows prove document coverage, while usable loan amounts depend on what the county source exposes.</div></div>
+        <div class="card"><div class="label">RealEstateAPI</div><div class="metric">${fmt(debt.paid_records)}</div><div class="note">${fmt(debt.paid_properties)} properties with paid mortgage rows, ${fmt(debt.amount_rows)} amount-bearing rows, plus ${fmt(debt.reapi_free_clear)} valid free-clear proofs.</div></div>
+        <div class="card"><div class="label">Remaining Gap</div><div class="metric">${fmt(debt.debt_unknown_properties)}</div><div class="note">Properties without a mortgage/lien row and without valid RealEstateAPI free-clear proof.</div></div>
+      </div>
+      <p class="note" style="margin:12px 0 0">Plain English: MXRE public recorder coverage tells us a document exists. RealEstateAPI tells us amount-bearing debt or that a property appears free and clear. Free-and-clear is real coverage, but it correctly has no mortgage row because there is no current mortgage to insert.</p>
+    </section>
+
+    <section class="panel">
       <h2>Coverage Detail</h2>
       <table>
         <tr><th>Metric</th><th>Count</th><th>Coverage / Yield</th><th>Notes</th></tr>
@@ -1089,7 +1169,11 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
         <tr><td>Recorder source docs</td><td>${fmt(recorder.source_docs)}</td><td>-</td><td>${fmt(recorder.linked_properties)} linked properties; latest recording ${esc(recorder.latest_recording ?? "-")}.</td></tr>
         <tr><td>Recorded liens/debt</td><td>${fmt(recorder.debt_docs)}</td><td>${pct(recorder.debt_docs, recorder.source_docs)}</td><td>${fmt(recorder.amount_docs)} rows include amount/balance data; ${fmt(recorder.payment_docs)} include estimated monthly payment.</td></tr>
         <tr><td>Paid property detail cache</td><td>${fmt(paidDetails.cached_details)} properties</td><td>-</td><td>Latest RealEstateAPI fetch: ${esc(paidDetails.latest_fetch ?? "-")}.</td></tr>
-        <tr><td>Paid/linked mortgage detail</td><td>${fmt(debt.records)} records / ${fmt(debt.properties)} properties</td><td>${pct(debt.properties, listings.active_properties)}</td><td>${fmt(debt.paid_records)} paid rows, ${fmt(debt.public_records)} public rows. Total amount: ${money(debt.total_amount)}; total estimated payment: ${money(debt.total_estimated_payment)}.</td></tr>
+        <tr><td>Debt coverage state</td><td>${fmt(debt.debt_covered_properties)} covered / ${fmt(debt.debt_unknown_properties)} unknown</td><td>${pct(debt.debt_covered_properties, listings.active_properties)}</td><td>Covered means either a mortgage/lien row exists or RealEstateAPI returned a valid identity with currentMortgages empty/free-clear. Unknown means neither proof exists yet.</td></tr>
+        <tr><td>Mortgage record rows</td><td>${fmt(debt.records)} records / ${fmt(debt.properties)} properties</td><td>${pct(debt.properties, listings.active_properties)}</td><td>${fmt(debt.paid_records)} RealEstateAPI rows and ${fmt(debt.public_records)} public recorder rows. This is not the same as total debt coverage because free-clear properties intentionally have no mortgage row.</td></tr>
+        <tr><td>Amount-bearing debt rows</td><td>${fmt(debt.amount_rows)} amount rows / ${fmt(debt.payment_rows)} payment rows</td><td>${pct(debt.amount_rows, debt.records)}</td><td>Total amount: ${money(debt.total_amount)}; total estimated payment: ${money(debt.total_estimated_payment)}. Public Franklin recorder rows currently prove documents but generally do not expose usable amounts.</td></tr>
+        <tr><td>RealEstateAPI free-clear proof</td><td>${fmt(debt.reapi_free_clear)} active properties</td><td>${pct(debt.reapi_free_clear, listings.active_properties)}</td><td>Valid property-detail responses with identity, zero open balance, and empty currentMortgages. These support openMortgageBalance=0/equity computation without inserting fake mortgage_records rows.</td></tr>
+        <tr><td>RealEstateAPI equity fields</td><td>${fmt(debt.reapi_response_equity)} equity / ${fmt(debt.reapi_response_balance)} balance</td><td>${pct(debt.reapi_response_equity, listings.active_properties)}</td><td>Cached provider fields available for API-facing equity/backfill checks.</td></tr>
         <tr><td>Multifamily websites</td><td>${fmt(mf.website_properties)} / ${fmt(mf.complex_count)}</td><td>${pct(mf.website_properties, mf.complex_count)}</td><td>Public/free discovery only unless paid enrichment is explicitly run.</td></tr>
         <tr><td>Floorplans</td><td>${fmt(mf.floorplan_rows)} rows / ${fmt(mf.floorplan_properties)} properties</td><td>${pct(mf.floorplan_properties, mf.complex_count)}</td><td>By bed type where source pages expose it.</td></tr>
         <tr><td>Rent snapshots</td><td>${fmt(mf.rent_amount_rows)} rent rows / ${fmt(mf.rent_properties)} properties</td><td>${pct(mf.rent_properties, mf.complex_count)}</td><td>${fmt(mf.total_monthly_rows)} rows include total monthly rent; reported total/mo ${money(mf.reported_total_monthly_rent)}.</td></tr>

@@ -76,15 +76,71 @@ async function main() {
         from listing_signals
        where ${listingWhere}
          and property_id is not null
+    ),
+    record_summary as (
+      select count(*)::int as debt_records,
+             count(*) filter (where source_url = 'realestateapi')::int as paid_debt_records,
+             count(*) filter (where source_url ilike '%publicsearch%')::int as public_debt_records,
+             count(distinct property_id)::int as properties_with_debt,
+             count(*) filter (where coalesce(loan_amount, original_amount, estimated_current_balance, 0) > 0)::int as amount_records,
+             count(*) filter (where coalesce(estimated_monthly_payment, 0) > 0)::int as payment_records
+        from mortgage_records mr
+       where mr.property_id in (select property_id from active_market_properties)
+    ),
+    reapi_summary as (
+      select count(*) filter (
+               where jsonb_typeof(r.response_body) = 'object'
+                 and r.response_body <> '{}'::jsonb
+                 and coalesce(
+                   r.response_body->>'id',
+                   r.response_body->>'propertyId',
+                   r.response_body->>'apn',
+                   r.response_body->>'address',
+                   r.response_body->>'formattedAddress',
+                   r.response_body->>'owner1FullName'
+                 ) is not null
+             )::int as valid_realestateapi_detail_count,
+             count(*) filter (
+               where jsonb_typeof(r.response_body) = 'object'
+                 and r.response_body <> '{}'::jsonb
+                 and coalesce(
+                   r.response_body->>'id',
+                   r.response_body->>'propertyId',
+                   r.response_body->>'apn',
+                   r.response_body->>'address',
+                   r.response_body->>'formattedAddress',
+                   r.response_body->>'owner1FullName'
+                 ) is not null
+                 and coalesce(jsonb_array_length(case when jsonb_typeof(r.response_body->'currentMortgages') = 'array' then r.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+                 and coalesce(nullif(regexp_replace(coalesce(r.response_body->>'estimatedMortgageBalance', r.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
+             )::int as free_clear_detail_count
+        from realestateapi_property_details r
+        join active_market_properties amp on amp.property_id = r.property_id
+    ),
+    covered_properties as (
+      select property_id from mortgage_records where property_id in (select property_id from active_market_properties)
+      union
+      select r.property_id
+        from realestateapi_property_details r
+       where r.property_id in (select property_id from active_market_properties)
+         and jsonb_typeof(r.response_body) = 'object'
+         and r.response_body <> '{}'::jsonb
+         and coalesce(
+           r.response_body->>'id',
+           r.response_body->>'propertyId',
+           r.response_body->>'apn',
+           r.response_body->>'address',
+           r.response_body->>'formattedAddress',
+           r.response_body->>'owner1FullName'
+         ) is not null
+         and coalesce(jsonb_array_length(case when jsonb_typeof(r.response_body->'currentMortgages') = 'array' then r.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+         and coalesce(nullif(regexp_replace(coalesce(r.response_body->>'estimatedMortgageBalance', r.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
     )
-    select count(*)::int as debt_records,
-           count(*) filter (where source_url = 'realestateapi')::int as paid_debt_records,
-           count(*) filter (where source_url ilike '%publicsearch%')::int as public_debt_records,
-           count(distinct property_id)::int as properties_with_debt,
-           count(*) filter (where coalesce(loan_amount, original_amount, estimated_current_balance, 0) > 0)::int as amount_records,
-           count(*) filter (where coalesce(estimated_monthly_payment, 0) > 0)::int as payment_records
-      from mortgage_records mr
-     where mr.property_id in (select property_id from active_market_properties);
+    select rs.*,
+           rapi.valid_realestateapi_detail_count,
+           rapi.free_clear_detail_count,
+           (select count(distinct property_id)::int from covered_properties) as properties_with_debt_coverage
+      from record_summary rs, reapi_summary rapi;
   `);
 
   const [mf] = await pg(`
@@ -162,9 +218,13 @@ async function main() {
       paid_records: Number(debt.paid_debt_records ?? 0),
       public_records: Number(debt.public_debt_records ?? 0),
       properties_with_debt: Number(debt.properties_with_debt ?? 0),
+      properties_with_debt_coverage: Number(debt.properties_with_debt_coverage ?? 0),
+      valid_realestateapi_detail_count: Number(debt.valid_realestateapi_detail_count ?? 0),
+      free_clear_detail_count: Number(debt.free_clear_detail_count ?? 0),
       amount_records: debtAmountRecords,
       payment_records: Number(debt.payment_records ?? 0),
       pct_amount: pct(debtAmountRecords, debtRecords),
+      pct_debt_coverage: pct(debt.properties_with_debt_coverage, active),
     },
     readiness: {
       dashboard_api_ready:
