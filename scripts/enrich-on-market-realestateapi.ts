@@ -640,8 +640,10 @@ function buildRequest(candidate: Candidate) {
   if (!requestCity && !requestZip) {
     throw new Error("RealEstateAPI no_data: missing city/zip for property address");
   }
+  const fullAddress = [address, requestCity, candidate.state_code || state, requestZip].filter(Boolean).join(", ");
   const request: Record<string, unknown> = {
-    address,
+    address: fullAddress,
+    street: address,
     city: requestCity,
     state: candidate.state_code || state,
     exact_match: true,
