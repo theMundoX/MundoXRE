@@ -309,8 +309,8 @@ async function main() {
       const totalSqft = parseNum(f.GBA);
 
       // Owner mailing address (AddrLn1 / AddrCity / Zip from owner fields)
-      const ownerAddress = String(f.AddrLn1 || "").trim() || null;
-      const ownerCity = String(f.AddrCity || "").trim().toUpperCase() || null;
+      const mailingAddress = String(f.AddrLn1 || "").trim() || null;
+      const mailingCity = String(f.AddrCity || "").trim().toUpperCase() || null;
 
       batch.push({
         county_id: COUNTY_ID,
@@ -323,18 +323,16 @@ async function main() {
         market_value: marketValue,
         assessed_value: assessedValue,
         land_value: parseNum(f.LandVal),
-        impr_value: parseNum(f.ImprVal),
         last_sale_price: null, // not available from BCAD GIS
         property_type: classifyPropUse(f.PropUse as string | null),
         year_built: yearBuilt,
         total_sqft: totalSqft,
-        acres: (() => {
+        lot_sqft: (() => {
           const a = parseFloat(String(f.Acres || ""));
-          return isNaN(a) || a <= 0 ? null : Math.round(a * 10000) / 10000;
+          return isNaN(a) || a <= 0 ? null : Math.round(a * 43560);
         })(),
-        acct_numb: String(f.AcctNumb || "").trim() || null,
-        owner_address: ownerAddress,
-        owner_city: ownerCity,
+        mailing_address: mailingAddress,
+        mailing_city: mailingCity,
         source: "bexar_tx_bcad",
       });
     }
