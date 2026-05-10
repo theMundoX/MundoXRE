@@ -200,6 +200,11 @@ async function fetchIndividualWindow(startOid: number, endOid: number): Promise<
   for (let i = 0; i < ids.length; i += chunkSize) {
     const chunk = ids.slice(i, i + chunkSize);
     const result = await fetchObjectBatch(chunk);
+    if (i === 0 && result.rows.length === 0 && result.failed === chunk.length) {
+      failed += ids.length;
+      console.warn(`  Individual fallback skipped ${startOid.toLocaleString()}-${endOid.toLocaleString()}: first chunk unavailable from source.`);
+      return { features, maxOid: endOid };
+    }
     features.push(...result.rows);
     failed += result.failed;
   }
