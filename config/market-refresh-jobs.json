@@ -61,6 +61,19 @@
       "command": ["npx", "tsx", "scripts/refresh-toledo-market.ts", "--include-paid", "--paid-max-calls=100"]
     },
     {
+      "id": "west-chester-pa",
+      "label": "West Chester, PA",
+      "enabled": true,
+      "required": false,
+      "continueOnFailure": true,
+      "phase": "coverage_backfill",
+      "dailyRefreshEligible": false,
+      "paidPolicy": "public_first_cached_property_scoped",
+      "priority": 25,
+      "targetCountyHints": ["Chester"],
+      "command": ["npx", "tsx", "scripts/refresh-west-chester-market.ts"]
+    },
+    {
       "id": "cleveland-oh",
       "label": "Cleveland, OH",
       "enabled": false,
