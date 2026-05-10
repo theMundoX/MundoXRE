@@ -1585,6 +1585,10 @@ app.post('/v1/bbc/search-runs', async (c) => {
           p.market_value,
           p.assessed_value,
           case
+            when rfc.property_id is not null then 0::numeric
+            else null
+          end as open_mortgage_balance,
+          case
             when l.is_on_market = true and l.mls_list_price > 0 then l.mls_list_price
             when coalesce(p.market_value, 0) > 0 then p.market_value
             when coalesce(p.assessed_value, 0) > 0 then p.assessed_value
@@ -1615,6 +1619,24 @@ app.post('/v1/bbc/search-runs', async (c) => {
           greatest(coalesce(l.last_seen_at, '-infinity'::timestamptz), coalesce(l.first_seen_at, '-infinity'::timestamptz)) as changed_at
         from listing_signals l
         join properties p on p.id = l.property_id
+        left join lateral (
+          select r.property_id
+          from realestateapi_property_details r
+          where r.property_id = p.id
+            and jsonb_typeof(r.response_body) = 'object'
+            and r.response_body <> '{}'::jsonb
+            and coalesce(
+              r.response_body->>'id',
+              r.response_body->>'propertyId',
+              r.response_body->>'apn',
+              r.response_body->>'address',
+              r.response_body->>'formattedAddress',
+              r.response_body->>'owner1FullName'
+            ) is not null
+            and coalesce(jsonb_array_length(case when jsonb_typeof(r.response_body->'currentMortgages') = 'array' then r.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+            and coalesce(nullif(regexp_replace(coalesce(r.response_body->>'estimatedMortgageBalance', r.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
+          limit 1
+        ) rfc on true
         where coalesce(l.last_seen_at, l.first_seen_at) >= '${sqlString(since)}'::timestamptz
           and l.state_code = '${marketConfig.state}'
           and upper(coalesce(l.city,'')) = '${marketConfig.cityUpper}'
@@ -1677,11 +1699,17 @@ app.post('/v1/bbc/search-runs', async (c) => {
             creative_finance_score as "creativeFinanceScore",
             creative_finance_status as "creativeFinanceStatus",
             creative_finance_terms as "creativeFinanceTerms",
-            null::numeric as "estimatedMortgageBalance",
+            open_mortgage_balance as "estimatedMortgageBalance",
             null::numeric as "estimatedMortgagePayment",
-            null::int as "openMortgageCount",
-            null::bigint as "estimatedEquity",
-            null::numeric as "equityPercent",
+            case when open_mortgage_balance is not null then 0 else null end as "openMortgageCount",
+            case
+              when equity_basis_value is not null and open_mortgage_balance is not null then round(equity_basis_value - open_mortgage_balance)::bigint
+              else null
+            end as "estimatedEquity",
+            case
+              when equity_basis_value > 0 and open_mortgage_balance is not null then round(((equity_basis_value - open_mortgage_balance) / equity_basis_value) * 100, 1)
+              else null
+            end as "equityPercent",
             equity_basis as "equityBasis",
             equity_basis_value as "equityBasisValue",
             true as "partialResult",
