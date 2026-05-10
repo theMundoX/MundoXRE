@@ -1373,7 +1373,7 @@ app.post('/v1/bbc/search-runs', async (c) => {
         end as current_balance
       from debt_rows
     ),
-    debt as (
+    mortgage_debt as (
       select
         property_id,
         sum(current_balance)::numeric as open_mortgage_balance,
@@ -1381,6 +1381,33 @@ app.post('/v1/bbc/search-runs', async (c) => {
         count(*)::int as open_mortgage_count
       from debt_balances m
       group by property_id
+    ),
+    reapi_free_clear as (
+      select distinct r.property_id
+      from realestateapi_property_details r
+      join normalized np on np.id = r.property_id
+      where jsonb_typeof(r.response_body) = 'object'
+        and r.response_body <> '{}'::jsonb
+        and coalesce(
+          r.response_body->>'id',
+          r.response_body->>'propertyId',
+          r.response_body->>'apn',
+          r.response_body->>'address',
+          r.response_body->>'formattedAddress',
+          r.response_body->>'owner1FullName'
+        ) is not null
+        and coalesce(jsonb_array_length(case when jsonb_typeof(r.response_body->'currentMortgages') = 'array' then r.response_body->'currentMortgages' else '[]'::jsonb end), 0) = 0
+        and coalesce(nullif(regexp_replace(coalesce(r.response_body->>'estimatedMortgageBalance', r.response_body->>'openMortgageBalance', '0'), '[^0-9.-]', '', 'g'), '')::numeric, 0) = 0
+    ),
+    debt as (
+      select
+        np.id as property_id,
+        coalesce(md.open_mortgage_balance, case when rfc.property_id is not null then 0::numeric else null end) as open_mortgage_balance,
+        md.estimated_mortgage_payment,
+        coalesce(md.open_mortgage_count, case when rfc.property_id is not null then 0 else null end) as open_mortgage_count
+      from normalized np
+      left join mortgage_debt md on md.property_id = np.id
+      left join reapi_free_clear rfc on rfc.property_id = np.id
     ),
     candidates as (
       select
