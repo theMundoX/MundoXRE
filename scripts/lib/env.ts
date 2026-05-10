@@ -34,6 +34,7 @@ export function hydrateWindowsUserEnv(names = WINDOWS_USER_ENV_NAMES): void {
     const value = readWindowsUserEnv(name);
     if (value) process.env[name] = value;
   }
+  normalizeLocalPgBridgeEnv();
 }
 
 export function readWindowsUserEnv(name: string): string | undefined {
@@ -54,4 +55,15 @@ export function readWindowsUserEnv(name: string): string | undefined {
     userEnvCache.set(name, undefined);
     return undefined;
   }
+}
+
+function normalizeLocalPgBridgeEnv(): void {
+  const pgUrl = process.env.MXRE_PG_URL;
+  if (!pgUrl?.endsWith("/pg/query")) return;
+
+  const currentSupabaseUrl = process.env.SUPABASE_URL;
+  const isLocalBridge = /^https?:\/\/(?:127\.0\.0\.1|localhost):\d+\/pg\/query$/i.test(pgUrl);
+  if (currentSupabaseUrl && !currentSupabaseUrl.endsWith("/pg/query") && !isLocalBridge) return;
+
+  process.env.SUPABASE_URL = pgUrl.replace(/\/pg\/query$/, "");
 }

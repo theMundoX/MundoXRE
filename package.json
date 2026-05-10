@@ -54,6 +54,8 @@
     "market:peoria:refresh:dry": "tsx scripts/refresh-peoria-market.ts --dry-run",
     "market:san-antonio:refresh": "tsx scripts/refresh-san-antonio-market.ts",
     "market:san-antonio:refresh:dry": "tsx scripts/refresh-san-antonio-market.ts --dry-run",
+    "market:memphis:refresh": "tsx scripts/refresh-memphis-market.ts",
+    "market:memphis:refresh:dry": "tsx scripts/refresh-memphis-market.ts --dry-run",
     "market:west-chester:refresh": "tsx scripts/refresh-west-chester-market.ts",
     "market:west-chester:refresh:dry": "tsx scripts/refresh-west-chester-market.ts --dry-run",
     "market:refresh:all": "tsx scripts/run-market-refresh-jobs.ts",
