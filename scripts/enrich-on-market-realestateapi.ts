@@ -181,10 +181,11 @@ try {
 
   for (const candidate of candidates) {
     if (!cacheOnly && stats.apiCalls >= maxCalls && !dryRun) break;
-    const requestBody = buildRequest(candidate);
-      addProgress(candidate, "running", "pending", null, String(requestBody.address ?? candidate.address));
-    await writeProgress("running");
+    let requestBody: Record<string, unknown> = {};
     try {
+      requestBody = buildRequest(candidate);
+      addProgress(candidate, "running", "pending", null, String(requestBody.address ?? candidate.address));
+      await writeProgress("running");
       await markQueueRunning(candidate.property_id, candidate.reasons);
       const cached = cacheOnly ? await loadAnyCache(candidate.property_id) : (force ? null : await loadFreshCache(candidate.property_id));
       if (cached) {
@@ -630,20 +631,24 @@ async function loadAnyCache(propertyId: number) {
 }
 
 function buildRequest(candidate: Candidate) {
-  const address = candidate.search_address ?? candidate.address;
-  const requestCity = candidate.search_city ?? candidate.city;
-  const requestZip = candidate.search_zip ?? candidate.zip;
-  const label = [
+  const address = String(candidate.search_address ?? candidate.address ?? "").trim();
+  const requestCity = String(candidate.search_city ?? candidate.city ?? city).trim() || city;
+  const requestZip = String(candidate.search_zip ?? candidate.zip ?? "").trim();
+  if (!address || !/^\s*\d+\b/.test(address)) {
+    throw new Error("RealEstateAPI no_data: invalid or blank property address");
+  }
+  if (!requestCity && !requestZip) {
+    throw new Error("RealEstateAPI no_data: missing city/zip for property address");
+  }
+  const request: Record<string, unknown> = {
     address,
-    requestCity,
-    candidate.state_code,
-    requestZip,
-  ].filter(Boolean).join(", ");
-  return {
-    address: label,
+    city: requestCity,
+    state: candidate.state_code || state,
     exact_match: true,
     comps: false,
   };
+  if (requestZip) request.zip = requestZip;
+  return request;
 }
 
 async function callRealEstateApi(body: Record<string, unknown>): Promise<ReapiResponse> {
