@@ -186,12 +186,7 @@ async function fetchObjectBatch(oids: number[]): Promise<{ rows: Record<string, 
       const rows = await queryObjectBatch(oids, FALLBACK_FIELDS, 8_000);
       return { rows, failed: Math.max(0, oids.length - rows.length) };
     } catch {
-      const mid = Math.floor(oids.length / 2);
-      const [left, right] = await Promise.all([
-        fetchObjectBatch(oids.slice(0, mid)),
-        fetchObjectBatch(oids.slice(mid)),
-      ]);
-      return { rows: [...left.rows, ...right.rows], failed: left.failed + right.failed };
+      return { rows: [], failed: oids.length };
     }
   }
 }
