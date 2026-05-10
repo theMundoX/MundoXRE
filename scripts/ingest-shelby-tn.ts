@@ -185,7 +185,7 @@ async function main() {
         address,
         city,
         state_code: STATE_CODE,
-        zip: null,              // Not present in this layer
+        zip: "",                // Not present in this layer; keep explicitly blank.
         market_value: null,     // Not available in this layer
         assessed_value: null,   // Not available in this layer
         land_value: null,       // Not available in this layer
