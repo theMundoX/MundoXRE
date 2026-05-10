@@ -122,29 +122,62 @@ async function fetchObject(oid: number): Promise<Record<string, unknown> | null>
     f: "json",
   });
   const url = `${PARCELS_URL}/query?${params.toString()}`;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as Record<string, unknown>;
       if (json.error) throw new Error(JSON.stringify(json.error));
       const feature = (json.features as Array<{ attributes: Record<string, unknown> }> | undefined)?.[0];
       return feature?.attributes ?? null;
-    } catch {
-      if (attempt === 1) return null;
-      await new Promise((r) => setTimeout(r, 500));
-    }
+  } catch {
+    return null;
   }
-  return null;
+}
+
+async function fetchObjectBatch(oids: number[]): Promise<{ rows: Record<string, unknown>[]; failed: number }> {
+  const params = new URLSearchParams({
+    objectIds: oids.join(","),
+    outFields: FIELDS,
+    returnGeometry: "false",
+    f: "json",
+  });
+  const url = `${PARCELS_URL}/query?${params.toString()}`;
+
+  if (oids.length === 1) {
+    const row = await fetchObject(oids[0]);
+    return row ? { rows: [row], failed: 0 } : { rows: [], failed: 1 };
+  }
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = (await res.json()) as Record<string, unknown>;
+    if (json.error) throw new Error(JSON.stringify(json.error));
+    const rows = ((json.features as Array<{ attributes: Record<string, unknown> }> | undefined) || [])
+      .map((feature) => feature.attributes)
+      .filter(Boolean);
+    return { rows, failed: Math.max(0, oids.length - rows.length) };
+  } catch {
+    const mid = Math.floor(oids.length / 2);
+    const [left, right] = await Promise.all([
+      fetchObjectBatch(oids.slice(0, mid)),
+      fetchObjectBatch(oids.slice(mid)),
+    ]);
+    return { rows: [...left.rows, ...right.rows], failed: left.failed + right.failed };
+  }
 }
 
 async function fetchIndividualWindow(startOid: number, endOid: number): Promise<{ features: Record<string, unknown>[]; maxOid: number }> {
   const features: Record<string, unknown>[] = [];
   let failed = 0;
-  for (let oid = startOid; oid <= endOid; oid++) {
-    const row = await fetchObject(oid);
-    if (row) features.push(row);
-    else failed++;
+  const ids = Array.from({ length: endOid - startOid + 1 }, (_, index) => startOid + index);
+  const chunkSize = 50;
+
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const result = await fetchObjectBatch(chunk);
+    features.push(...result.rows);
+    failed += result.failed;
   }
   console.warn(`  Individual fallback scanned ${startOid.toLocaleString()}-${endOid.toLocaleString()}: ${features.length.toLocaleString()} ok, ${failed.toLocaleString()} skipped/empty.`);
   return { features, maxOid: endOid };
