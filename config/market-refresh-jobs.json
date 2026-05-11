@@ -10,7 +10,11 @@
       "paidPolicy": "public_first_cached_property_scoped",
       "required": true,
       "continueOnFailure": true,
-      "command": ["npx", "tsx", "scripts/refresh-indianapolis-market.ts"]
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-indianapolis-market.ts"
+      ]
     },
     {
       "id": "dallas-tx",
@@ -21,7 +25,11 @@
       "paidPolicy": "public_first_cached_property_scoped",
       "required": true,
       "continueOnFailure": true,
-      "command": ["npx", "tsx", "scripts/refresh-dallas-market.ts"]
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-dallas-market.ts"
+      ]
     },
     {
       "id": "columbus-oh",
@@ -32,7 +40,13 @@
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "required": true,
       "continueOnFailure": true,
-      "command": ["npx", "tsx", "scripts/refresh-columbus-market.ts", "--include-paid", "--paid-max-calls=250"]
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-columbus-market.ts",
+        "--include-paid",
+        "--paid-max-calls=250"
+      ]
     },
     {
       "id": "dayton-oh",
@@ -44,8 +58,16 @@
       "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 10,
-      "targetCountyHints": ["Montgomery"],
-      "command": ["npx", "tsx", "scripts/refresh-dayton-market.ts", "--include-paid", "--paid-max-calls=100"]
+      "targetCountyHints": [
+        "Montgomery"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-dayton-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
+      ]
     },
     {
       "id": "toledo-oh",
@@ -57,8 +79,16 @@
       "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 20,
-      "targetCountyHints": ["Lucas"],
-      "command": ["npx", "tsx", "scripts/refresh-toledo-market.ts", "--include-paid", "--paid-max-calls=100"]
+      "targetCountyHints": [
+        "Lucas"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-toledo-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
+      ]
     },
     {
       "id": "west-chester-pa",
@@ -66,25 +96,39 @@
       "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "coverage_backfill",
-      "dailyRefreshEligible": false,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped",
       "priority": 25,
-      "targetCountyHints": ["Chester"],
-      "command": ["npx", "tsx", "scripts/refresh-west-chester-market.ts"]
+      "targetCountyHints": [
+        "Chester"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-west-chester-market.ts"
+      ]
     },
     {
       "id": "cleveland-oh",
       "label": "Cleveland, OH",
-      "enabled": false,
+      "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "source_discovery",
-      "dailyRefreshEligible": false,
-      "paidPolicy": "no_paid_calls",
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
+      "paidPolicy": "public_source_discovery_no_paid_calls",
       "priority": 30,
-      "targetCountyHints": ["Cuyahoga"],
-      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Cleveland", "--state=OH"]
+      "targetCountyHints": [
+        "Cuyahoga"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/explore-market-coverage.ts",
+        "--city=Cleveland",
+        "--state=OH"
+      ]
     },
     {
       "id": "akron-oh",
@@ -92,12 +136,20 @@
       "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "coverage_backfill",
-      "dailyRefreshEligible": false,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 40,
-      "targetCountyHints": ["Summit"],
-      "command": ["npx", "tsx", "scripts/refresh-akron-market.ts", "--include-paid", "--paid-max-calls=100"]
+      "targetCountyHints": [
+        "Summit"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-akron-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
+      ]
     },
     {
       "id": "fort-wayne-in",
@@ -105,12 +157,20 @@
       "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "coverage_backfill",
-      "dailyRefreshEligible": false,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 50,
-      "targetCountyHints": ["Allen"],
-      "command": ["npx", "tsx", "scripts/refresh-fort-wayne-market.ts", "--include-paid", "--paid-max-calls=100"]
+      "targetCountyHints": [
+        "Allen"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-fort-wayne-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
+      ]
     },
     {
       "id": "south-bend-in",
@@ -118,12 +178,20 @@
       "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "coverage_backfill",
-      "dailyRefreshEligible": false,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 60,
-      "targetCountyHints": ["St. Joseph"],
-      "command": ["npx", "tsx", "scripts/refresh-south-bend-market.ts", "--include-paid", "--paid-max-calls=100"]
+      "targetCountyHints": [
+        "St. Joseph"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-south-bend-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
+      ]
     },
     {
       "id": "peoria-il",
@@ -131,12 +199,20 @@
       "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "coverage_backfill",
-      "dailyRefreshEligible": false,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 70,
-      "targetCountyHints": ["Peoria"],
-      "command": ["npx", "tsx", "scripts/refresh-peoria-market.ts", "--include-paid", "--paid-max-calls=100"]
+      "targetCountyHints": [
+        "Peoria"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-peoria-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
+      ]
     },
     {
       "id": "san-antonio-tx",
@@ -144,25 +220,42 @@
       "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "coverage_backfill",
-      "dailyRefreshEligible": false,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 75,
-      "targetCountyHints": ["Bexar"],
-      "command": ["npx", "tsx", "scripts/refresh-san-antonio-market.ts", "--include-paid", "--paid-max-calls=100"]
+      "targetCountyHints": [
+        "Bexar"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-san-antonio-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
+      ]
     },
     {
       "id": "birmingham-al",
       "label": "Birmingham, AL",
-      "enabled": false,
+      "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "source_discovery",
-      "dailyRefreshEligible": false,
-      "paidPolicy": "no_paid_calls",
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
+      "paidPolicy": "public_source_discovery_no_paid_calls",
       "priority": 80,
-      "targetCountyHints": ["Jefferson", "Shelby"],
-      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Birmingham", "--state=AL"]
+      "targetCountyHints": [
+        "Jefferson",
+        "Shelby"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/explore-market-coverage.ts",
+        "--city=Birmingham",
+        "--state=AL"
+      ]
     },
     {
       "id": "memphis-tn",
@@ -170,25 +263,41 @@
       "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "coverage_backfill",
-      "dailyRefreshEligible": false,
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
       "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 90,
-      "targetCountyHints": ["Shelby"],
-      "command": ["npx", "tsx", "scripts/refresh-memphis-market.ts", "--include-paid", "--paid-max-calls=100"]
+      "targetCountyHints": [
+        "Shelby"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/refresh-memphis-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
+      ]
     },
     {
       "id": "detroit-mi",
       "label": "Detroit, MI",
-      "enabled": false,
+      "enabled": true,
       "required": false,
       "continueOnFailure": true,
-      "phase": "source_discovery",
-      "dailyRefreshEligible": false,
-      "paidPolicy": "no_paid_calls",
+      "phase": "daily_refresh",
+      "dailyRefreshEligible": true,
+      "paidPolicy": "public_source_discovery_no_paid_calls",
       "priority": 100,
-      "targetCountyHints": ["Wayne"],
-      "command": ["npx", "tsx", "scripts/explore-market-coverage.ts", "--city=Detroit", "--state=MI"]
+      "targetCountyHints": [
+        "Wayne"
+      ],
+      "command": [
+        "npx",
+        "tsx",
+        "scripts/explore-market-coverage.ts",
+        "--city=Detroit",
+        "--state=MI"
+      ]
     }
   ]
 }
