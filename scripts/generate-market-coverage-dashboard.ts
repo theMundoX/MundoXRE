@@ -217,52 +217,76 @@ const MARKETS: MarketConfig[] = [
     label: "Akron, OH",
     city: "AKRON",
     state: "OH",
+    countyId: 1698989,
     countyName: "Summit",
     targetCountyHints: ["Summit County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: Summit County.",
+    listingCity: "AKRON",
+    propertyCityLike: "AKRON",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "Akron is an active build market using Summit County parcels and source-limited Redfin-derived active rows.",
+    parcelScopeNote: "Coverage tiles use linked active Akron listing properties; Summit County parcel universe is loaded separately for market buildout.",
     progressFiles: ["realestateapi-akron-oh-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Akron --state=OH"],
+    rerunCommands: [
+      "npm run market:akron:refresh",
+      "npm run market:akron:refresh -- --include-paid --paid-max-calls=100",
+    ],
   },
   {
     key: "fort-wayne-in",
     label: "Fort Wayne, IN",
     city: "FORT WAYNE",
     state: "IN",
+    countyId: 797481,
     countyName: "Allen",
     targetCountyHints: ["Allen County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: Allen County.",
+    listingCity: "FORT WAYNE",
+    propertyCityLike: "FORT WAYNE",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "Fort Wayne is an active build market using Allen County parcels and source-limited Redfin-derived active rows.",
+    parcelScopeNote: "Coverage tiles use linked active Fort Wayne listing properties; Allen County parcel universe is loaded separately for market buildout.",
     progressFiles: ["realestateapi-fort-wayne-in-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Fort Wayne --state=IN"],
+    rerunCommands: [
+      "npm run market:fort-wayne:refresh",
+      "npm run market:fort-wayne:refresh -- --include-paid --paid-max-calls=100",
+    ],
   },
   {
     key: "south-bend-in",
     label: "South Bend, IN",
     city: "SOUTH BEND",
     state: "IN",
+    countyId: 797737,
     countyName: "St. Joseph",
     targetCountyHints: ["St. Joseph County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: St. Joseph County.",
+    listingCity: "SOUTH BEND",
+    propertyCityLike: "SOUTH BEND",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "South Bend is an active build market using St. Joseph County parcels and source-limited Redfin-derived active rows.",
+    parcelScopeNote: "Coverage tiles use linked active South Bend listing properties; St. Joseph County parcel universe is loaded separately for market buildout.",
     progressFiles: ["realestateapi-south-bend-in-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=South Bend --state=IN"],
+    rerunCommands: [
+      "npm run market:south-bend:refresh",
+      "npm run market:south-bend:refresh -- --include-paid --paid-max-calls=100",
+    ],
   },
   {
     key: "peoria-il",
     label: "Peoria, IL",
     city: "PEORIA",
     state: "IL",
+    countyId: 2338837,
     countyName: "Peoria",
     targetCountyHints: ["Peoria County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: Peoria County.",
+    listingCity: "PEORIA",
+    propertyCityLike: "PEORIA",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "Peoria is an active build market using Peoria County parcels and source-limited Redfin-derived active rows.",
+    parcelScopeNote: "Coverage tiles use linked active Peoria listing properties; Peoria County parcel universe is loaded separately for market buildout.",
     progressFiles: ["realestateapi-peoria-il-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Peoria --state=IL"],
+    rerunCommands: [
+      "npm run market:peoria:refresh",
+      "npm run market:peoria:refresh -- --include-paid --paid-max-calls=100",
+    ],
   },
   {
     key: "birmingham-al",
@@ -390,6 +414,10 @@ function refreshScriptName(marketKey: string): string | null {
   if (marketKey === "dayton-oh") return "refresh-dayton-market.ts";
   if (marketKey === "toledo-oh") return "refresh-toledo-market.ts";
   if (marketKey === "cleveland-oh") return "refresh-cleveland-market.ts";
+  if (marketKey === "akron-oh") return "refresh-akron-market.ts";
+  if (marketKey === "fort-wayne-in") return "refresh-fort-wayne-market.ts";
+  if (marketKey === "south-bend-in") return "refresh-south-bend-market.ts";
+  if (marketKey === "peoria-il") return "refresh-peoria-market.ts";
   if (marketKey === "san-antonio-tx") return "refresh-san-antonio-market.ts";
   if (marketKey === "memphis-tn") return "refresh-memphis-market.ts";
   if (marketKey === "west-chester-pa") return "refresh-west-chester-market.ts";
@@ -520,13 +548,20 @@ function emptyMarketData(market: MarketConfig) {
     source_count: 0,
     sources: [],
     price: 0,
+    linked_price: 0,
     agent_name: 0,
+    linked_agent_name: 0,
     first_last: 0,
+    linked_first_last: 0,
     phone: 0,
+    linked_phone: 0,
     email: 0,
+    linked_email: 0,
     brokerage: 0,
+    linked_brokerage: 0,
     redfin_detail: 0,
     mls_description: 0,
+    linked_mls_description: 0,
     zillow_rapidapi_detail: 0,
     zillow_rapidapi_contact: 0,
     zillow_rapidapi_error: 0,
@@ -686,9 +721,13 @@ async function collectMarket(market: MarketConfig) {
            count(distinct listing_source)::int as source_count,
            array_agg(distinct listing_source order by listing_source) filter (where listing_source is not null) as sources,
            count(*) filter (where mls_list_price is not null)::int as price,
+           count(*) filter (where property_id is not null and mls_list_price is not null)::int as linked_price,
            count(*) filter (where nullif(listing_agent_name,'') is not null)::int as agent_name,
+           count(*) filter (where property_id is not null and nullif(listing_agent_name,'') is not null)::int as linked_agent_name,
            count(*) filter (where nullif(listing_agent_first_name,'') is not null and nullif(listing_agent_last_name,'') is not null)::int as first_last,
+           count(*) filter (where property_id is not null and nullif(listing_agent_first_name,'') is not null and nullif(listing_agent_last_name,'') is not null)::int as linked_first_last,
            count(*) filter (where nullif(listing_agent_phone,'') is not null)::int as phone,
+           count(*) filter (where property_id is not null and nullif(listing_agent_phone,'') is not null)::int as linked_phone,
            count(*) filter (
              where nullif(listing_agent_email,'') is not null
                and (
@@ -696,7 +735,16 @@ async function collectMarket(market: MarketConfig) {
                  or agent_contact_confidence = 'public_profile_verified'
                )
            )::int as email,
+           count(*) filter (
+             where property_id is not null
+               and nullif(listing_agent_email,'') is not null
+               and (
+                 agent_contact_source = 'realestateapi'
+                 or agent_contact_confidence = 'public_profile_verified'
+               )
+           )::int as linked_email,
            count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage,
+           count(*) filter (where property_id is not null and nullif(listing_brokerage,'') is not null)::int as linked_brokerage,
            count(*) filter (where raw ? 'redfinDetail')::int as redfin_detail,
            count(*) filter (
              where nullif(coalesce(
@@ -717,6 +765,26 @@ async function collectMarket(market: MarketConfig) {
                raw #>> '{mls,description}'
              ), '') is not null
            )::int as mls_description,
+           count(*) filter (
+             where property_id is not null
+               and nullif(coalesce(
+                 raw #>> '{description}',
+                 raw #>> '{publicRemarks}',
+                 raw #>> '{public_remarks}',
+                 raw #>> '{remarks}',
+                 raw #>> '{listingRemarks}',
+                 raw #>> '{marketingRemarks}',
+                 raw #>> '{propertyDescription}',
+                 raw #>> '{redfinDetail,publicRemarks}',
+                 raw #>> '{redfinDetail,description}',
+                 raw #>> '{zillow_rapidapi_detail,raw,property,description}',
+                 raw #>> '{zillow_rapidapi_detail,raw,description}',
+                 raw #>> '{zillow_rapidapi_detail,raw,data,description}',
+                 raw #>> '{zillow_rapidapi_detail,raw,homeInfo,description}',
+                 raw #>> '{mls,remarks}',
+                 raw #>> '{mls,description}'
+               ), '') is not null
+           )::int as linked_mls_description,
            count(*) filter (where raw ? 'zillow_rapidapi_detail')::int as zillow_rapidapi_detail,
            count(*) filter (where raw ? 'zillow_rapidapi_contact')::int as zillow_rapidapi_contact,
            count(*) filter (where raw ? 'zillow_rapidapi_error')::int as zillow_rapidapi_error,
@@ -1024,21 +1092,22 @@ function categoryCoverage(data: Awaited<ReturnType<typeof collectMarket>>) {
   const { listings, cityParcels, countyParcels, debt, paidDetails, mf } = data;
   const listingRows = n(listings.total);
   const activeProperties = n(listings.active_properties);
+  const linkedDenominator = activeProperties > 0 ? activeProperties : listingRows;
   const cityParcelRows = n(cityParcels.total);
   const countyParcelRows = n(countyParcels.total);
   const mfCount = n(mf.complex_count);
 
-  const listingCoverage = listingRows > 0 ? averagePct([
+  const listingCoverage = linkedDenominator > 0 ? averagePct([
     pctNumber(n(listings.total) - n(listings.unlinked_listings), listingRows),
-    pctNumber(listings.price, listingRows),
-    pctNumber(listings.mls_description, listingRows),
+    pctNumber(listings.linked_price ?? listings.price, linkedDenominator),
+    pctNumber(listings.linked_mls_description ?? listings.mls_description, linkedDenominator),
   ]) : null;
-  const agentCoverage = listingRows > 0 ? averagePct([
-    pctNumber(listings.agent_name, listingRows),
-    pctNumber(listings.first_last, listingRows),
-    pctNumber(listings.phone, listingRows),
-    pctNumber(listings.email, listingRows),
-    pctNumber(listings.brokerage, listingRows),
+  const agentCoverage = linkedDenominator > 0 ? averagePct([
+    pctNumber(listings.linked_agent_name ?? listings.agent_name, linkedDenominator),
+    pctNumber(listings.linked_first_last ?? listings.first_last, linkedDenominator),
+    pctNumber(listings.linked_phone ?? listings.phone, linkedDenominator),
+    pctNumber(listings.linked_email ?? listings.email, linkedDenominator),
+    pctNumber(listings.linked_brokerage ?? listings.brokerage, linkedDenominator),
   ]) : null;
   const parcelCoverage = countyParcelRows > 0 ? averagePct([
     pctNumber(countyParcels.parcel_id, countyParcelRows),
@@ -1095,7 +1164,7 @@ function renderMarket(data: Awaited<ReturnType<typeof collectMarket>>, index: nu
       </div>
       <div class="health-grid">
         ${coverage.listingCoverage == null ? unknownHealthTile("Listings", "No active listing rows found for this dashboard scope.") : healthTile("Listings", coverage.listingCoverage, `${fmt(listings.active_properties)} unique active properties; ${fmt(listings.total)} raw rows`)}
-        ${coverage.agentCoverage == null ? unknownHealthTile("Agent Contact", "No active listing rows found for this dashboard scope.") : healthTile("Agent Contact", coverage.agentCoverage, `${pct(listings.email, listings.total)} verified email; ${pct(listings.phone, listings.total)} phone`)}
+        ${coverage.agentCoverage == null ? unknownHealthTile("Agent Contact", "No active listing rows found for this dashboard scope.") : healthTile("Agent Contact", coverage.agentCoverage, `${pct(listings.linked_email ?? listings.email, listings.active_properties || listings.total)} verified email on BBC-searchable properties; ${pct(listings.linked_phone ?? listings.phone, listings.active_properties || listings.total)} phone`)}
         ${coverage.parcelCoverage == null ? unknownHealthTile("Parcels", "Parcel query returned no dashboard total or timed out; this is unknown, not zero coverage.") : healthTile("Parcels", coverage.parcelCoverage, `${fmt(countyParcels.total)} county parcels; ${fmt(cityParcels.total)} city subset`)}
         ${coverage.creativeCoverage == null ? unknownHealthTile("Creative", "No active listing rows found for this dashboard scope.") : healthTile("Creative", coverage.creativeCoverage, `${fmt(listings.creative_positive)} positive / ${fmt(listings.creative_negative)} negative; ${fmt(listings.mls_description)} descriptions`)}
         ${coverage.debtCoverage == null ? unknownHealthTile("Debt / Liens", "No linked active properties available for debt coverage calculation.") : healthTile("Debt / Liens", coverage.debtCoverage, `${fmt(debt.debt_covered_properties)} covered; ${fmt(debt.debt_unknown_properties)} unknown`)}
