@@ -198,13 +198,19 @@ const MARKETS: MarketConfig[] = [
     label: "Cleveland, OH",
     city: "CLEVELAND",
     state: "OH",
+    countyId: 1698988,
     countyName: "Cuyahoga",
     targetCountyHints: ["Cuyahoga County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: Cuyahoga County.",
+    listingCity: "CLEVELAND",
+    propertyCityLike: "CLEVELAND",
+    propertyScope: "active_listing_properties",
+    listingScopeNote: "Cleveland is an active build market using Cuyahoga County parcels and source-limited Redfin-derived active rows.",
+    parcelScopeNote: "Coverage tiles use linked active Cleveland listing properties; Cuyahoga County parcel universe is loaded separately for market buildout.",
     progressFiles: ["realestateapi-cleveland-oh-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Cleveland --state=OH"],
+    rerunCommands: [
+      "npm run market:cleveland:refresh",
+      "npm run market:cleveland:refresh -- --include-paid --paid-max-calls=100",
+    ],
   },
   {
     key: "akron-oh",
@@ -383,6 +389,7 @@ function refreshScriptName(marketKey: string): string | null {
   if (marketKey === "columbus-oh") return "refresh-columbus-market.ts";
   if (marketKey === "dayton-oh") return "refresh-dayton-market.ts";
   if (marketKey === "toledo-oh") return "refresh-toledo-market.ts";
+  if (marketKey === "cleveland-oh") return "refresh-cleveland-market.ts";
   if (marketKey === "san-antonio-tx") return "refresh-san-antonio-market.ts";
   if (marketKey === "memphis-tn") return "refresh-memphis-market.ts";
   if (marketKey === "west-chester-pa") return "refresh-west-chester-market.ts";
