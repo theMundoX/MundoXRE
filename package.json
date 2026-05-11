@@ -44,6 +44,8 @@
     "market:dayton:refresh:dry": "tsx scripts/refresh-dayton-market.ts --dry-run",
     "market:toledo:refresh": "tsx scripts/refresh-toledo-market.ts",
     "market:toledo:refresh:dry": "tsx scripts/refresh-toledo-market.ts --dry-run",
+    "market:cleveland:refresh": "tsx scripts/refresh-cleveland-market.ts",
+    "market:cleveland:refresh:dry": "tsx scripts/refresh-cleveland-market.ts --dry-run",
     "market:akron:refresh": "tsx scripts/refresh-akron-market.ts",
     "market:akron:refresh:dry": "tsx scripts/refresh-akron-market.ts --dry-run",
     "market:fort-wayne:refresh": "tsx scripts/refresh-fort-wayne-market.ts",

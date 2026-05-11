@@ -117,7 +117,7 @@
       "continueOnFailure": true,
       "phase": "daily_refresh",
       "dailyRefreshEligible": true,
-      "paidPolicy": "public_source_discovery_no_paid_calls",
+      "paidPolicy": "public_first_cached_property_scoped_capped",
       "priority": 30,
       "targetCountyHints": [
         "Cuyahoga"
@@ -125,9 +125,9 @@
       "command": [
         "npx",
         "tsx",
-        "scripts/explore-market-coverage.ts",
-        "--city=Cleveland",
-        "--state=OH"
+        "scripts/refresh-cleveland-market.ts",
+        "--include-paid",
+        "--paid-max-calls=100"
       ]
     },
     {
