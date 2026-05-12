@@ -7149,7 +7149,15 @@ async function fetchAndRespond(
     return c.json({ error: 'Property not found' }, 404);
   }
 
-  return assembleResponse(c, props[0], responseMapper);
+  try {
+    return await assembleResponse(c, props[0], responseMapper);
+  } catch (error) {
+    console.error('BBC property response assembly failed', {
+      propertyId: id,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return c.json({ error: 'Database error' }, 500);
+  }
 }
 
 async function assembleResponse(
@@ -7248,7 +7256,20 @@ async function assembleResponse(
     publicSignals,
   );
 
-  return c.json(responseMapper(response));
+  return c.json(sanitizeJsonValue(responseMapper(response)));
+}
+
+function sanitizeJsonValue(value: unknown): unknown {
+  if (typeof value === 'bigint') return value.toString();
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map((item) => sanitizeJsonValue(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .map(([key, item]) => [key, sanitizeJsonValue(item)]),
+    );
+  }
+  return value;
 }
 
 async function fetchRentBaselineDemographics(
