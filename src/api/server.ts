@@ -1027,18 +1027,27 @@ app.get('/v1/bbc/property', async (c) => {
 
   const addressNorm = address.toUpperCase().replace(/[%*]+$/, '');
   const stateNorm = state.toUpperCase();
+  const citySql = city ? `and upper(coalesce(p.city,'')) = '${sqlString(city.toUpperCase())}'` : '';
+  const zipSql = zip ? `and p.zip = '${sqlString(zip)}'` : '';
 
-  let query = db.from('properties')
-    .select('*, counties(county_name, state_code, county_fips, state_fips)')
-    .eq('state_code', stateNorm)
-    .like('address', `${addressNorm}%`)
-    .limit(5);
+  let data: Record<string, unknown>[];
+  try {
+    data = await queryPg<Record<string, unknown>>(`
+      select p.id
+      from properties p
+      where p.state_code = '${sqlString(stateNorm)}'
+        and upper(coalesce(p.address,'')) like '${sqlString(addressNorm)}%'
+        ${citySql}
+        ${zipSql}
+      order by
+        case when upper(coalesce(p.address,'')) = '${sqlString(addressNorm)}' then 0 else 1 end,
+        p.id
+      limit 5;
+    `);
+  } catch (error) {
+    return c.json({ error: 'Database error', detail: error instanceof Error ? error.message : String(error) }, 500);
+  }
 
-  if (city) query = query.eq('city', city.toUpperCase());
-  if (zip) query = query.eq('zip', zip);
-
-  const { data, error } = await query;
-  if (error) return c.json({ error: 'Database error', detail: error.message }, 500);
   if (!data || data.length === 0) {
     return c.json({
       error: 'Property not found',
@@ -7122,13 +7131,19 @@ async function fetchAndRespond(
   id: number,
   responseMapper: (response: ReturnType<typeof buildPropertyResponse>) => unknown = (response) => response,
 ) {
-  const { data: props, error } = await db.from('properties')
-    .select('*, counties(county_name, state_code, county_fips, state_fips)')
-    .eq('id', id)
-    .limit(1);
-
-  if (error) {
-    return c.json({ error: 'Database error', detail: error.message }, 500);
+  let props: Record<string, unknown>[];
+  try {
+    props = await queryPg<Record<string, unknown>>(`
+      select
+        p.*,
+        row_to_json(c)::jsonb as counties
+      from properties p
+      left join counties c on c.id = p.county_id
+      where p.id = ${id}
+      limit 1;
+    `);
+  } catch (error) {
+    return c.json({ error: 'Database error', detail: error instanceof Error ? error.message : String(error) }, 500);
   }
   if (!props || props.length === 0) {
     return c.json({ error: 'Property not found' }, 404);
@@ -7152,50 +7167,85 @@ async function assembleResponse(
     state_fips: null,
   };
 
-  // Fetch all related data in parallel
   const [mortgages, rents, listingsById, saleHistory, mlsHistory, foreclosureData, publicSignals, demo] = await Promise.all([
-    db.from('mortgage_records')
-      .select('id,property_id,document_type,loan_amount,original_amount,estimated_current_balance,estimated_monthly_payment,interest_rate,interest_rate_type,rate_source,rate_match_confidence,term_months,maturity_date,recording_date,document_number,book_page,lender_name,lender_type,borrower_name,loan_type,source_url,grantee_name,open,position')
-      .eq('property_id', id).order('recording_date', { ascending: false }).limit(50),
-    db.from('rent_snapshots').select('*').eq('property_id', id).order('observed_at', { ascending: false }).limit(24),
-    db.from('listing_signals').select('*').eq('property_id', id)
-      .order('is_on_market', { ascending: false })
-      .order('last_seen_at', { ascending: false, nullsFirst: false })
-      .order('first_seen_at', { ascending: false, nullsFirst: false })
-      .limit(20),
-    db.from('sale_history').select('*').eq('property_id', id).order('recording_date', { ascending: false }).limit(20),
-    db.from('mls_history').select('*').eq('property_id', id).order('status_date', { ascending: false }).limit(20),
-    db.from('foreclosures').select('*').eq('property_id', id).limit(10),
-    db.from('property_public_signals').select('*').eq('property_id', id).order('observed_date', { ascending: false, nullsFirst: false }).limit(50),
+    queryPg<Record<string, unknown>>(`
+      select id,property_id,document_type,loan_amount,original_amount,estimated_current_balance,estimated_monthly_payment,interest_rate,interest_rate_type,rate_source,rate_match_confidence,term_months,maturity_date,recording_date,document_number,book_page,lender_name,lender_type,borrower_name,loan_type,source_url,grantee_name,open,position
+      from mortgage_records
+      where property_id = ${id}
+      order by recording_date desc nulls last
+      limit 50;
+    `),
+    queryPg<Record<string, unknown>>(`
+      select *
+      from rent_snapshots
+      where property_id = ${id}
+      order by observed_at desc nulls last
+      limit 24;
+    `),
+    queryPg<Record<string, unknown>>(`
+      select *
+      from listing_signals
+      where property_id = ${id}
+      order by is_on_market desc, last_seen_at desc nulls last, first_seen_at desc nulls last
+      limit 20;
+    `),
+    queryPg<Record<string, unknown>>(`
+      select *
+      from sale_history
+      where property_id = ${id}
+      order by recording_date desc nulls last
+      limit 20;
+    `),
+    queryPg<Record<string, unknown>>(`
+      select *
+      from mls_history
+      where property_id = ${id}
+      order by status_date desc nulls last
+      limit 20;
+    `),
+    queryPg<Record<string, unknown>>(`
+      select *
+      from foreclosures
+      where property_id = ${id}
+      limit 10;
+    `),
+    queryPg<Record<string, unknown>>(`
+      select *
+      from property_public_signals
+      where property_id = ${id}
+      order by observed_date desc nulls last
+      limit 50;
+    `),
     fetchRentBaselineDemographics(property, countyData),
   ]);
 
   // Listing signals: fall back to address+state match if property_id lookup is empty
   let listings = listingsById;
-  if ((!listingsById.data || listingsById.data.length === 0) && property.address) {
+  if (listingsById.length === 0 && property.address) {
     const addrClean = (property.address as string).replace(/[,()]/g, ' ').trim();
     const stateCode = (countyData.state_code as string ?? '').toUpperCase();
-    const byAddr = await db.from('listing_signals').select('*')
-      .ilike('address', addrClean)
-      .eq('state_code', stateCode)
-      .order('is_on_market', { ascending: false })
-      .order('last_seen_at', { ascending: false, nullsFirst: false })
-      .order('first_seen_at', { ascending: false, nullsFirst: false })
-      .limit(10);
-    if (byAddr.data && byAddr.data.length > 0) listings = byAddr as typeof listingsById;
+    const byAddr = await queryPg<Record<string, unknown>>(`
+      select *
+      from listing_signals
+      where address ilike '${sqlString(addrClean)}'
+        and state_code = '${sqlString(stateCode)}'
+      order by is_on_market desc, last_seen_at desc nulls last, first_seen_at desc nulls last
+      limit 10;
+    `);
+    if (byAddr.length > 0) listings = byAddr;
   }
 
   const response = buildPropertyResponse(
     property,
     countyData,
-    (mortgages.data ?? []) as Record<string, unknown>[],
-    (rents.data ?? []) as Record<string, unknown>[],
-    (listings.data ?? []) as Record<string, unknown>[],
-    (saleHistory.data ?? []) as Record<string, unknown>[],
-    (mlsHistory.data ?? []) as Record<string, unknown>[],
+    mortgages,
+    rents,
+    listings,
+    saleHistory,
+    mlsHistory,
     (demo.data as Record<string, unknown> | null) ?? null,
-    (foreclosureData.data ?? []) as Record<string, unknown>[],
-    (publicSignals.data ?? []) as Record<string, unknown>[],
+    foreclosureData,
+    publicSignals,
   );
 
   return c.json(responseMapper(response));
@@ -7233,21 +7283,25 @@ async function fetchRentBaselineDemographics(
   };
 
   if (zip) {
-    const { data, error } = await db.from('rent_baselines')
-      .select('source,geography_type,geography_id,bedrooms,median_rent,vintage_year')
-      .eq('geography_type', 'zip')
-      .eq('geography_id', zip)
-      .order('vintage_year', { ascending: false });
-    if (!error && data && data.length > 0) return { data: buildFmr(data as Array<Record<string, unknown>>), error: null };
+    const data = await queryPg<Record<string, unknown>>(`
+      select source,geography_type,geography_id,bedrooms,median_rent,vintage_year
+      from rent_baselines
+      where geography_type = 'zip'
+        and geography_id = '${sqlString(zip)}'
+      order by vintage_year desc nulls last;
+    `);
+    if (data.length > 0) return { data: buildFmr(data), error: null };
   }
 
   if (fullCountyFips.length === 5) {
-    const { data, error } = await db.from('rent_baselines')
-      .select('source,geography_type,geography_id,bedrooms,median_rent,vintage_year')
-      .eq('geography_type', 'county')
-      .eq('geography_id', fullCountyFips)
-      .order('vintage_year', { ascending: false });
-    if (!error && data && data.length > 0) return { data: buildFmr(data as Array<Record<string, unknown>>), error: null };
+    const data = await queryPg<Record<string, unknown>>(`
+      select source,geography_type,geography_id,bedrooms,median_rent,vintage_year
+      from rent_baselines
+      where geography_type = 'county'
+        and geography_id = '${sqlString(fullCountyFips)}'
+      order by vintage_year desc nulls last;
+    `);
+    if (data.length > 0) return { data: buildFmr(data), error: null };
   }
 
   return { data: null, error: null };
