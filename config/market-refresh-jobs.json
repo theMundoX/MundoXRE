@@ -28,7 +28,8 @@
       "command": [
         "npx",
         "tsx",
-        "scripts/refresh-dallas-market.ts"
+        "scripts/refresh-dallas-market.ts",
+        "--skip-classify"
       ]
     },
     {
