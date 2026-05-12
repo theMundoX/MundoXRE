@@ -281,8 +281,9 @@ function isGenericOrHostedEmail(email: string): boolean {
   const [local, domain = ""] = email.toLowerCase().split("@");
   if (!local || !domain) return true;
   if (["info", "contact", "hello", "admin", "office", "support", "sales", "team", "homes", "realestate", "realtor", "filler"].includes(local)) return true;
-  if (/^(no-?reply|donotreply|webmaster|privacy|marketing|leads?)$/.test(local)) return true;
-  if (/\.(edu|gov|mil)$/i.test(domain)) return true;
+  if (/^(no-?reply|donotreply|webmaster|privacy|marketing|leads?|newsroom)$/.test(local)) return true;
+  if (/^(newsroom|press|media)[._-]/i.test(local)) return true;
+  if (/\.(edu|gov|mil)$/i.test(domain) || /\.(edu|ac)\.[a-z]{2}$/i.test(domain)) return true;
   if (/(godaddy|example|sentry|wixpress|squarespace|wordpress|cloudflare)\./i.test(domain)) return true;
   return false;
 }
@@ -560,13 +561,16 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   }
 
   const realEstateContext = /agent|realtor|real estate|broker|brokerage|property|homes?|listing|mls/i.test(`${url} ${text}`);
+  const brokerageOrPhoneVerified = hasPhone || hasBrokerage;
   const proximityVerified = ALLOW_NAME_EMAIL_PROFILE
     && hasName
     && realEstateContext
+    && brokerageOrPhoneVerified
     && Boolean(proximityPersonal);
   const nameEmailProfileVerified = ALLOW_NAME_EMAIL_PROFILE
     && hasName
     && realEstateContext
+    && brokerageOrPhoneVerified
     && Boolean(personal);
   const hasVerifiedIdentity = FAST_SEARCH
     ? hasName && (hasPhone || (ALLOW_NO_PHONE && !phone && hasBrokerage) || nameEmailProfileVerified || proximityVerified)
