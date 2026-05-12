@@ -5,7 +5,7 @@ const PG_URL = process.env.MXRE_PG_URL ?? `${(process.env.SUPABASE_URL ?? "").re
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "100", 10));
 const FAST_SEARCH = process.argv.includes("--fast-search");
-const DELAY_MS = Math.max(FAST_SEARCH ? 0 : 750, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? (FAST_SEARCH ? "0" : "2500"), 10));
+const DELAY_MS = Math.max(0, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? (FAST_SEARCH ? "0" : "2500"), 10));
 const CONCURRENCY = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--concurrency="))?.split("=")[1] ?? (FAST_SEARCH ? "5" : "1"), 10));
 const MAX_SEARCH_QUERIES = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-queries="))?.split("=")[1] ?? "8", 10));
 const MAX_SEARCH_LINKS = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--max-search-links="))?.split("=")[1] ?? "12", 10));
@@ -14,11 +14,13 @@ const MAX_PROFILE_LINKS_PER_PAGE = Math.max(0, parseInt(process.argv.find(a => a
 const FETCH_TIMEOUT_MS = Math.max(2_500, parseInt(process.argv.find(a => a.startsWith("--fetch-timeout-ms="))?.split("=")[1] ?? "8000", 10));
 const ROW_TIMEOUT_MS = Math.max(5_000, parseInt(process.argv.find(a => a.startsWith("--row-timeout-ms="))?.split("=")[1] ?? "45000", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
+const DEBUG = process.argv.includes("--debug");
 const DISABLE_DUCKDUCKGO = process.argv.includes("--disable-duckduckgo");
 const ALLOW_NO_PHONE = process.argv.includes("--allow-no-phone");
 const ALLOW_NAME_EMAIL_PROFILE = process.argv.includes("--allow-name-email-profile");
 const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
+const ROW_ID = arg("id");
 const STATE = arg("state")?.toUpperCase();
 const CITY = arg("city")?.toUpperCase();
 const BROKERAGE_PATTERN = arg("brokerage-pattern");
@@ -33,6 +35,8 @@ type ListingRow = {
   listing_agent_last_name: string | null;
   listing_agent_phone: string | null;
   listing_brokerage: string | null;
+  listing_url: string | null;
+  listing_source: string | null;
   raw: Record<string, unknown> | null;
 };
 
@@ -62,6 +66,7 @@ const stats = {
   row_errors: 0,
 };
 const brokerageSamples = new Set<string>();
+const debugRejections: Array<{ rowId: number; agent: string | null; url: string; emails: string[]; reason: string }> = [];
 
 async function pg(query: string): Promise<Record<string, unknown>[]> {
   const response = await fetch(PG_URL, {
@@ -506,7 +511,7 @@ async function fetchText(url: string): Promise<string | null> {
     const response = await fetch(url, {
       redirect: "follow",
       headers: {
-        "user-agent": "MXREBot/0.1 public-contact-verification (+https://mxre.mundox.ai)",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
         "accept": "text/html,application/xhtml+xml,text/plain",
         "accept-language": "en-US,en;q=0.9",
       },
@@ -541,7 +546,18 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
     return emailLocalMatchesName(email, name);
   }) ?? null;
   const personal = nameMatchedPersonal ?? proximityPersonal;
-  if (!personal) return null;
+  if (!personal) {
+    if (DEBUG && emails.length > 0) {
+      debugRejections.push({
+        rowId: row.id,
+        agent: row.listing_agent_name,
+        url,
+        emails: emails.slice(0, 8),
+        reason: personalEmails.length === 0 ? "generic_or_hosted_only" : "personal_email_does_not_match_agent_name",
+      });
+    }
+    return null;
+  }
 
   const realEstateContext = /agent|realtor|real estate|broker|brokerage|property|homes?|listing|mls/i.test(`${url} ${text}`);
   const proximityVerified = ALLOW_NAME_EMAIL_PROFILE
@@ -557,6 +573,15 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
     : hasName && ((hasPhone && hasBrokerage) || (ALLOW_NO_PHONE && !phone && hasBrokerage) || nameEmailProfileVerified || proximityVerified);
   if (!hasVerifiedIdentity) {
     if (emails.length > 0) stats.rejected_identity++;
+    if (DEBUG) {
+      debugRejections.push({
+        rowId: row.id,
+        agent: row.listing_agent_name,
+        url,
+        emails: emails.slice(0, 8),
+        reason: `identity_not_verified name=${hasName} phone=${hasPhone} brokerage=${hasBrokerage}`,
+      });
+    }
     return null;
   }
   if (proximityVerified) stats.accepted_name_email_proximity++;
@@ -628,6 +653,24 @@ async function saveVerifiedEmail(row: ListingRow, candidate: Candidate): Promise
 }
 
 async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
+  if (row.listing_url) {
+    await sleep(DELAY_MS);
+    const listingHtml = await fetchText(row.listing_url);
+    if (listingHtml) {
+      stats.profile_pages++;
+      const listingCandidate = verifyEmailPage(listingHtml, row, row.listing_url);
+      if (listingCandidate) return listingCandidate;
+      for (const profileLink of extractLikelyProfileLinks(row.listing_url, listingHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
+        await sleep(DELAY_MS);
+        const profileHtml = await fetchText(profileLink);
+        if (!profileHtml) continue;
+        stats.profile_pages++;
+        const candidate = verifyEmailPage(profileHtml, row, profileLink);
+        if (candidate) return candidate;
+      }
+    }
+  }
+
   if (!FAST_SEARCH) {
     for (const seedUrl of brokerageSeedUrls(row)) {
       await sleep(DELAY_MS);
@@ -699,6 +742,8 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
     [phoneText ? `"${phoneText}"` : "", `"${name.full}"`, "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, `"@"`, "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, `"gmail.com"`].filter(Boolean).join(" "),
     [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
     ...portalQueries,
@@ -784,13 +829,14 @@ async function main() {
   const filters = [
     STATE ? `state_code = ${sql(STATE)}` : null,
     CITY ? `upper(coalesce(city,'')) = ${sql(CITY)}` : null,
+    ROW_ID ? `id = ${sql(ROW_ID)}` : null,
     BROKERAGE_PATTERN ? `listing_brokerage ilike ${sql(BROKERAGE_PATTERN)}` : null,
   ].filter(Boolean).join("\n      and ");
 
   const rows = await pg(`
     select id, address, city, state_code, raw,
            listing_agent_name, listing_agent_first_name, listing_agent_last_name,
-           listing_agent_phone, listing_brokerage
+           listing_agent_phone, listing_brokerage, listing_url, listing_source
     from listing_signals
     where is_on_market = true
       and listing_agent_email is null
@@ -850,6 +896,7 @@ async function main() {
     dry_run: DRY_RUN,
     ...stats,
     brokerage_samples_without_hints: [...brokerageSamples].slice(0, 20),
+    debug_rejections: DEBUG ? debugRejections.slice(0, 50) : undefined,
   }, null, 2));
 }
 
