@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 
-const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+const basePgUrl = (process.env.MXRE_PG_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "250", 10));
 const DELAY_MS = Math.max(250, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? "1200", 10));
@@ -98,20 +99,26 @@ function extractDetail(html: string): Detail {
 }
 
 async function fetchHtml(url: string): Promise<string | null> {
-  const response = await fetch(url, {
-    redirect: "follow",
-    headers: {
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
-      "accept": "text/html,application/xhtml+xml",
-      "accept-language": "en-US,en;q=0.9",
-    },
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!response.ok) {
-    console.log(`  HTTP ${response.status}: ${url}`);
+  try {
+    const response = await fetch(url, {
+      redirect: "follow",
+      headers: {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
+        "accept": "text/html,application/xhtml+xml",
+        "accept-language": "en-US,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) {
+      console.log(`  HTTP ${response.status}: ${url}`);
+      return null;
+    }
+    return response.text();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`  Fetch failed (${message}): ${url}`);
     return null;
   }
-  return response.text();
 }
 
 async function main() {
