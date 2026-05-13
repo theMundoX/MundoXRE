@@ -316,11 +316,15 @@ const MARKETS: MarketConfig[] = [
     state: "MI",
     countyName: "Wayne",
     targetCountyHints: ["Wayne County"],
-    sourceDiscoveryOnly: true,
-    listingScopeNote: "Queued cash-flow market; source discovery and county-specific scripts are pending.",
-    parcelScopeNote: "Expected starting county: Wayne County plus Detroit city parcel data.",
+    listingCity: "DETROIT",
+    listingScopeNote: "Active build market using Detroit ZIP Redfin-derived active rows; Wayne County/Detroit parcel and recorder ingestion are still pending.",
+    parcelScopeNote: "Expected starting county: Wayne County plus Detroit city parcel data. Parcel coverage remains a build gap until local parcel ingest is added.",
     progressFiles: ["realestateapi-detroit-mi-progress.html"],
-    rerunCommands: ["npx tsx scripts/explore-market-coverage.ts --city=Detroit --state=MI"],
+    rerunCommands: [
+      "npx tsx scripts/ingest-listings-fast.ts --state MI --zips 48201,48202,48203,48204,48205,48206,48207,48208,48209,48210,48211,48212,48213,48214,48215,48216,48217,48219,48221,48223,48224,48226,48227,48228,48234,48235,48238,48243 --concurrency 3 --skip-match --allow-partial",
+      "npx tsx scripts/enrich-redfin-detail-pages.ts --state=MI --city=DETROIT --limit=4000 --delay-ms=300",
+      "npx tsx scripts/score-creative-finance-signals.ts --state=MI --city=DETROIT --limit=4500",
+    ],
   },
 ];
 
