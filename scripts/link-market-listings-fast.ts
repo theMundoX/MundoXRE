@@ -11,8 +11,12 @@
  * on per-row in-memory matching.
  */
 import "dotenv/config";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
 
-const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+hydrateWindowsUserEnv();
+
+const basePgUrl = (process.env.MXRE_PG_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 
 const args = process.argv.slice(2);
