@@ -19,8 +19,11 @@ import { normalizeListing, crossReferenceListings } from "../src/rent-tracker/no
 import { upsertListingSignals, type ListingSignal } from "../src/db/queries.js";
 import { getDb } from "../src/db/client.js";
 import { initProxies } from "../src/utils/proxy.js";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
 
 // ─── Config ─────────────────────────────────────────────────────────
+
+hydrateWindowsUserEnv();
 
 const CONCURRENCY = 5;
 const INTRA_BATCH_DELAY_MS = 300;
@@ -266,6 +269,7 @@ async function scrapeZip(
           const upserted = await upsertListingSignals(batch);
           result.upserted += upserted.length;
         } catch (err) {
+          console.error(`  Upsert failed for ${zip} batch ${Math.floor(i / UPSERT_BATCH_SIZE) + 1}: ${err instanceof Error ? err.message : String(err)}`);
           result.errors++;
         }
       }
