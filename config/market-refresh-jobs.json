@@ -244,7 +244,7 @@
       "continueOnFailure": true,
       "phase": "daily_refresh",
       "dailyRefreshEligible": true,
-      "paidPolicy": "public_source_discovery_no_paid_calls",
+      "paidPolicy": "public_first_no_paid_calls",
       "priority": 80,
       "targetCountyHints": [
         "Jefferson",
@@ -253,9 +253,8 @@
       "command": [
         "npx",
         "tsx",
-        "scripts/explore-market-coverage.ts",
-        "--city=Birmingham",
-        "--state=AL"
+        "scripts/refresh-public-zip-market.ts",
+        "--market=birmingham-al"
       ]
     },
     {
@@ -287,7 +286,7 @@
       "continueOnFailure": true,
       "phase": "daily_refresh",
       "dailyRefreshEligible": true,
-      "paidPolicy": "public_source_discovery_no_paid_calls",
+      "paidPolicy": "public_first_no_paid_calls",
       "priority": 100,
       "targetCountyHints": [
         "Wayne"
@@ -295,9 +294,8 @@
       "command": [
         "npx",
         "tsx",
-        "scripts/explore-market-coverage.ts",
-        "--city=Detroit",
-        "--state=MI"
+        "scripts/refresh-public-zip-market.ts",
+        "--market=detroit-mi"
       ]
     }
   ]
