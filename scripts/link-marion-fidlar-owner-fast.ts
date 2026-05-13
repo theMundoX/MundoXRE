@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import { Client } from "pg";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { makeDbClient } from "./lib/db.js";
 
 const args = process.argv.slice(2);
 const valueArg = (name: string) => {
@@ -16,11 +16,8 @@ const maxRunMs = Number(valueArg("max-run-ms") ?? "0");
 const explicitAfterId = Number(valueArg("after-id") ?? "0");
 const cursorFile = valueArg("cursor-file");
 const onlyMortgageAmounts = args.includes("--only-mortgage-amounts");
-const directPgUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
 const MARION_COUNTY_ID = 797583;
 const SOURCE_URL = "https://inmarion.fidlar.com/INMarion/DirectSearch/";
-
-if (!directPgUrl) throw new Error("MXRE_DIRECT_PG_URL, DATABASE_URL, or POSTGRES_URL is required.");
 
 type RecorderRow = {
   id: number;
@@ -153,8 +150,7 @@ async function main() {
 
   console.log(`Fast Marion Fidlar owner linker | limit=${limit} | dry=${dryRun} | onlyMortgageAmounts=${onlyMortgageAmounts} | afterId=${afterId}`);
   const startedAt = Date.now();
-  const client = new Client({ connectionString: directPgUrl });
-  await client.connect();
+  const client = await makeDbClient();
   await client.query("set max_parallel_workers_per_gather = 0");
 
   try {

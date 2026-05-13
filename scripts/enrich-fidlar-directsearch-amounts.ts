@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import { Client } from "pg";
 import { computeMortgageFields } from "../src/utils/mortgage-calc.js";
+import { makeDbClient } from "./lib/db.js";
 
 const args = process.argv.slice(2);
 const valueArg = (name: string) => {
@@ -13,9 +13,6 @@ const dryRun = args.includes("--dry-run");
 const limit = Math.min(Math.max(Number(valueArg("limit") ?? "500"), 1), 5000);
 const maxRunMs = Number(valueArg("max-run-ms") ?? "0");
 const sourceUrl = valueArg("source-url") ?? "https://inmarion.fidlar.com/INMarion/DirectSearch/";
-const databaseUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
-
-if (!databaseUrl) throw new Error("Set MXRE_DIRECT_PG_URL, DATABASE_URL, or POSTGRES_URL.");
 
 type MortgageRow = {
   id: number;
@@ -70,8 +67,7 @@ function legalDescription(doc: DirectSearchDoc): string | null {
 
 async function main() {
   const startedAt = Date.now();
-  const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
+  const client = await makeDbClient();
   await client.query("set max_parallel_workers_per_gather = 0");
 
   try {

@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import { Client } from "pg";
 import { computeMortgageFields } from "../src/utils/mortgage-calc.js";
+import { makeDbClient } from "./lib/db.js";
 
 const args = process.argv.slice(2);
 const valueArg = (name: string) => {
@@ -14,16 +14,7 @@ const state = valueArg("state")?.toUpperCase() ?? null;
 const city = valueArg("city")?.toUpperCase() ?? null;
 const limit = Number(valueArg("limit") ?? "0");
 const batchSize = Math.min(Math.max(Number(valueArg("batch-size") ?? "1000"), 1), 5000);
-const databaseUrl = process.env.MXRE_DIRECT_PG_URL
-  ?? process.env.DATABASE_URL
-  ?? process.env.POSTGRES_URL;
-
-if (!databaseUrl) {
-  throw new Error("Set MXRE_DIRECT_PG_URL, DATABASE_URL, or POSTGRES_URL.");
-}
-
-const client = new Client({ connectionString: databaseUrl });
-await client.connect();
+const client = await makeDbClient();
 
 let updated = 0;
 let scanned = 0;
