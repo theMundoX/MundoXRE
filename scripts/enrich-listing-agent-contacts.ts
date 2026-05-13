@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 
-const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+const basePgUrl = (process.env.MXRE_PG_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "500", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
