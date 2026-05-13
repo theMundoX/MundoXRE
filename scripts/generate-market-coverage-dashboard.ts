@@ -4,8 +4,12 @@ import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
 
-const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+hydrateWindowsUserEnv();
+
+const basePgUrl = (process.env.MXRE_PG_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const OUT = process.argv.find(a => a.startsWith("--out="))?.split("=").slice(1).join("=")
   ?? "logs/market-refresh/market-coverage-dashboard.html";
