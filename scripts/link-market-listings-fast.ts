@@ -29,9 +29,10 @@ const COUNTY_ID = Number(arg("county_id") ?? arg("county-id"));
 const SOURCE = arg("source") ?? "redfin";
 const CREATE_SHELLS = flag("create-shells");
 const DRY_RUN = flag("dry-run");
+const EXACT_UNIQUE = flag("exact-unique");
 
 if (!STATE || !CITY || !Number.isFinite(COUNTY_ID)) {
-  console.error("Usage: npx tsx scripts/link-market-listings-fast.ts --state=OH --city=COLUMBUS --county_id=1698985 [--source=redfin] [--create-shells] [--dry-run]");
+  console.error("Usage: npx tsx scripts/link-market-listings-fast.ts --state=OH --city=COLUMBUS --county_id=1698985 [--source=redfin] [--create-shells] [--exact-unique] [--dry-run]");
   process.exit(1);
 }
 
@@ -69,6 +70,23 @@ async function countState(label: string) {
 }
 
 async function linkExactUnique() {
+  if (!EXACT_UNIQUE) {
+    const ambiguous = await pg(`
+      with candidates as (
+        select ls.id listing_id
+          from listing_signals ls
+         where ls.is_on_market = true
+           and ls.state_code = ${sql(STATE)}
+           and upper(coalesce(ls.city,'')) = ${sql(CITY)}
+           and ls.property_id is null
+           and nullif(ls.address,'') is not null
+           and nullif(ls.zip,'') is not null
+      )
+      select count(*)::int as skipped_exact_unique_candidates from candidates;
+    `);
+    return ambiguous;
+  }
+
   if (DRY_RUN) {
     return pg(`
       with matches as (
@@ -129,37 +147,24 @@ async function createListingShells() {
 
   if (DRY_RUN) {
     return pg(`
-      with candidates as (
-        select distinct upper(trim(address)) as address, zip
-          from listing_signals ls
-         where ls.is_on_market = true
-           and ls.state_code = ${sql(STATE)}
-           and upper(coalesce(ls.city,'')) = ${sql(CITY)}
-           and ls.property_id is null
-           and nullif(ls.address,'') is not null
-           and nullif(ls.zip,'') is not null
-      ),
-      missing as (
-        select c.*
-          from candidates c
-         where not exists (
-           select 1 from properties p
-            where p.county_id = ${COUNTY_ID}
-              and p.state_code = ${sql(STATE)}
-              and p.zip = c.zip
-              and upper(trim(p.address)) = c.address
-         )
-      )
-      select count(*)::int as would_insert_shells from missing;
+      select count(*)::int as would_insert_shells
+        from listing_signals ls
+       where ls.is_on_market = true
+         and ls.state_code = ${sql(STATE)}
+         and upper(coalesce(ls.city,'')) = ${sql(CITY)}
+         and ls.property_id is null
+         and nullif(ls.address,'') is not null
+         and nullif(ls.zip,'') is not null;
     `);
   }
 
   return pg(`
     with candidates as (
-      select upper(trim(address)) as address,
+      select id as listing_id,
+             upper(trim(address)) as address,
              zip,
-             min(mls_list_price)::int as list_price,
-             min(listing_url) as listing_url
+             nullif(mls_list_price, 0)::int as list_price,
+             listing_url
         from listing_signals ls
        where ls.is_on_market = true
          and ls.state_code = ${sql(STATE)}
@@ -167,18 +172,6 @@ async function createListingShells() {
          and ls.property_id is null
          and nullif(ls.address,'') is not null
          and nullif(ls.zip,'') is not null
-       group by upper(trim(address)), zip
-    ),
-    missing as (
-      select c.*
-        from candidates c
-       where not exists (
-         select 1 from properties p
-          where p.county_id = ${COUNTY_ID}
-            and p.state_code = ${sql(STATE)}
-            and p.zip = c.zip
-            and upper(trim(p.address)) = c.address
-       )
     ),
     inserted as (
       insert into properties (
@@ -201,16 +194,30 @@ async function createListingShells() {
              'active_listing_shell',
              'unknown',
              'listing_only'
-        from missing
-      returning id
+        from candidates
+      returning id, address, zip
+    ),
+    linked as (
+      update listing_signals ls
+         set property_id = inserted.id,
+             updated_at = now()
+        from inserted
+       where ls.is_on_market = true
+         and ls.state_code = ${sql(STATE)}
+         and upper(coalesce(ls.city,'')) = ${sql(CITY)}
+         and ls.property_id is null
+         and upper(trim(ls.address)) = inserted.address
+         and ls.zip = inserted.zip
+      returning ls.id
     )
-    select count(*)::int as inserted_shells from inserted;
+    select (select count(*)::int from inserted) as inserted_shells,
+           (select count(*)::int from linked) as linked_shells;
   `);
 }
 
 async function main() {
   console.log("MXRE fast market listing linker");
-  console.log(JSON.stringify({ state: STATE, city: CITY, county_id: COUNTY_ID, source: SOURCE, create_shells: CREATE_SHELLS, dry_run: DRY_RUN }, null, 2));
+  console.log(JSON.stringify({ state: STATE, city: CITY, county_id: COUNTY_ID, source: SOURCE, create_shells: CREATE_SHELLS, exact_unique: EXACT_UNIQUE, dry_run: DRY_RUN }, null, 2));
   const before = await countState("before");
   const exact = await linkExactUnique();
   const shells = await createListingShells();
