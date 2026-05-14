@@ -155,6 +155,22 @@ const steps: Step[] = [
     skip: SKIP_LISTINGS,
   },
   {
+    name: "Enrich Indianapolis Redfin listing detail pages",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/enrich-redfin-detail-pages.ts",
+      "--state=IN",
+      "--city=INDIANAPOLIS",
+      "--limit=1000",
+      "--delay-ms=250",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_LISTINGS || SKIP_LISTING_QUALITY,
+  },
+  {
     name: "Backfill listing agent contact fields",
     command: ["npx", "tsx", "scripts/enrich-listing-agent-contacts.ts", "--limit=10000"],
     required: false,
