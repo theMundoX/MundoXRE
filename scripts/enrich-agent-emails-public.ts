@@ -181,7 +181,7 @@ function brokerageDomainHints(brokerage: string | null): string[] {
   if (b.includes("century 21") || b.includes("c21")) hints.push("century21.com");
   if (b.includes("kw ") || b.includes("keller williams")) hints.push("kw.com");
   if (b.includes("exp")) hints.push("exprealty.com");
-  if (/\breal\b/.test(b) || b.includes("real brokerage")) hints.push("realbrokerage.com", "joinreal.com", "onereal.com");
+  if (b.includes("real broker") || b.includes("real brokerage")) hints.push("realbrokerage.com", "joinreal.com", "onereal.com");
   if (b.includes("compass")) hints.push("compass.com");
   if (b.includes("re/max") || b.includes("remax")) hints.push("remax.com");
   if (b.includes("coldwell")) hints.push("coldwellbanker.com");
@@ -226,7 +226,7 @@ function brokerageSeedUrls(row: ListingRow): string[] {
     );
   }
 
-  if (/\breal\b/.test(b) || b.includes("real brokerage")) {
+  if (b.includes("real broker") || b.includes("real brokerage")) {
     urls.push(
       "https://www.realbrokerage.com/agents",
       "https://www.joinreal.com/",
@@ -659,108 +659,35 @@ async function saveVerifiedEmail(row: ListingRow, candidate: Candidate): Promise
   return Number(updated?.[0]?.updated ?? 0);
 }
 
-async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
-  if (INCLUDE_LISTING_PAGE && row.listing_url) {
-    await sleep(DELAY_MS);
-    const listingHtml = await fetchText(row.listing_url);
-    if (listingHtml) {
-      stats.profile_pages++;
-      const listingCandidate = verifyEmailPage(listingHtml, row, row.listing_url);
-      if (listingCandidate) return listingCandidate;
-      for (const profileLink of extractLikelyProfileLinks(row.listing_url, listingHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
-        await sleep(DELAY_MS);
-        const profileHtml = await fetchText(profileLink);
-        if (!profileHtml) continue;
-        stats.profile_pages++;
-        const candidate = verifyEmailPage(profileHtml, row, profileLink);
-        if (candidate) return candidate;
-      }
-    }
-  }
-
-  if (!FAST_SEARCH) {
-    for (const seedUrl of brokerageSeedUrls(row)) {
-      await sleep(DELAY_MS);
-      const seedHtml = await fetchText(seedUrl);
-      if (!seedHtml) continue;
-      stats.profile_pages++;
-      const seedCandidate = verifyEmailPage(seedHtml, row, seedUrl);
-      if (seedCandidate) return seedCandidate;
-      for (const profileLink of extractBrokerageRosterLinks(seedUrl, seedHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
-        await sleep(DELAY_MS);
-        const profileHtml = await fetchText(profileLink);
-        if (!profileHtml) continue;
-        stats.profile_pages++;
-        const candidate = verifyEmailPage(profileHtml, row, profileLink);
-        if (candidate) return candidate;
-      }
-    }
-
-    const profileUrls = directProfileUrls(row).slice(0, MAX_DIRECT_PROFILE_URLS);
-    stats.direct_profile_urls += profileUrls.length;
-    if (profileUrls.length === 0) {
-      stats.no_direct_brokerage_hint++;
-      if (effectiveBrokerage(row)) brokerageSamples.add(effectiveBrokerage(row)!);
-    }
-    for (const profileUrl of profileUrls) {
-      await sleep(DELAY_MS);
-      const html = await fetchText(profileUrl);
-      if (!html) continue;
-      stats.profile_pages++;
-      const candidate = verifyEmailPage(html, row, profileUrl);
-      if (candidate) return candidate;
-    }
-
-    const homeUrls = homepageUrls(row);
-    stats.homepage_urls += homeUrls.length;
-    for (const homeUrl of homeUrls) {
-      await sleep(DELAY_MS);
-      const homeHtml = await fetchText(homeUrl);
-      if (!homeHtml) continue;
-      stats.profile_pages++;
-      const homeCandidate = verifyEmailPage(homeHtml, row, homeUrl);
-      if (homeCandidate) return homeCandidate;
-
-      const profileLinks = extractLikelyProfileLinks(homeUrl, homeHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE);
-      for (const profileLink of profileLinks) {
-        await sleep(DELAY_MS);
-        const profileHtml = await fetchText(profileLink);
-        if (!profileHtml) continue;
-        stats.profile_pages++;
-        const candidate = verifyEmailPage(profileHtml, row, profileLink);
-        if (candidate) return candidate;
-      }
-    }
-  }
-
+async function searchPublicEmail(row: ListingRow): Promise<Candidate | null> {
   const name = splitName(row);
   if (!name) return null;
   const phone = row.listing_agent_phone?.replace(/[^\d]/g, "");
   const phoneText = row.listing_agent_phone ?? "";
   const mlsNumber = rawString(row, ["mlsNumber", "mls_number", "mlsId", "mls_id"]);
   const address = row.address?.replace(/\s+/g, " ").trim();
-  const portalQueries = FAST_SEARCH ? [] : ["realtor.com", "zillow.com", "homes.com", "redfin.com", "realty.com", "ezhomesearch.com", "coldwellbankerhomes.com"].flatMap(domain => [
+  const brokerage = effectiveBrokerage(row);
+  const portalQueries = FAST_SEARCH ? [] : ["realtor.com", "zillow.com", "homes.com", "redfin.com", "compass.com", "realty.com", "ezhomesearch.com", "coldwellbankerhomes.com"].flatMap(domain => [
     [`site:${domain}`, mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
     [`site:${domain}`, address ? `"${address}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
     [`site:${domain}`, `"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
-    [`site:${domain}`, `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "agent"].filter(Boolean).join(" "),
+    [`site:${domain}`, `"${name.full}"`, brokerage ? `"${brokerage}"` : "", "agent"].filter(Boolean).join(" "),
   ]);
   const listingContextQueries = [
-    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
+    [phoneText ? `"${phoneText}"` : "", `"${name.full}"`, "email"].filter(Boolean).join(" "),
+    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, brokerage ? `"${brokerage}"` : "", "email"].filter(Boolean).join(" "),
     [address ? `"${address}"` : "", `"${name.full}"`, "listing agent email"].filter(Boolean).join(" "),
-    [address ? `"${address}"` : "", effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
+    [address ? `"${address}"` : "", brokerage ? `"${brokerage}"` : "", "email"].filter(Boolean).join(" "),
   ];
   const identityQueries = [
-    [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, brokerage ? `"${brokerage}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
-    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
-    [address ? `"${address}"` : "", `"${name.full}"`, "listing agent email"].filter(Boolean).join(" "),
-    [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phone ? `"${phone}"` : "", "realtor email"].filter(Boolean).join(" "),
     [phoneText ? `"${phoneText}"` : "", "realtor email"].filter(Boolean).join(" "),
-    [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email realtor agent"].filter(Boolean).join(" "),
-    [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "contact"].filter(Boolean).join(" "),
-    [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, brokerage ? `"${brokerage}"` : "", "email realtor agent"].filter(Boolean).join(" "),
+    [`"${name.full}"`, brokerage ? `"${brokerage}"` : "", "contact"].filter(Boolean).join(" "),
   ];
   const queries = [
     ...listingContextQueries,
@@ -824,6 +751,86 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     const candidate = verifyEmailPage(html, row, link);
     if (candidate) return candidate;
   }
+  return null;
+}
+
+async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
+  if (INCLUDE_LISTING_PAGE && row.listing_url) {
+    await sleep(DELAY_MS);
+    const listingHtml = await fetchText(row.listing_url);
+    if (listingHtml) {
+      stats.profile_pages++;
+      const listingCandidate = verifyEmailPage(listingHtml, row, row.listing_url);
+      if (listingCandidate) return listingCandidate;
+      for (const profileLink of extractLikelyProfileLinks(row.listing_url, listingHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
+        await sleep(DELAY_MS);
+        const profileHtml = await fetchText(profileLink);
+        if (!profileHtml) continue;
+        stats.profile_pages++;
+        const candidate = verifyEmailPage(profileHtml, row, profileLink);
+        if (candidate) return candidate;
+      }
+    }
+  }
+
+  const searchCandidate = await searchPublicEmail(row);
+  if (searchCandidate) return searchCandidate;
+
+  if (!FAST_SEARCH) {
+    for (const seedUrl of brokerageSeedUrls(row)) {
+      await sleep(DELAY_MS);
+      const seedHtml = await fetchText(seedUrl);
+      if (!seedHtml) continue;
+      stats.profile_pages++;
+      const seedCandidate = verifyEmailPage(seedHtml, row, seedUrl);
+      if (seedCandidate) return seedCandidate;
+      for (const profileLink of extractBrokerageRosterLinks(seedUrl, seedHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE)) {
+        await sleep(DELAY_MS);
+        const profileHtml = await fetchText(profileLink);
+        if (!profileHtml) continue;
+        stats.profile_pages++;
+        const candidate = verifyEmailPage(profileHtml, row, profileLink);
+        if (candidate) return candidate;
+      }
+    }
+
+    const profileUrls = directProfileUrls(row).slice(0, MAX_DIRECT_PROFILE_URLS);
+    stats.direct_profile_urls += profileUrls.length;
+    if (profileUrls.length === 0) {
+      stats.no_direct_brokerage_hint++;
+      if (effectiveBrokerage(row)) brokerageSamples.add(effectiveBrokerage(row)!);
+    }
+    for (const profileUrl of profileUrls) {
+      await sleep(DELAY_MS);
+      const html = await fetchText(profileUrl);
+      if (!html) continue;
+      stats.profile_pages++;
+      const candidate = verifyEmailPage(html, row, profileUrl);
+      if (candidate) return candidate;
+    }
+
+    const homeUrls = homepageUrls(row);
+    stats.homepage_urls += homeUrls.length;
+    for (const homeUrl of homeUrls) {
+      await sleep(DELAY_MS);
+      const homeHtml = await fetchText(homeUrl);
+      if (!homeHtml) continue;
+      stats.profile_pages++;
+      const homeCandidate = verifyEmailPage(homeHtml, row, homeUrl);
+      if (homeCandidate) return homeCandidate;
+
+      const profileLinks = extractLikelyProfileLinks(homeUrl, homeHtml, row).slice(0, MAX_PROFILE_LINKS_PER_PAGE);
+      for (const profileLink of profileLinks) {
+        await sleep(DELAY_MS);
+        const profileHtml = await fetchText(profileLink);
+        if (!profileHtml) continue;
+        stats.profile_pages++;
+        const candidate = verifyEmailPage(profileHtml, row, profileLink);
+        if (candidate) return candidate;
+      }
+    }
+  }
+
   return null;
 }
 
