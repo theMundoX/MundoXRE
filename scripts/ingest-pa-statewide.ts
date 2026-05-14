@@ -108,6 +108,7 @@ async function main() {
   let totalInserted = 0;
   let totalErrors = 0;
   const startTime = Date.now();
+  let consecutiveZeroInsertPages = 0;
 
   while (offset < totalCount) {
     const records = await fetchPage(offset);
@@ -188,6 +189,17 @@ async function main() {
     const pct = ((offset + records.length) / totalCount * 100).toFixed(1);
     const eta = rate > 0 ? ((totalCount - offset - records.length) / rate / 60).toFixed(0) : "?";
     console.log(`[${elapsed}s] offset=${offset} | ${pct}% | inserted=${totalInserted.toLocaleString()} | errors=${totalErrors} | ${rate.toFixed(0)}/s | ETA ${eta}min`);
+
+    if (dedupedRows.length > 0 && totalInserted === 0 && totalErrors >= offset + records.length) {
+      consecutiveZeroInsertPages++;
+    } else if (totalInserted > 0) {
+      consecutiveZeroInsertPages = 0;
+    }
+    if (consecutiveZeroInsertPages >= 3) {
+      throw new Error(
+        `PA parcel ingest is failing every row with zero inserts after ${offset + records.length} records; aborting early to avoid a noisy full-county retry.`
+      );
+    }
 
     offset += records.length;
   }

@@ -41,7 +41,7 @@ export async function makeDbClient(): Promise<DbClient> {
 
   if (/^https?:\/\//i.test(databaseUrl)) {
     const endpoint = databaseUrl.replace(/\/$/, "");
-    const key = firstEnv("SUPABASE_SERVICE_KEY") ?? "";
+    const key = firstEnv("SUPABASE_SERVICE_KEY", "SUPABASE_SERVICE_ROLE_KEY") ?? "";
     return {
       async query<T = Record<string, unknown>>(query: string, params: unknown[] = []) {
         const response = await fetch(endpoint, {
