@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 
-const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
+const basePgUrl = (process.env.MXRE_PG_URL || process.env.MXRE_DIRECT_PG_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -64,7 +65,17 @@ async function main() {
         and first_name_key <> ''
         and last_name_key <> ''
         and phone_key ~ '^\\d{10}$'
-        and (agent_contact_source = 'realestateapi' or agent_contact_confidence = 'public_profile_verified')
+        and (
+          agent_contact_source in ('realestateapi', 'zillow_api_realestate101')
+          or (
+            agent_contact_source = 'public_agent_profile'
+            and agent_contact_confidence in (
+              'public_profile_verified',
+              'public_profile_name_email_verified',
+              'public_profile_name_email_proximity'
+            )
+          )
+        )
         and lower(trim(listing_agent_email)) !~ '^(info|support|offers|admin|office|contact|hello|team|sales|leads|noreply)@'
       group by 1,2,3
       having count(distinct lower(trim(listing_agent_email))) = 1
@@ -100,7 +111,17 @@ async function main() {
         and first_name_key <> ''
         and last_name_key <> ''
         and phone_key ~ '^\\d{10}$'
-        and (agent_contact_source = 'realestateapi' or agent_contact_confidence = 'public_profile_verified')
+        and (
+          agent_contact_source in ('realestateapi', 'zillow_api_realestate101')
+          or (
+            agent_contact_source = 'public_agent_profile'
+            and agent_contact_confidence in (
+              'public_profile_verified',
+              'public_profile_name_email_verified',
+              'public_profile_name_email_proximity'
+            )
+          )
+        )
         and lower(trim(listing_agent_email)) !~ '^(info|support|offers|admin|office|contact|hello|team|sales|leads|noreply)@'
       group by 1,2,3
       having count(distinct lower(trim(listing_agent_email))) = 1

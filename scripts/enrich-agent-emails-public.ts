@@ -13,11 +13,13 @@ const MAX_DIRECT_PROFILE_URLS = Math.max(0, parseInt(process.argv.find(a => a.st
 const MAX_PROFILE_LINKS_PER_PAGE = Math.max(0, parseInt(process.argv.find(a => a.startsWith("--max-profile-links-per-page="))?.split("=")[1] ?? "6", 10));
 const FETCH_TIMEOUT_MS = Math.max(2_500, parseInt(process.argv.find(a => a.startsWith("--fetch-timeout-ms="))?.split("=")[1] ?? "8000", 10));
 const ROW_TIMEOUT_MS = Math.max(5_000, parseInt(process.argv.find(a => a.startsWith("--row-timeout-ms="))?.split("=")[1] ?? "45000", 10));
+const MAX_PAGE_CHARS = Math.max(50_000, parseInt(process.argv.find(a => a.startsWith("--max-page-chars="))?.split("=")[1] ?? "750000", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
 const DEBUG = process.argv.includes("--debug");
 const DISABLE_DUCKDUCKGO = process.argv.includes("--disable-duckduckgo");
 const ALLOW_NO_PHONE = process.argv.includes("--allow-no-phone");
 const ALLOW_NAME_EMAIL_PROFILE = process.argv.includes("--allow-name-email-profile");
+const INCLUDE_LISTING_PAGE = process.argv.includes("--include-listing-page");
 const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 const ROW_ID = arg("id");
@@ -519,7 +521,8 @@ async function fetchText(url: string): Promise<string | null> {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!response.ok) return null;
-    return response.text();
+    const text = await response.text();
+    return text.length > MAX_PAGE_CHARS ? text.slice(0, MAX_PAGE_CHARS) : text;
   } catch {
     return null;
   }
@@ -657,7 +660,7 @@ async function saveVerifiedEmail(row: ListingRow, candidate: Candidate): Promise
 }
 
 async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
-  if (row.listing_url) {
+  if (INCLUDE_LISTING_PAGE && row.listing_url) {
     await sleep(DELAY_MS);
     const listingHtml = await fetchText(row.listing_url);
     if (listingHtml) {
@@ -742,15 +745,14 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     [`site:${domain}`, `"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
     [`site:${domain}`, `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "agent"].filter(Boolean).join(" "),
   ]);
-  const queries = [
-    [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
-    [`"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
-    [phoneText ? `"${phoneText}"` : "", `"${name.full}"`, "email"].filter(Boolean).join(" "),
-    [`"${name.full}"`, `"@"`, "email"].filter(Boolean).join(" "),
-    [`"${name.full}"`, `"gmail.com"`].filter(Boolean).join(" "),
+  const listingContextQueries = [
+    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
+    [address ? `"${address}"` : "", `"${name.full}"`, "listing agent email"].filter(Boolean).join(" "),
+    [address ? `"${address}"` : "", effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
+  ];
+  const identityQueries = [
     [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
-    ...portalQueries,
     [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email"].filter(Boolean).join(" "),
     [address ? `"${address}"` : "", `"${name.full}"`, "listing agent email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
@@ -759,6 +761,11 @@ async function findPublicEmail(row: ListingRow): Promise<Candidate | null> {
     [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "email realtor agent"].filter(Boolean).join(" "),
     [`"${name.full}"`, effectiveBrokerage(row) ? `"${effectiveBrokerage(row)}"` : "", "contact"].filter(Boolean).join(" "),
     [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
+  ];
+  const queries = [
+    ...listingContextQueries,
+    ...portalQueries,
+    ...identityQueries,
   ].filter((query, index, all) => query && all.indexOf(query) === index);
 
   const links: string[] = [];
@@ -829,6 +836,7 @@ async function main() {
   console.log(`Allow full-name + profile email verification: ${ALLOW_NAME_EMAIL_PROFILE}`);
   if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
   if (BROKERAGE_PATTERN) console.log(`Brokerage filter: ${BROKERAGE_PATTERN}`);
+  console.log(`Include listing page: ${INCLUDE_LISTING_PAGE}; max page chars ${MAX_PAGE_CHARS}`);
 
   const filters = [
     STATE ? `state_code = ${sql(STATE)}` : null,
@@ -848,9 +856,32 @@ async function main() {
       and (listing_agent_phone is not null or listing_brokerage is not null)
       and coalesce(listing_agent_first_name, listing_agent_name) is not null
       ${filters ? `and ${filters}` : ""}
-    order by last_seen_at desc nulls last
-    limit ${LIMIT};
+    order by
+      case
+        when listing_agent_phone is not null and listing_brokerage is not null then 0
+        when listing_agent_phone is not null then 1
+        when listing_brokerage is not null then 2
+        else 3
+      end,
+      last_seen_at desc nulls last
+    limit ${Math.max(LIMIT * 4, LIMIT)};
   `) as ListingRow[];
+  const uniqueRows: ListingRow[] = [];
+  const seenAgents = new Set<string>();
+  for (const row of rows) {
+    const name = splitName(row);
+    const phone = normalizePhone(row.listing_agent_phone);
+    const brokerage = effectiveBrokerage(row)?.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() ?? "";
+    const key = phone
+      ? `phone:${phone}`
+      : name?.full
+        ? `name:${name.full.toLowerCase()}|brokerage:${brokerage}`
+        : `row:${row.id}`;
+    if (seenAgents.has(key)) continue;
+    seenAgents.add(key);
+    uniqueRows.push(row);
+    if (uniqueRows.length >= LIMIT) break;
+  }
 
   let found = 0;
   let updated = 0;
@@ -860,7 +891,7 @@ async function main() {
     scanned++;
     const label = row.listing_agent_name || [row.listing_agent_first_name, row.listing_agent_last_name].filter(Boolean).join(" ") || `listing ${row.id}`;
     const started = Date.now();
-    console.log(`  [${position}/${rows.length}] checking ${label} (${effectiveBrokerage(row) ?? "unknown brokerage"})`);
+    console.log(`  [${position}/${uniqueRows.length}] checking ${label} (${effectiveBrokerage(row) ?? "unknown brokerage"})`);
     if (DELAY_MS > 0) await sleep(DELAY_MS);
     let candidate: Candidate | null = null;
     try {
@@ -886,9 +917,9 @@ async function main() {
 
   let nextIndex = 0;
   const workers = Array.from({ length: Math.min(CONCURRENCY, rows.length) }, async () => {
-    while (nextIndex < rows.length) {
+    while (nextIndex < uniqueRows.length) {
       const index = nextIndex++;
-      await processRow(rows[index], index + 1);
+      await processRow(uniqueRows[index], index + 1);
     }
   });
   await Promise.all(workers);
@@ -897,6 +928,8 @@ async function main() {
     scanned,
     found,
     updated,
+    candidates_loaded: rows.length,
+    unique_agents: uniqueRows.length,
     dry_run: DRY_RUN,
     ...stats,
     brokerage_samples_without_hints: [...brokerageSamples].slice(0, 20),

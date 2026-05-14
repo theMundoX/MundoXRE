@@ -178,6 +178,20 @@ const steps: Step[] = [
     skip: SKIP_LISTINGS || SKIP_LISTING_QUALITY,
   },
   {
+    name: "Propagate verified Indianapolis agent emails by exact identity",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/propagate-agent-contact-emails.ts",
+      "--state=IN",
+      "--city=INDIANAPOLIS",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_LISTINGS || SKIP_LISTING_QUALITY,
+  },
+  {
     name: "Search public Indianapolis agent email profiles",
     command: [
       "npx",
@@ -195,6 +209,20 @@ const steps: Step[] = [
       "--row-timeout-ms=30000",
       "--allow-name-email-profile",
       "--disable-duckduckgo",
+      ...(DRY_RUN ? ["--dry-run"] : []),
+    ],
+    required: false,
+    supportsDryRun: true,
+    skip: SKIP_LISTINGS || SKIP_LISTING_QUALITY,
+  },
+  {
+    name: "Propagate newly verified Indianapolis agent emails",
+    command: [
+      "npx",
+      "tsx",
+      "scripts/propagate-agent-contact-emails.ts",
+      "--state=IN",
+      "--city=INDIANAPOLIS",
       ...(DRY_RUN ? ["--dry-run"] : []),
     ],
     required: false,
