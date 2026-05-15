@@ -14,6 +14,7 @@ const MAX_PROFILE_LINKS_PER_PAGE = Math.max(0, parseInt(process.argv.find(a => a
 const FETCH_TIMEOUT_MS = Math.max(2_500, parseInt(process.argv.find(a => a.startsWith("--fetch-timeout-ms="))?.split("=")[1] ?? "8000", 10));
 const ROW_TIMEOUT_MS = Math.max(5_000, parseInt(process.argv.find(a => a.startsWith("--row-timeout-ms="))?.split("=")[1] ?? "45000", 10));
 const MAX_PAGE_CHARS = Math.max(50_000, parseInt(process.argv.find(a => a.startsWith("--max-page-chars="))?.split("=")[1] ?? "750000", 10));
+const RETRY_AFTER_HOURS = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--retry-after-hours="))?.split("=")[1] ?? "72", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
 const DEBUG = process.argv.includes("--debug");
 const DISABLE_DUCKDUCKGO = process.argv.includes("--disable-duckduckgo");
@@ -659,6 +660,28 @@ async function saveVerifiedEmail(row: ListingRow, candidate: Candidate): Promise
   return Number(updated?.[0]?.updated ?? 0);
 }
 
+async function saveAttempt(row: ListingRow, status: "no_verified_email" | "failed_source", reason: string): Promise<number> {
+  const attempt = {
+    status,
+    reason: reason.slice(0, 500),
+    observedAt: new Date().toISOString(),
+    propagation: "matched_active_agent_rows",
+  };
+  const updated = await pg(`
+    with updated as (
+      update listing_signals
+         set raw = coalesce(raw, '{}'::jsonb) || ${sql(JSON.stringify({ publicAgentEmailAttempt: attempt }))}::jsonb,
+             updated_at = now()
+       where is_on_market = true
+         and listing_agent_email is null
+         and ${matchingAgentWhere(row)}
+       returning id
+    )
+    select count(*)::int as updated from updated;
+  `);
+  return Number(updated?.[0]?.updated ?? 0);
+}
+
 async function searchPublicEmail(row: ListingRow): Promise<Candidate | null> {
   const name = splitName(row);
   if (!name) return null;
@@ -839,6 +862,7 @@ async function main() {
   console.log(`Limit: ${LIMIT}; delay ${DELAY_MS}ms; concurrency ${CONCURRENCY}; fast search ${FAST_SEARCH}; dry run ${DRY_RUN}`);
   console.log(`Search caps: ${MAX_SEARCH_QUERIES} queries, ${MAX_SEARCH_LINKS} links`);
   console.log(`Timeouts: fetch ${FETCH_TIMEOUT_MS}ms, row ${ROW_TIMEOUT_MS}ms`);
+  console.log(`Retry failed/no-hit rows after: ${RETRY_AFTER_HOURS}h`);
   console.log(`Allow no-phone rows: ${ALLOW_NO_PHONE}`);
   console.log(`Allow full-name + profile email verification: ${ALLOW_NAME_EMAIL_PROFILE}`);
   if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
@@ -859,6 +883,10 @@ async function main() {
     from listing_signals
     where is_on_market = true
       and listing_agent_email is null
+      and (
+        raw #>> '{publicAgentEmailAttempt,observedAt}' is null
+        or (raw #>> '{publicAgentEmailAttempt,observedAt}')::timestamptz < now() - interval '${RETRY_AFTER_HOURS} hours'
+      )
       and (${ALLOW_NO_PHONE ? "true" : "listing_agent_phone is not null"})
       and (listing_agent_phone is not null or listing_brokerage is not null)
       and coalesce(listing_agent_first_name, listing_agent_name) is not null
@@ -908,10 +936,12 @@ async function main() {
       if (message.includes("timed out")) stats.row_timeouts++;
       else stats.row_errors++;
       console.log(`    skipped: ${message}`);
+      if (!DRY_RUN) await saveAttempt(row, "failed_source", message);
       return;
     }
     if (!candidate) {
       console.log(`    no verified email (${Date.now() - started}ms)`);
+      if (!DRY_RUN) await saveAttempt(row, "no_verified_email", "searched public web/profile/listing results; no identity-verified email found");
       return;
     }
     found++;
