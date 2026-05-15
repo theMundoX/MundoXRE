@@ -277,7 +277,18 @@ function extractEmails(html: string): string[] {
     .replace(/\s+\[dot\]\s+|\s+\(dot\)\s+|\s+ dot \s+/gi, ".");
   const matches = decoded.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
   return [...new Set(matches.map(email => email.toLowerCase()))]
-    .filter(email => !email.endsWith(".png") && !email.endsWith(".jpg") && !email.includes("example.com"));
+    .filter(isUsableExtractedEmail);
+}
+
+function isUsableExtractedEmail(email: string): boolean {
+  if (email.endsWith(".png") || email.endsWith(".jpg") || email.includes("example.com")) return false;
+  const domain = email.split("@")[1] ?? "";
+  const tld = domain.split(".").pop()?.toLowerCase() ?? "";
+  const knownTlds = new Set([
+    "com", "net", "org", "us", "co", "io", "biz", "info",
+    "realty", "realtor", "homes", "properties", "agency",
+  ]);
+  return knownTlds.has(tld);
 }
 
 function isGenericOrHostedEmail(email: string): boolean {
