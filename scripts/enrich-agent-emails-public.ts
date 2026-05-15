@@ -275,9 +275,19 @@ function extractEmails(html: string): string[] {
   const decoded = cleanText(html)
     .replace(/\s+\[at\]\s+|\s+\(at\)\s+|\s+ at \s+/gi, "@")
     .replace(/\s+\[dot\]\s+|\s+\(dot\)\s+|\s+ dot \s+/gi, ".");
-  const matches = decoded.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
-  return [...new Set(matches.map(email => email.toLowerCase()))]
+  const tlds = "com|net|org|us|co|io|biz|info|realty|realtor|homes|properties|agency";
+  const matches = decoded.match(new RegExp(`[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.(${tlds})(?=[^A-Z]|$)`, "gi")) ?? [];
+  return [...new Set(matches.map(email => normalizeExtractedEmail(email)).filter(Boolean) as string[])]
     .filter(isUsableExtractedEmail);
+}
+
+function normalizeExtractedEmail(email: string): string | null {
+  const lower = email.toLowerCase();
+  const at = lower.indexOf("@");
+  if (at < 1) return null;
+  const local = lower.slice(0, at).replace(/^\d{7,}(?=[a-z])/, "");
+  if (!local || local.length > 64) return null;
+  return `${local}${lower.slice(at)}`;
 }
 
 function isUsableExtractedEmail(email: string): boolean {
