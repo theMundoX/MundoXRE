@@ -659,31 +659,12 @@ export async function upsertListingSignals(signals: ListingSignal[]) {
     }
   }
 
-  const rows = signals.map((s) => {
+  const rowsByKey = new Map<string, ReturnType<typeof buildListingSignalUpsertRow>>();
+  for (const s of signals) {
     const existing = existingRows.get(listingSignalKey(s));
-    return {
-      ...s,
-      property_id: s.property_id ?? existing?.property_id,
-      listing_agent_name: s.listing_agent_name ?? existing?.listing_agent_name,
-      listing_agent_first_name: s.listing_agent_first_name ?? existing?.listing_agent_first_name,
-      listing_agent_last_name: s.listing_agent_last_name ?? existing?.listing_agent_last_name,
-      listing_agent_email: s.listing_agent_email ?? existing?.listing_agent_email,
-      listing_agent_phone: s.listing_agent_phone ?? existing?.listing_agent_phone,
-      agent_contact_source: s.agent_contact_source ?? existing?.agent_contact_source,
-      agent_contact_confidence: s.agent_contact_confidence ?? existing?.agent_contact_confidence,
-      listing_brokerage: s.listing_brokerage ?? existing?.listing_brokerage,
-      creative_finance_score: s.creative_finance_score ?? existing?.creative_finance_score,
-      creative_finance_status: s.creative_finance_status ?? existing?.creative_finance_status,
-      creative_finance_terms: s.creative_finance_terms ?? existing?.creative_finance_terms,
-      creative_finance_negative_terms: s.creative_finance_negative_terms ?? existing?.creative_finance_negative_terms,
-      creative_finance_rate_text: s.creative_finance_rate_text ?? existing?.creative_finance_rate_text,
-      creative_finance_source: s.creative_finance_source ?? existing?.creative_finance_source,
-      creative_finance_observed_at: s.creative_finance_observed_at ?? existing?.creative_finance_observed_at,
-      first_seen_at: existing?.first_seen_at ?? s.first_seen_at,
-      raw: { ...(existing?.raw ?? {}), ...(s.raw ?? {}) },
-      updated_at: new Date().toISOString(),
-    };
-  });
+    rowsByKey.set(listingSignalKey(s), buildListingSignalUpsertRow(s, existing));
+  }
+  const rows = [...rowsByKey.values()];
   const { data, error } = await db
     .from("listing_signals")
     .upsert(rows, { onConflict: "address,city,state_code,listing_source" })
@@ -784,6 +765,31 @@ export async function getActiveListingsByArea(stateCode: string, city: string) {
 
 function listingSignalKey(signal: Pick<ListingSignal, "address" | "city" | "state_code" | "listing_source">): string {
   return `${signal.address}|${signal.city}|${signal.state_code}|${signal.listing_source}`;
+}
+
+function buildListingSignalUpsertRow(s: ListingSignal, existing?: ListingSignal) {
+  return {
+    ...s,
+    property_id: s.property_id ?? existing?.property_id,
+    listing_agent_name: s.listing_agent_name ?? existing?.listing_agent_name,
+    listing_agent_first_name: s.listing_agent_first_name ?? existing?.listing_agent_first_name,
+    listing_agent_last_name: s.listing_agent_last_name ?? existing?.listing_agent_last_name,
+    listing_agent_email: s.listing_agent_email ?? existing?.listing_agent_email,
+    listing_agent_phone: s.listing_agent_phone ?? existing?.listing_agent_phone,
+    agent_contact_source: s.agent_contact_source ?? existing?.agent_contact_source,
+    agent_contact_confidence: s.agent_contact_confidence ?? existing?.agent_contact_confidence,
+    listing_brokerage: s.listing_brokerage ?? existing?.listing_brokerage,
+    creative_finance_score: s.creative_finance_score ?? existing?.creative_finance_score,
+    creative_finance_status: s.creative_finance_status ?? existing?.creative_finance_status,
+    creative_finance_terms: s.creative_finance_terms ?? existing?.creative_finance_terms,
+    creative_finance_negative_terms: s.creative_finance_negative_terms ?? existing?.creative_finance_negative_terms,
+    creative_finance_rate_text: s.creative_finance_rate_text ?? existing?.creative_finance_rate_text,
+    creative_finance_source: s.creative_finance_source ?? existing?.creative_finance_source,
+    creative_finance_observed_at: s.creative_finance_observed_at ?? existing?.creative_finance_observed_at,
+    first_seen_at: existing?.first_seen_at ?? s.first_seen_at,
+    raw: { ...(existing?.raw ?? {}), ...(s.raw ?? {}) },
+    updated_at: new Date().toISOString(),
+  };
 }
 
 function rawStatus(raw: Record<string, unknown> | undefined): string | undefined {
