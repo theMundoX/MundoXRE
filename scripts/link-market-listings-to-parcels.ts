@@ -194,7 +194,6 @@ async function loadListings(): Promise<ListingRow[]> {
   for (const chunk of chunks(propertyIds, 500)) {
     const { data, error } = await db.from("properties")
       .select("id")
-      .eq("county_id", COUNTY_ID)
       .in("id", chunk)
       .like("source", "listing_signal_shell:%");
     if (error) throw new Error(`Failed to load current shell properties: ${error.message}`);

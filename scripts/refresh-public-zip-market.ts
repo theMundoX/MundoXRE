@@ -39,7 +39,8 @@ type Market = {
   state: string;
   city: string;
   countyId: number;
-  parcelCommand: string[];
+  parcelCommands: Array<{ name: string; command: string[] }>;
+  postLinkCommands?: Array<{ name: string; command: string[] }>;
   zips: string[];
   detailLimit: string;
 };
@@ -51,7 +52,16 @@ const MARKETS: Record<string, Market> = {
     state: "AL",
     city: "BIRMINGHAM",
     countyId: 1973348,
-    parcelCommand: ["npx", "tsx", "scripts/ingest-jefferson-al.ts"],
+    parcelCommands: [
+      { name: "Ingest Jefferson County public parcels", command: ["npx", "tsx", "scripts/ingest-jefferson-al.ts"] },
+      { name: "Ingest Shelby County public parcels", command: ["npx", "tsx", "scripts/ingest-shelby-al.ts"] },
+    ],
+    postLinkCommands: [
+      {
+        name: "Relink Shelby County listing shells",
+        command: ["npx", "tsx", "scripts/link-market-listings-to-parcels.ts", "--state=AL", "--city=BIRMINGHAM", "--county_id=2338841", "--relink-existing-shells", "--limit=5000"],
+      },
+    ],
     zips: [
       "35203", "35204", "35205", "35206", "35207", "35208", "35209", "35210", "35211",
       "35212", "35213", "35214", "35215", "35216", "35217", "35218", "35222", "35223",
@@ -65,7 +75,9 @@ const MARKETS: Record<string, Market> = {
     state: "MI",
     city: "DETROIT",
     countyId: 1973412,
-    parcelCommand: ["npx", "tsx", "scripts/ingest-detroit-mi.ts"],
+    parcelCommands: [
+      { name: "Ingest public parcels", command: ["npx", "tsx", "scripts/ingest-detroit-mi.ts"] },
+    ],
     zips: [
       "48201", "48202", "48203", "48204", "48205", "48206", "48207", "48208", "48209",
       "48210", "48211", "48212", "48213", "48214", "48215", "48216", "48217", "48219",
@@ -181,7 +193,13 @@ async function main() {
   console.log(`Result log: ${resultPath}`);
 
   const steps: Step[] = [
-    { name: "Ingest public parcels", command: market.parcelCommand, required: true, skip: SKIP_PARCELS, timeoutMs: 60 * 60_000 },
+    ...market.parcelCommands.map(parcelStep => ({
+      name: parcelStep.name,
+      command: parcelStep.command,
+      required: true,
+      skip: SKIP_PARCELS,
+      timeoutMs: 60 * 60_000,
+    })),
     {
       name: "Refresh Redfin listing signals",
       command: ["npx", "tsx", "scripts/ingest-listings-fast.ts", "--state", market.state, "--zips", market.zips.join(","), "--concurrency", "3", "--skip-match", "--allow-partial"],
@@ -196,6 +214,13 @@ async function main() {
       skip: SKIP_LISTINGS,
       timeoutMs: 20 * 60_000,
     },
+    ...(market.postLinkCommands ?? []).map(postLinkStep => ({
+      name: postLinkStep.name,
+      command: postLinkStep.command,
+      required: false,
+      skip: SKIP_LISTINGS,
+      timeoutMs: 20 * 60_000,
+    })),
     {
       name: "Enrich Redfin detail pages",
       command: ["npx", "tsx", "scripts/enrich-redfin-detail-pages.ts", `--state=${market.state}`, `--city=${market.city}`, `--limit=${market.detailLimit}`, "--delay-ms=300"],
