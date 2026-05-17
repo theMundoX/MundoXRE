@@ -1,9 +1,13 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
+import { firstEnv, hydrateWindowsUserEnv } from "./lib/env.ts";
 
-const basePgUrl = (process.env.MXRE_PG_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
+hydrateWindowsUserEnv();
+
+const basePgUrl = (firstEnv("MXRE_PG_URL") || firstEnv("SUPABASE_URL") || "").replace(/\/$/, "");
 const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
-const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
+const PG_KEY = firstEnv("SUPABASE_SERVICE_KEY") ?? "";
+const PG_QUERY_TIMEOUT_MS = 300_000;
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "250", 10));
 const DELAY_MS = Math.max(250, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? "1200", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -34,7 +38,7 @@ async function pg(query: string): Promise<Record<string, unknown>[]> {
     method: "POST",
     headers: { apikey: PG_KEY, Authorization: `Bearer ${PG_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
-    signal: AbortSignal.timeout(120_000),
+    signal: AbortSignal.timeout(PG_QUERY_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`pg/query ${response.status}: ${await response.text()}`);
   return response.json();
