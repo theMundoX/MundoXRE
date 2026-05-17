@@ -29,6 +29,7 @@ const SKIP_LISTINGS = hasFlag("skip-listings");
 const SKIP_DETAIL = hasFlag("skip-detail");
 const SKIP_CONTACTS = hasFlag("skip-agent-contacts");
 const SKIP_CREATIVE = hasFlag("skip-creative");
+const SKIP_AUDITS = hasFlag("skip-audits");
 const SKIP_DASHBOARD = hasFlag("skip-dashboard");
 const MARKET = valueArg("market");
 
@@ -213,6 +214,27 @@ async function main() {
       command: ["npx", "tsx", "scripts/score-creative-finance-signals.ts", `--state=${market.state}`, `--city=${market.city}`, `--limit=${market.detailLimit}`],
       required: false,
       skip: SKIP_CREATIVE,
+    },
+    {
+      name: "Audit listing agent coverage",
+      command: ["npx", "tsx", "scripts/audit-on-market-agent-coverage.ts", `--state=${market.state}`, `--city=${market.city}`],
+      required: false,
+      skip: SKIP_AUDITS,
+      timeoutMs: 10 * 60_000,
+    },
+    {
+      name: "Audit debt source coverage",
+      command: ["npx", "tsx", "scripts/audit-market-debt-source-coverage.ts", `--state=${market.state}`, `--city=${market.city}`, `--county_id=${market.countyId}`],
+      required: false,
+      skip: SKIP_AUDITS,
+      timeoutMs: 10 * 60_000,
+    },
+    {
+      name: "Summarize market readiness",
+      command: ["npx", "tsx", "scripts/market-readiness-summary.ts", `--state=${market.state}`, `--city=${market.city}`, `--county_id=${market.countyId}`],
+      required: false,
+      skip: SKIP_AUDITS,
+      timeoutMs: 10 * 60_000,
     },
     {
       name: "Regenerate unified coverage dashboard",
