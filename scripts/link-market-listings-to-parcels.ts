@@ -12,6 +12,9 @@
 
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
+
+hydrateWindowsUserEnv();
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(`--${name}`);
@@ -22,6 +25,7 @@ const CITY = (arg("city") ?? "").toUpperCase();
 const COUNTY_ID = Number(arg("county_id") ?? arg("county-id"));
 const LIMIT = Math.max(1, Number(arg("limit") ?? "5000"));
 const DRY_RUN = flag("dry-run");
+const RELINK_EXISTING_SHELLS = flag("relink-existing-shells");
 
 if (!STATE || !CITY || !Number.isFinite(COUNTY_ID)) {
   console.error("Usage: npx tsx scripts/link-market-listings-to-parcels.ts --state=OH --city=COLUMBUS --county_id=1698985 [--dry-run] [--limit=5000]");
@@ -36,6 +40,7 @@ type ListingRow = {
   id: number;
   address: string | null;
   zip: string | null;
+  property_id?: number | null;
   listing_url?: string | null;
   last_seen_at?: string | null;
 };
@@ -47,11 +52,13 @@ type PropertyRow = {
   city?: string | null;
   parcel_id?: string | null;
   apn_formatted?: string | null;
+  source?: string | null;
 };
 
 type Match = {
   listingId: number;
   propertyId: number;
+  currentPropertyId?: number | null;
   strategy: string;
 };
 
@@ -165,22 +172,36 @@ async function loadListings(): Promise<ListingRow[]> {
   const rows: ListingRow[] = [];
   let offset = 0;
   while (rows.length < LIMIT) {
-    const { data, error } = await db.from("listing_signals")
-      .select("id,address,zip,listing_url,last_seen_at")
+    let query = db.from("listing_signals")
+      .select("id,address,zip,property_id,listing_url,last_seen_at")
       .eq("state_code", STATE)
       .ilike("city", CITY)
       .eq("is_on_market", true)
-      .is("property_id", null)
       .not("address", "is", null)
-      .order("last_seen_at", { ascending: false, nullsFirst: false })
-      .range(offset, Math.min(offset + 999, LIMIT - 1));
+      .order("last_seen_at", { ascending: false, nullsFirst: false });
+    query = RELINK_EXISTING_SHELLS ? query.not("property_id", "is", null) : query.is("property_id", null);
+    const { data, error } = await query.range(offset, Math.min(offset + 999, LIMIT - 1));
     if (error) throw new Error(`Failed to load listings: ${error.message}`);
     if (!data || data.length === 0) break;
     rows.push(...data as ListingRow[]);
     offset += data.length;
     if (data.length < 1000) break;
   }
-  return rows;
+  if (!RELINK_EXISTING_SHELLS) return rows;
+
+  const propertyIds = [...new Set(rows.map((row) => row.property_id).filter((id): id is number => Number.isFinite(id)))];
+  const shellIds = new Set<number>();
+  for (const chunk of chunks(propertyIds, 500)) {
+    const { data, error } = await db.from("properties")
+      .select("id")
+      .eq("county_id", COUNTY_ID)
+      .in("id", chunk)
+      .like("source", "listing_signal_shell:%");
+    if (error) throw new Error(`Failed to load current shell properties: ${error.message}`);
+    for (const row of data ?? []) shellIds.add(Number(row.id));
+  }
+
+  return rows.filter((row) => row.property_id != null && shellIds.has(row.property_id));
 }
 
 async function loadProperties(zips: string[], numbers: string[]): Promise<PropertyRow[]> {
@@ -189,7 +210,7 @@ async function loadProperties(zips: string[], numbers: string[]): Promise<Proper
     let offset = 0;
     while (true) {
       const { data, error } = await db.from("properties")
-        .select("id,address,zip,city,parcel_id,apn_formatted")
+        .select("id,address,zip,city,parcel_id,apn_formatted,source")
         .eq("county_id", COUNTY_ID)
         .eq("state_code", STATE)
         .in("zip", zipChunk)
@@ -197,7 +218,10 @@ async function loadProperties(zips: string[], numbers: string[]): Promise<Proper
         .range(offset, offset + 999);
       if (error) throw new Error(`Failed to load properties: ${error.message}`);
       if (!data || data.length === 0) break;
-      rows.push(...(data as PropertyRow[]).filter((row) => numbers.includes(streetNumber(row.address))));
+      rows.push(...(data as PropertyRow[]).filter((row) =>
+        !String(row.source ?? "").startsWith("listing_signal_shell:")
+        && numbers.includes(streetNumber(row.address))
+      ));
       offset += data.length;
       if (data.length < 1000) break;
     }
@@ -215,10 +239,13 @@ async function updateMatches(matches: Match[]): Promise<void> {
   if (DRY_RUN || matches.length === 0) return;
   for (const chunk of chunks(matches, 100)) {
     for (const match of chunk) {
-      const { error } = await db.from("listing_signals")
+      let query = db.from("listing_signals")
         .update({ property_id: match.propertyId, updated_at: new Date().toISOString() })
-        .eq("id", match.listingId)
-        .is("property_id", null);
+        .eq("id", match.listingId);
+      query = RELINK_EXISTING_SHELLS
+        ? query.eq("property_id", match.currentPropertyId)
+        : query.is("property_id", null);
+      const { error } = await query;
       if (error) throw new Error(`Failed to update listing ${match.listingId}: ${error.message}`);
     }
   }
@@ -226,7 +253,7 @@ async function updateMatches(matches: Match[]): Promise<void> {
 
 async function main(): Promise<void> {
   console.log("MXRE market listing to parcel linker");
-  console.log(JSON.stringify({ state: STATE, city: CITY, county_id: COUNTY_ID, limit: LIMIT, dry_run: DRY_RUN }, null, 2));
+  console.log(JSON.stringify({ state: STATE, city: CITY, county_id: COUNTY_ID, limit: LIMIT, dry_run: DRY_RUN, relink_existing_shells: RELINK_EXISTING_SHELLS }, null, 2));
 
   const listings = await loadListings();
   const zips = [...new Set(listings.map((row) => normZip(row.zip)).filter(Boolean))].sort();
@@ -260,7 +287,7 @@ async function main(): Promise<void> {
     for (const { key, strategy } of addressKeys(listing.address)) {
       const propertyId = uniqueCandidate(index, zip, key);
       if (propertyId) {
-        matched = { listingId: listing.id, propertyId, strategy };
+        matched = { listingId: listing.id, propertyId, currentPropertyId: listing.property_id, strategy };
         break;
       }
       const candidates = index.get(`${zip}|${key}`);
@@ -273,7 +300,7 @@ async function main(): Promise<void> {
         for (const { key } of addressKeys(candidate)) {
           const propertyId = uniqueCandidate(index, zip, key);
           if (propertyId) {
-            matched = { listingId: listing.id, propertyId, strategy: "url_address_fallback" };
+            matched = { listingId: listing.id, propertyId, currentPropertyId: listing.property_id, strategy: "url_address_fallback" };
             break;
           }
         }
