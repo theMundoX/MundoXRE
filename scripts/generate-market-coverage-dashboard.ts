@@ -300,8 +300,8 @@ const MARKETS: MarketConfig[] = [
     countyName: "Jefferson",
     targetCountyHints: ["Jefferson County", "Shelby County"],
     listingCity: "BIRMINGHAM",
-    listingScopeNote: "Active build market using Birmingham ZIP Redfin-derived active rows; Jefferson County parcel/debt work is still pending.",
-    parcelScopeNote: "Expected starting counties: Jefferson County first, then Shelby County expansion. Parcel coverage remains a build gap until county ingest is added.",
+    listingScopeNote: "Active build market using Birmingham ZIP Redfin-derived active rows; Jefferson County parcel ingest is loaded; debt and Shelby County expansion remain build gaps.",
+    parcelScopeNote: "Jefferson County parcel coverage is loaded for Birmingham city rows. Shelby County expansion remains a build gap.",
     progressFiles: ["realestateapi-birmingham-al-progress.html"],
     rerunCommands: [
       "npx tsx scripts/ingest-listings-fast.ts --state AL --zips 35203,35204,35205,35206,35207,35208,35209,35210,35211,35212,35213,35214,35215,35216,35217,35218,35222,35223,35224,35226,35228,35233,35234,35235,35242,35243 --concurrency 3 --skip-match --allow-partial",
