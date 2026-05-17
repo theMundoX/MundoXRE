@@ -1,8 +1,12 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
+import { firstEnv, hydrateWindowsUserEnv } from "./lib/env.ts";
 
-const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
-const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
+hydrateWindowsUserEnv();
+
+const PG_URL = firstEnv("MXRE_PG_URL")
+  ?? `${(firstEnv("SUPABASE_URL") ?? "").replace(/\/$/, "")}/pg/query`;
+const PG_KEY = firstEnv("SUPABASE_SERVICE_KEY") ?? "";
 const arg = (name: string, fallback?: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? fallback;
 
