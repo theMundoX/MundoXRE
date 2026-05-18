@@ -58,6 +58,7 @@ const stats = {
   duckduckgo_links: 0,
   bing_links: 0,
   yahoo_links: 0,
+  startpage_links: 0,
   search_pages_without_links: 0,
   profile_pages: 0,
   pages_with_email: 0,
@@ -531,6 +532,30 @@ function extractResultsFromYahoo(html: string): Array<{ url: string; text: strin
     .slice(0, 8);
 }
 
+function extractResultsFromStartpage(html: string): Array<{ url: string; text: string }> {
+  const decodedHtml = decodeHtml(html);
+  const results: Array<{ url: string; text: string }> = [];
+  for (const match of decodedHtml.matchAll(/<a[^>]+href=["']([^"']+)["'][^>]*>/gi)) {
+    const href = decodeHtml(match[1]);
+    let url: string | null = null;
+    try {
+      const parsed = new URL(href, "https://www.startpage.com");
+      const target = parsed.searchParams.get("url") ?? parsed.searchParams.get("u") ?? parsed.searchParams.get("q");
+      url = target ? decodeURIComponent(target) : parsed.toString();
+    } catch {
+      url = normalizeSearchResultUrl(href);
+    }
+    if (!url || !/^https?:\/\//i.test(url)) continue;
+    const start = Math.max(0, match.index ?? 0);
+    const block = decodedHtml.slice(start, Math.min(decodedHtml.length, start + 2200));
+    results.push({ url, text: cleanText(block) });
+  }
+  return [...new Map(results
+    .filter(result => !/startpage\.com|bing\.com|microsoft\.com|google\.com|facebook\.com|instagram\.com|linkedin\.com/i.test(result.url))
+    .map(result => [result.url, result])).values()]
+    .slice(0, 8);
+}
+
 async function fetchText(url: string): Promise<string | null> {
   try {
     const response = await fetch(url, {
@@ -776,6 +801,17 @@ async function searchPublicEmail(row: ListingRow): Promise<Candidate | null> {
       if (yahooResults.length === 0) stats.search_pages_without_links++;
       resultSnippets.push(...yahooResults);
       links.push(...yahooResults.map(result => result.url));
+    }
+    const startpageUrl = `https://www.startpage.com/sp/search?query=${encodeURIComponent(query)}`;
+    const startpageHtml = await fetchText(startpageUrl);
+    if (startpageHtml) {
+      stats.search_pages++;
+      const startpageResults = extractResultsFromStartpage(startpageHtml);
+      stats.startpage_links += startpageResults.length;
+      stats.search_result_snippets += startpageResults.length;
+      if (startpageResults.length === 0) stats.search_pages_without_links++;
+      resultSnippets.push(...startpageResults);
+      links.push(...startpageResults.map(result => result.url));
     }
     if (links.length >= MAX_SEARCH_LINKS * 2) break;
   }

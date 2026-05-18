@@ -65,6 +65,7 @@ async function main() {
                and (
                  agent_contact_source = 'realestateapi'
                  or agent_contact_confidence = 'public_profile_verified'
+                 or agent_contact_confidence = 'public_search_verified'
                )
            )::int as agent_email_count,
            count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage_count,
