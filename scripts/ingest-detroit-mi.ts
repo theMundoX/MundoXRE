@@ -67,7 +67,7 @@ function text(value: unknown): string | null {
 
 function classify(desc: unknown): string {
   const value = String(desc ?? "").toUpperCase();
-  if (/APART|MULTI|DUPLEX|TWO|THREE|FOUR|FLAT/.test(value)) return "residential";
+  if (/APART|MULTI|DUPLEX|TWO|THREE|FOUR|FLAT/.test(value)) return "multifamily";
   if (/RES|SINGLE|CONDO|DWELL/.test(value)) return "residential";
   if (/COMM|RETAIL|OFFICE|BUSINESS/.test(value)) return "commercial";
   if (/IND|WAREHOUSE|MANUF/.test(value)) return "industrial";

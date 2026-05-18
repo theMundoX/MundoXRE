@@ -94,16 +94,25 @@ async function main() {
   console.log(`Dry run: ${DRY_RUN}`);
 
   await updateBatched(
-    "Franklin/CAGIS multifamily class codes",
+    "Small multifamily flags from property type/use",
     `asset_type = 'small_multifamily',
      asset_subtype = coalesce(asset_subtype, 'multifamily_unknown'),
-     total_units = case when coalesce(total_units,0) >= 2 then total_units else null end,
+     total_units = case
+       when coalesce(total_units,0) >= 2 then total_units
+       when coalesce(property_use,'') ~* '(FOUR|FOURPLEX|4[ -]?FAM)' then 4
+       when coalesce(property_use,'') ~* '(THREE|TRIPLEX|3[ -]?FAM)' then 3
+       when coalesce(property_use,'') ~* '(TWO|DUPLEX|2[ -]?FAM|FLAT)' then 2
+       else null
+     end,
      unit_count_source = coalesce(unit_count_source, 'assessor_class_code'),
      asset_confidence = coalesce(asset_confidence, 'medium'),
      is_sfr = false,
      is_apartment = coalesce(is_apartment, false)`,
     `${marketWhere}
-     and lower(coalesce(property_type,'')) like '%multifamily%'
+     and (
+       lower(coalesce(property_type,'')) like '%multifamily%'
+       or coalesce(property_use,'') ~* '(MULTI|DUPLEX|TWO|THREE|FOUR|FLAT|2[ -]?FAM|3[ -]?FAM|4[ -]?FAM)'
+     )
      and asset_type is distinct from 'small_multifamily'`,
   );
 
@@ -120,6 +129,7 @@ async function main() {
      and (
        is_apartment is true
        or lower(coalesce(property_type,'')) like '%apartment%'
+       or coalesce(property_use,'') ~* '(APART|APT)'
        or coalesce(total_units,0) >= 5
      )
      and asset_type is distinct from 'apartment'`,
