@@ -614,6 +614,7 @@ app.use('*', async (c, next) => {
     (previewsEnabled(c) && (
       c.req.path === '/dashboard' ||
       c.req.path === '/preview/market-dashboard' ||
+      c.req.path === '/preview/listing-url-inspector' ||
       c.req.path === '/preview/data-gaps' ||
       c.req.path === '/preview/west-chester-dashboard'
     ))
@@ -4297,6 +4298,99 @@ app.get('/v1/markets/:market/data-gaps', async (c) => {
   });
 });
 
+app.get('/v1/markets/:market/listing-url-debug', async (c) => {
+  const marketConfig = resolveMarketConfig(c.req.param('market'));
+  if (!marketConfig) return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
+
+  const listingUrl = (c.req.query('url') ?? '').trim();
+  const address = (c.req.query('address') ?? '').trim();
+  if (!listingUrl && !address) {
+    return c.json({ error: 'Provide url or address.' }, 400);
+  }
+
+  const filters = [
+    listingUrl ? `listing_url = '${sqlString(listingUrl)}'` : null,
+    address ? `upper(coalesce(address,'')) like '%' || upper('${sqlString(address)}') || '%'` : null,
+  ].filter(Boolean).join(' or ');
+
+  const rows = await queryPg<Record<string, unknown>>(`
+    select
+      id,
+      property_id,
+      address,
+      city,
+      state_code,
+      zip,
+      is_on_market,
+      mls_list_price,
+      listing_source,
+      listing_url,
+      listing_agent_name,
+      listing_agent_first_name,
+      listing_agent_last_name,
+      listing_agent_email,
+      listing_agent_phone,
+      listing_brokerage,
+      agent_contact_source,
+      agent_contact_confidence,
+      first_seen_at,
+      last_seen_at,
+      updated_at,
+      raw->'redfinDetail' as redfin_detail,
+      raw->'publicAgentEmail' as public_agent_email,
+      raw->'publicAgentEmailAttempt' as public_agent_email_attempt
+    from listing_signals
+    where state_code = '${marketConfig.state}'
+      and upper(coalesce(city,'')) = '${marketConfig.cityUpper}'
+      and (${filters})
+    order by is_on_market desc, last_seen_at desc nulls last, updated_at desc nulls last
+    limit 25
+  `);
+
+  return c.json({
+    schemaVersion: 'mxre.listingUrlDebug.v1',
+    market: marketConfig.key,
+    input: {
+      url: listingUrl || null,
+      address: address || null,
+    },
+    count: rows.length,
+    rows: rows.map((row) => ({
+      listingSignalId: numberOrNull(row.id),
+      propertyId: numberOrNull(row.property_id),
+      address: row.address ?? null,
+      city: row.city ?? null,
+      state: row.state_code ?? null,
+      zip: row.zip ?? null,
+      onMarket: Boolean(row.is_on_market),
+      market: {
+        listPrice: numberOrNull(row.mls_list_price),
+        listingSource: row.listing_source ?? null,
+        listingUrl: row.listing_url ?? null,
+        firstSeenAt: row.first_seen_at ?? null,
+        lastSeenAt: row.last_seen_at ?? null,
+        updatedAt: row.updated_at ?? null,
+      },
+      agent: {
+        name: row.listing_agent_name ?? null,
+        firstName: row.listing_agent_first_name ?? null,
+        lastName: row.listing_agent_last_name ?? null,
+        email: row.listing_agent_email ?? null,
+        phone: row.listing_agent_phone ?? null,
+        brokerage: row.listing_brokerage ?? null,
+        source: row.agent_contact_source ?? null,
+        confidence: row.agent_contact_confidence ?? null,
+      },
+      rawExtracts: {
+        redfinDetail: row.redfin_detail ?? null,
+        publicAgentEmail: row.public_agent_email ?? null,
+        publicAgentEmailAttempt: row.public_agent_email_attempt ?? null,
+      },
+    })),
+    generatedAt: new Date().toISOString(),
+  });
+});
+
 app.get('/v1/markets/:market/multifamily/coverage', async (c) => {
   const market = c.req.param('market').toLowerCase();
   if (!['indianapolis', 'indy'].includes(market)) {
@@ -4857,6 +4951,85 @@ app.get('/preview/market-dashboard', async (c) => {
     return c.html(renderMarketSnapshotDashboard(market, apiKey));
   }
   return c.html(renderMarketCommandCenter(apiKey));
+});
+
+app.get('/preview/listing-url-inspector', async (c) => {
+  if (!previewsEnabled(c)) return c.json({ error: 'Preview disabled' }, 404);
+  const apiKey = getBrowserApiKey(c);
+  const initialUrl = c.req.query('url') ?? '';
+  const initialAddress = c.req.query('address') ?? '7453 Country Brook Dr';
+  const initialMarket = c.req.query('market') ?? 'indianapolis';
+  return c.html(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MXRE Listing URL Inspector</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1115;--panel:#121a20;--panel2:#17222a;--line:#2a3a45;--text:#edf6fb;--muted:#9bb0bc;--blue:#5ab7ff;--green:#43d17a;--amber:#f3bd4e;--red:#f87171}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{padding:18px 22px;background:#0f171c;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:14px;align-items:center}
+h1{margin:0;font-size:18px}.muted{color:var(--muted)}main{max-width:1280px;margin:0 auto;padding:20px 22px 36px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:1.5fr 1fr 160px 120px;gap:10px}input,select,button{height:38px;border-radius:7px;border:1px solid var(--line);background:#0e151a;color:var(--text);padding:0 11px}button{background:#16415f;border-color:#2474a6;font-weight:800;cursor:pointer}button:hover{background:#1f5a82}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px}.card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px}.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800}.value{font-size:18px;font-weight:850;margin-top:5px;word-break:break-word}.good{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+pre{background:#071015;border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;max-height:560px;white-space:pre-wrap;color:#d8e8ef}.row{display:grid;grid-template-columns:220px 1fr;gap:8px;border-top:1px solid var(--line);padding:8px 0}.row:first-child{border-top:0}
+a{color:var(--blue)}@media(max-width:900px){.grid,.cards,.row{grid-template-columns:1fr}}
+</style></head><body>
+<header><div><h1>MXRE Listing URL Inspector</h1><div class="muted">Paste a listing URL or address to inspect stored agent contact and raw public-source payloads.</div></div><a href="/preview/market-dashboard" style="color:var(--blue)">Market dashboard</a></header>
+<main>
+  <section class="panel">
+    <div class="grid">
+      <input id="url" placeholder="Listing URL" value="${escapeHtml(initialUrl)}">
+      <input id="address" placeholder="Address" value="${escapeHtml(initialAddress)}">
+      <select id="market"><option value="indianapolis"${initialMarket === 'indianapolis' ? ' selected' : ''}>Indianapolis</option><option value="dallas"${initialMarket === 'dallas' ? ' selected' : ''}>Dallas</option><option value="columbus"${initialMarket === 'columbus' ? ' selected' : ''}>Columbus</option><option value="dayton"${initialMarket === 'dayton' ? ' selected' : ''}>Dayton</option><option value="west-chester"${initialMarket === 'west-chester' ? ' selected' : ''}>West Chester</option></select>
+      <button onclick="inspect()">Inspect</button>
+    </div>
+    <div class="muted" style="margin-top:8px">The inspector reads MXRE's stored listing signal row. It does not guess missing emails.</div>
+  </section>
+  <section class="cards">
+    <div class="card"><div class="label">Rows</div><div class="value" id="rows-card">-</div></div>
+    <div class="card"><div class="label">Agent</div><div class="value" id="agent-card">-</div></div>
+    <div class="card"><div class="label">Email</div><div class="value" id="email-card">-</div></div>
+    <div class="card"><div class="label">Phone</div><div class="value" id="phone-card">-</div></div>
+  </section>
+  <section class="panel" id="summary">Run an inspection to see returned data.</section>
+  <section class="panel"><div class="label">Full JSON</div><pre id="json">No request yet.</pre></section>
+</main>
+<script>
+const apiKey=${JSON.stringify(apiKey)};
+const esc=v=>String(v??'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
+function setCard(id,value,cls=''){const el=document.getElementById(id);el.className='value '+cls;el.textContent=value||'-'}
+function render(data){
+  const first=(data.rows||[])[0]||{};
+  const agent=first.agent||{};
+  setCard('rows-card', String(data.count ?? 0), data.count ? 'good' : 'bad');
+  setCard('agent-card', agent.name || '-', agent.name ? 'good' : 'bad');
+  setCard('email-card', agent.email || 'missing', agent.email ? 'good' : 'warn');
+  setCard('phone-card', agent.phone || 'missing', agent.phone ? 'good' : 'warn');
+  document.getElementById('json').textContent=JSON.stringify(data,null,2);
+  document.getElementById('summary').innerHTML=(data.rows||[]).map(row=>{
+    const a=row.agent||{}, m=row.market||{}, r=row.rawExtracts||{};
+    return '<div class="row"><div class="muted">Address</div><div><strong>'+esc(row.address)+'</strong> '+esc(row.city)+', '+esc(row.state)+' '+esc(row.zip)+'</div></div>'
+      + '<div class="row"><div class="muted">Listing URL</div><div><a href="'+esc(m.listingUrl||'#')+'" target="_blank" rel="noopener noreferrer">'+esc(m.listingUrl||'-')+'</a></div></div>'
+      + '<div class="row"><div class="muted">Agent contact</div><div>'+esc(a.name||'-')+' | '+esc(a.email||'missing email')+' | '+esc(a.phone||'missing phone')+' | '+esc(a.brokerage||'-')+'</div></div>'
+      + '<div class="row"><div class="muted">Contact source</div><div>'+esc(a.source||'-')+' / '+esc(a.confidence||'-')+'</div></div>'
+      + '<div class="row"><div class="muted">Raw extracts</div><div>redfinDetail: '+(r.redfinDetail?'yes':'no')+' | publicAgentEmail: '+(r.publicAgentEmail?'yes':'no')+' | attempt: '+(r.publicAgentEmailAttempt?.status||'-')+'</div></div>';
+  }).join('') || '<span class="bad">No matching listing rows found.</span>';
+}
+async function inspect(){
+  const params=new URLSearchParams();
+  const url=document.getElementById('url').value.trim();
+  const address=document.getElementById('address').value.trim();
+  const market=document.getElementById('market').value;
+  if(url)params.set('url',url);
+  if(address)params.set('address',address);
+  history.replaceState(null,'','/preview/listing-url-inspector?market='+encodeURIComponent(market)+'&'+params.toString());
+  document.getElementById('summary').textContent='Loading...';
+  const res=await fetch('/v1/markets/'+encodeURIComponent(market)+'/listing-url-debug?'+params.toString(),{headers:{'x-api-key':apiKey}});
+  const data=await res.json();
+  if(!res.ok){document.getElementById('summary').innerHTML='<span class="bad">'+esc(data.error||'Request failed')+'</span>';document.getElementById('json').textContent=JSON.stringify(data,null,2);return}
+  render(data);
+}
+inspect().catch(err=>{document.getElementById('summary').innerHTML='<span class="bad">'+esc(err.message||String(err))+'</span>'});
+</script>
+</body></html>`);
 });
 
 function renderMarketCommandCenter(apiKey: string): string {
