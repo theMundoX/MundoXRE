@@ -204,7 +204,7 @@ async function main() {
     },
     {
       name: "Classify Columbus parcel asset types",
-      command: ["npx", "tsx", "scripts/classify-market-assets.ts", "--state=OH", "--city=COLUMBUS", `--county_id=${COUNTY_ID}`, `--batch-size=${dryLimit("2500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
+      command: ["npx", "tsx", "scripts/classify-market-assets.ts", "--state=OH", "--city=COLUMBUS", `--county_id=${COUNTY_ID}`, `--batch-size=${dryLimit("500", "250")}`, ...(DRY_RUN ? ["--dry-run"] : [])],
       required: true,
       supportsDryRun: true,
       skip: SKIP_CLASSIFY,
