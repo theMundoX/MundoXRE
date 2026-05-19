@@ -143,6 +143,7 @@ const MARKET_CONFIGS: Record<string, {
   status: 'live' | 'pilot' | 'building';
   readinessTarget: number;
   scope: 'city' | 'county' | 'metro';
+  metricScope?: 'county_city' | 'active_listing_properties';
   publicLabel: string;
   refreshCadence: string;
   restrictions: string[];
@@ -373,6 +374,180 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: null,
         valid_realestateapi_detail_count: 1079,
         realestateapi_no_data_count: 162,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
+  toledo: {
+    key: 'toledo',
+    aliases: ['toledo', 'toledo-oh'],
+    label: 'Toledo',
+    publicLabel: 'Toledo, OH',
+    city: 'Toledo',
+    cityUpper: 'TOLEDO',
+    county: 'Lucas',
+    state: 'OH',
+    countyId: 2338836,
+    status: 'live',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing, contact, creative, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and cached',
+    restrictions: [
+      'Toledo is publishable for BBC underwriting with field-level quality flags while backfill continues.',
+      'Active listings are source-limited Redfin-derived rows, not a guaranteed full MLS inventory.',
+      'Lucas County parcel coverage is linked to active Toledo listing properties for the first user-facing boundary.',
+      'Agent email coverage is partial and must not be guessed; agent name/phone/brokerage and debt coverage are materially stronger.',
+      'Multifamily rent/floorplan coverage is not yet a blocking feature for the Toledo single-family on-market workflow.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 702,
+        parcel_identity_count: 702,
+        classified_count: 565,
+        ownership_count: 702,
+        valuation_count: 702,
+        multifamily_count: 8,
+      },
+      listings: {
+        active_listing_count: 702,
+        active_property_count: 702,
+        agent_name_count: 689,
+        agent_email_count: 445,
+        agent_phone_count: 694,
+        brokerage_count: 694,
+        creative_finance_count: 6,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1374,
+        properties_with_mortgage_records: 504,
+        mortgage_amount_count: 1367,
+        valid_realestateapi_detail_count: 690,
+        realestateapi_free_clear_count: 380,
+        properties_with_debt_coverage: 690,
+        debt_unknown_property_count: 12,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
+  akron: {
+    key: 'akron',
+    aliases: ['akron', 'akron-oh'],
+    label: 'Akron',
+    publicLabel: 'Akron, OH',
+    city: 'Akron',
+    cityUpper: 'AKRON',
+    county: 'Summit',
+    state: 'OH',
+    countyId: 1698989,
+    status: 'live',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing, contact, creative, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and cached',
+    restrictions: [
+      'Akron is publishable for BBC underwriting with field-level quality flags while backfill continues.',
+      'Active listings are source-limited Redfin-derived rows, not a guaranteed full MLS inventory.',
+      'Summit County parcel coverage is linked to active Akron listing properties for the first user-facing boundary.',
+      'Agent email coverage is partial and must not be guessed; agent name/phone/brokerage and debt coverage are materially stronger.',
+      'Multifamily rent/floorplan coverage is not yet a blocking feature for the Akron single-family on-market workflow.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 545,
+        parcel_identity_count: 545,
+        classified_count: 279,
+        ownership_count: 545,
+        valuation_count: 545,
+        multifamily_count: 1,
+      },
+      listings: {
+        active_listing_count: 545,
+        active_property_count: 545,
+        agent_name_count: 543,
+        agent_email_count: 350,
+        agent_phone_count: 543,
+        brokerage_count: 542,
+        creative_finance_count: 12,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 929,
+        properties_with_mortgage_records: 383,
+        mortgage_amount_count: 917,
+        valid_realestateapi_detail_count: 494,
+        realestateapi_free_clear_count: 230,
+        properties_with_debt_coverage: 494,
+        debt_unknown_property_count: 51,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
+  peoria: {
+    key: 'peoria',
+    aliases: ['peoria', 'peoria-il'],
+    label: 'Peoria',
+    publicLabel: 'Peoria, IL',
+    city: 'Peoria',
+    cityUpper: 'PEORIA',
+    county: 'Peoria',
+    state: 'IL',
+    countyId: 2338837,
+    status: 'live',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing, contact, creative, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and cached',
+    restrictions: [
+      'Peoria is publishable for BBC underwriting with field-level quality flags while backfill continues.',
+      'Active listings are source-limited Redfin-derived rows, not a guaranteed full MLS inventory.',
+      'Peoria County parcel coverage is linked to active Peoria listing properties for the first user-facing boundary.',
+      'Agent email coverage is partial and must not be guessed; agent name/phone/brokerage and debt coverage are materially stronger.',
+      'Multifamily rent/floorplan coverage is not yet a blocking feature for the Peoria single-family on-market workflow.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 294,
+        parcel_identity_count: 294,
+        classified_count: 212,
+        ownership_count: 294,
+        valuation_count: 294,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 294,
+        active_property_count: 294,
+        agent_name_count: 283,
+        agent_email_count: 177,
+        agent_phone_count: 282,
+        brokerage_count: 283,
+        creative_finance_count: 2,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 449,
+        properties_with_mortgage_records: 187,
+        mortgage_amount_count: 445,
+        valid_realestateapi_detail_count: 263,
+        realestateapi_free_clear_count: 122,
+        properties_with_debt_coverage: 263,
+        debt_unknown_property_count: 31,
       },
       rents: {
         rent_snapshot_count: 0,
@@ -6053,6 +6228,22 @@ async function buildCoverageMarketRows(includeLiveMetrics = false): Promise<Arra
     let metrics: Record<string, unknown> = market.fallbackCoverageMetrics ?? {};
     if (includeLiveMetrics) {
       try {
+        const activeListingPropertiesSql = `
+          select distinct property_id
+          from listing_signals
+          where is_on_market = true
+            and state_code = '${market.state}'
+            and upper(coalesce(city,'')) = '${market.cityUpper}'
+            and property_id is not null
+        `;
+        const propertyMetricWhere = (alias: string) => {
+          if (market.metricScope === 'active_listing_properties') {
+            return `${alias}.id in (${activeListingPropertiesSql})`;
+          }
+          return `${alias}.county_id = ${market.countyId}
+            and ${alias}.state_code = '${market.state}'
+            and upper(coalesce(${alias}.city,'')) = '${market.cityUpper}'`;
+        };
         const [row] = await queryPg<Record<string, unknown>>(`
         with parcels as (
           select
@@ -6062,10 +6253,8 @@ async function buildCoverageMarketRows(includeLiveMetrics = false): Promise<Arra
             count(*) filter (where owner_name is not null or company_name is not null or owner1_last is not null)::int as ownership_count,
             count(*) filter (where coalesce(market_value, assessed_value, taxable_value, 0) > 0)::int as valuation_count,
             count(*) filter (where coalesce(total_units, 0) >= 2 or asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily'))::int as multifamily_count
-          from properties
-          where county_id = ${market.countyId}
-            and state_code = '${market.state}'
-            and upper(coalesce(city,'')) = '${market.cityUpper}'
+          from properties p
+          where ${propertyMetricWhere('p')}
         ),
         listings as (
           select
@@ -6174,9 +6363,7 @@ async function buildCoverageMarketRows(includeLiveMetrics = false): Promise<Arra
             max(rs.observed_at) as latest_rent_observed
           from rent_snapshots rs
           join properties p on p.id = rs.property_id
-          where p.county_id = ${market.countyId}
-            and p.state_code = '${market.state}'
-            and upper(coalesce(p.city,'')) = '${market.cityUpper}'
+          where ${propertyMetricWhere('p')}
         )
         select
           row_to_json(parcels) as parcels,
@@ -6185,7 +6372,18 @@ async function buildCoverageMarketRows(includeLiveMetrics = false): Promise<Arra
           row_to_json(rents) as rents
         from parcels, listings, debt, rents;
       `);
-        metrics = row ?? {};
+        const liveParcels = normalizeRecord(row?.parcels);
+        const liveListings = normalizeRecord(row?.listings);
+        const liveParcelCount = numberOrNull(liveParcels.parcel_count) ?? 0;
+        const liveListingCount = numberOrNull(liveListings.active_listing_count) ?? 0;
+        if (market.fallbackCoverageMetrics && liveParcelCount === 0 && liveListingCount === 0) {
+          metrics = {
+            ...market.fallbackCoverageMetrics,
+            fallback: 'configured_market_coverage_snapshot_live_query_empty',
+          };
+        } else {
+          metrics = row ?? {};
+        }
       } catch (error) {
         console.warn(`[MXRE coverage markets] failed to build metrics for ${market.key}:`, error);
         metrics = {
