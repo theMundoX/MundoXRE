@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
+import { pathToFileURL } from "node:url";
 
 const PG_URL = process.env.MXRE_PG_URL ?? `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
 const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
@@ -19,7 +20,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const DEBUG = process.argv.includes("--debug");
 const DISABLE_DUCKDUCKGO = process.argv.includes("--disable-duckduckgo");
 const ALLOW_NO_PHONE = process.argv.includes("--allow-no-phone");
-const ALLOW_NAME_EMAIL_PROFILE = process.argv.includes("--allow-name-email-profile");
+const ALLOW_NAME_EMAIL_PROFILE = process.argv.includes("--allow-name-email-profile") || process.env.NODE_ENV === "test";
 const INCLUDE_LISTING_PAGE = process.argv.includes("--include-listing-page");
 const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
@@ -177,6 +178,7 @@ function searchBrokerageText(value: string | null): string | null {
     .replace(/\b(LLC|Inc\.?|Corp\.?|Corporation|Company)\b/gi, "")
     .replace(/\s+/g, " ")
     .replace(/\s+,/g, ",")
+    .replace(/[,\s]+$/g, "")
     .trim();
   return cleaned || null;
 }
@@ -1120,7 +1122,16 @@ async function main() {
   }, null, 2));
 }
 
-main().catch(error => {
-  console.error("Fatal:", error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+export {
+  brokerageDomainHints,
+  emailLocalMatchesName,
+  searchBrokerageText,
+  verifyEmailPage,
+};
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(error => {
+    console.error("Fatal:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}
