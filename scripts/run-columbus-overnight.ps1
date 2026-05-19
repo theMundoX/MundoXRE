@@ -22,7 +22,7 @@ function Run-Step {
 
 Run-Step "redfin-detail-tail" "npx tsx scripts/enrich-redfin-detail-pages.ts --state=OH --city=COLUMBUS --limit=300 --delay-ms=750"
 Run-Step "creative-score" "npx tsx scripts/score-creative-finance-signals.ts --state=OH --city=COLUMBUS --limit=5000"
-Run-Step "public-agent-email" "npx tsx scripts/enrich-agent-emails-public.ts --state=OH --city=COLUMBUS --limit=100 --delay-ms=1000"
+Run-Step "public-agent-email" "npx tsx scripts/enrich-agent-emails-public.ts --state=OH --city=COLUMBUS --limit=100 --concurrency=2 --delay-ms=500 --max-search-queries=4 --max-search-links=8 --max-direct-profile-urls=12 --max-profile-links-per-page=8 --fetch-timeout-ms=7000 --row-timeout-ms=45000 --retry-after-hours=24 --allow-name-email-profile --allow-no-phone"
 Run-Step "rent-scrape" "npx tsx scripts/scrape-rents-bulk.ts --state=OH --city=Columbus --county_id=1698985 --stale_days=0 --limit=120"
 Run-Step "agent-audit" "npx tsx scripts/audit-on-market-agent-coverage.ts --state=OH --city=COLUMBUS"
 Run-Step "rent-audit" "npx tsx scripts/audit-indy-multifamily-rent-coverage.ts --state=OH --city=COLUMBUS --county_id=1698985"

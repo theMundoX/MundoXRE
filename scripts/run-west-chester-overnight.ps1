@@ -48,7 +48,7 @@ while ((Get-Date) -lt $Deadline) {
   Run-Step "daily-listing-scan" 'npx tsx scripts/daily-listing-scan.ts --state PA --cities "West Chester"'
   Run-Step "redfin-detail-pages" 'npx tsx scripts/enrich-redfin-detail-pages.ts --state=PA "--city=WEST CHESTER" --limit=500 --delay-ms=800'
   Run-Step "raw-agent-contact-backfill" 'npx tsx scripts/enrich-listing-agent-contacts.ts --state=PA "--city=WEST CHESTER" --limit=10000'
-  Run-Step "public-agent-email-verification" 'npx tsx scripts/enrich-agent-emails-public.ts --state=PA "--city=WEST CHESTER" --limit=500 --delay-ms=900'
+  Run-Step "public-agent-email-verification" 'npx tsx scripts/enrich-agent-emails-public.ts --state=PA "--city=WEST CHESTER" --limit=500 --concurrency=2 --delay-ms=500 --max-search-queries=4 --max-search-links=8 --max-direct-profile-urls=12 --max-profile-links-per-page=8 --fetch-timeout-ms=7000 --row-timeout-ms=45000 --retry-after-hours=24 --allow-name-email-profile --allow-no-phone'
   Run-Step "creative-finance-scoring" 'npx tsx scripts/score-creative-finance-signals.ts --state=PA "--city=WEST CHESTER" --limit=10000'
   Run-Step "agent-coverage-audit" 'npx tsx scripts/audit-on-market-agent-coverage.ts --state=PA "--city=WEST CHESTER"'
   Run-Step "readiness-summary" 'npx tsx scripts/market-readiness-summary.ts --state=PA "--city=WEST CHESTER" --county_id=817175'
