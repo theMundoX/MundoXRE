@@ -595,6 +595,26 @@ const MARKET_CONFIGS: Record<string, {
   },
 };
 
+function validateMarketConfigs() {
+  const errors: string[] = [];
+  for (const market of Object.values(MARKET_CONFIGS)) {
+    if (!Number.isFinite(market.latitude) || market.latitude < -90 || market.latitude > 90) {
+      errors.push(`${market.key}: latitude must be a valid decimal between -90 and 90`);
+    }
+    if (!Number.isFinite(market.longitude) || market.longitude < -180 || market.longitude > 180) {
+      errors.push(`${market.key}: longitude must be a valid decimal between -180 and 180`);
+    }
+    if (market.status === 'live' && market.readinessTarget <= 0) {
+      errors.push(`${market.key}: live markets must have a positive readinessTarget`);
+    }
+  }
+  if (errors.length > 0) {
+    throw new Error(`Invalid MARKET_CONFIGS:\n${errors.join('\n')}`);
+  }
+}
+
+validateMarketConfigs();
+
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',

@@ -4,6 +4,7 @@ import { Client } from "pg";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { firstEnv, hydrateWindowsUserEnv } from "./lib/env.ts";
+import { bestRealEstateApiAgent as bestAgent } from "../src/market/realestateapi-agent.ts";
 
 type ReapiResponse = Record<string, unknown>;
 
@@ -995,41 +996,6 @@ async function updateListingAgent(propertyId: number, response: ReapiResponse) {
     agent.phone,
     agent.brokerage,
   ]);
-}
-
-function bestAgent(response: ReapiResponse): { name: string | null; email: string | null; phone: string | null; brokerage: string | null } | null {
-  const histories = arrayOfObjects(response.mlsHistory);
-  const candidates = histories.map((row) => ({
-    name: stringOrNull(row.agentName),
-    email: stringOrNull(row.agentEmail),
-    phone: stringOrNull(row.agentPhone),
-    brokerage: stringOrNull(row.agentOffice),
-  }));
-  const best = candidates
-    .filter((agent) => agent.email || agent.phone || agent.name || agent.brokerage)
-    .sort((a, b) => {
-      const score = (agent: typeof a) =>
-        (agent.email ? 8 : 0)
-        + (agent.phone ? 4 : 0)
-        + (agent.name ? 2 : 0)
-        + (agent.brokerage ? 1 : 0);
-      return score(b) - score(a);
-    })[0];
-  if (best) return best;
-  for (const row of histories) {
-    const email = stringOrNull(row.agentEmail);
-    const phone = stringOrNull(row.agentPhone);
-    const name = stringOrNull(row.agentName);
-    if (email || phone || name) {
-      return {
-        name,
-        email,
-        phone,
-        brokerage: stringOrNull(row.agentOffice),
-      };
-    }
-  }
-  return null;
 }
 
 async function markQueueRunning(propertyId: number, reasons: string[]) {
