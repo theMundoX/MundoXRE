@@ -489,37 +489,93 @@ async function ensureQueue(): Promise<Candidate[]> {
 async function loadCandidates(): Promise<Candidate[]> {
   if (cacheOnly) {
     const { rows } = await client.query<Candidate>(`
+      with cached as (
+        select
+          p.id as property_id,
+          p.address,
+          p.city,
+          p.state_code,
+          p.zip,
+          r.response_body,
+          bool_or(nullif(l.listing_agent_name,'') is null) as missing_agent_name,
+          bool_or(nullif(l.listing_agent_email,'') is null) as missing_agent_email,
+          bool_or(nullif(l.listing_agent_phone,'') is null) as missing_agent_phone,
+          bool_or(nullif(l.listing_brokerage,'') is null) as missing_agent_brokerage,
+          not exists (select 1 from mls_history mh where mh.property_id = p.id) as missing_mls_history,
+          not ${hasDebtCoverageSql} as missing_mortgage_balance
+        from realestateapi_property_details r
+        join properties p on p.id = r.property_id
+        join listing_signals l on l.property_id = p.id and l.is_on_market = true
+        where p.state_code = $1
+          and upper(coalesce(p.city,'')) = $2
+          and r.status = 'ok'
+          and r.response_body <> '{}'::jsonb
+        group by p.id, p.address, p.city, p.state_code, p.zip, r.response_body
+      )
       select
-        p.id as property_id,
-        p.address,
-        p.city,
-        p.state_code,
-        p.zip,
+        property_id,
+        address,
+        city,
+        state_code,
+        zip,
         null::int as listing_id,
         null::numeric as mls_list_price,
-        p.address as search_address,
-        p.city as search_city,
-        p.zip as search_zip,
-        array[case when $4::boolean then 'missing_mortgage_balance' else 'cache_only_renormalize' end]::text[] as reasons
-      from realestateapi_property_details r
-      join properties p on p.id = r.property_id
-      join listing_signals l on l.property_id = p.id and l.is_on_market = true
-      where p.state_code = $1
-        and upper(coalesce(p.city,'')) = $2
-        and r.status = 'ok'
-        and r.response_body <> '{}'::jsonb
-        and (
-          $4::boolean = false
-          or not ${hasDebtCoverageSql}
+        address as search_address,
+        city as search_city,
+        zip as search_zip,
+        case
+          when $4::boolean then array['missing_mortgage_balance']::text[]
+          else array_remove(array[
+            case when missing_agent_name then 'missing_agent_name' end,
+            case when missing_agent_email then 'missing_agent_email' end,
+            case when missing_agent_phone then 'missing_agent_phone' end,
+            case when missing_agent_brokerage then 'missing_agent_brokerage' end,
+            case when missing_mls_history then 'missing_mls_history' end,
+            case when missing_mortgage_balance then 'missing_mortgage_balance' end
+          ], null)
+        end as reasons
+      from cached
+      where (
+          $4::boolean = true
+          and missing_mortgage_balance
         )
-      group by p.id, p.address, p.city, p.state_code, p.zip
+        or (
+          $4::boolean = false
+          and (
+            missing_agent_name
+            or missing_agent_email
+            or missing_agent_phone
+            or missing_agent_brokerage
+            or missing_mls_history
+            or missing_mortgage_balance
+          )
+        )
       order by
-        min(case
-          when nullif(l.listing_agent_name,'') is null
-           and jsonb_path_query_first(r.response_body, '$.mlsHistory[*] ? (@.agentName != null || @.agentEmail != null || @.agentPhone != null || @.agentOffice != null)') is not null
+        case
+          when missing_agent_email
+           and jsonb_path_query_first(response_body, '$.mlsHistory[*] ? (@.agentEmail != null)') is not null
           then 0 else 1
-        end),
-        p.id
+        end,
+        case
+          when (missing_agent_name or missing_agent_phone or missing_agent_brokerage)
+           and jsonb_path_query_first(response_body, '$.mlsHistory[*] ? (@.agentName != null || @.agentPhone != null || @.agentOffice != null)') is not null
+          then 0 else 1
+        end,
+        array_length(
+          case
+            when $4::boolean then array['missing_mortgage_balance']::text[]
+            else array_remove(array[
+              case when missing_agent_name then 'missing_agent_name' end,
+              case when missing_agent_email then 'missing_agent_email' end,
+              case when missing_agent_phone then 'missing_agent_phone' end,
+              case when missing_agent_brokerage then 'missing_agent_brokerage' end,
+              case when missing_mls_history then 'missing_mls_history' end,
+              case when missing_mortgage_balance then 'missing_mortgage_balance' end
+            ], null)
+          end,
+          1
+        ) desc,
+        property_id
       limit $3
     `, [state, city, limit, onlyMissingEquity]);
     return rows;
@@ -943,6 +999,23 @@ async function updateListingAgent(propertyId: number, response: ReapiResponse) {
 
 function bestAgent(response: ReapiResponse): { name: string | null; email: string | null; phone: string | null; brokerage: string | null } | null {
   const histories = arrayOfObjects(response.mlsHistory);
+  const candidates = histories.map((row) => ({
+    name: stringOrNull(row.agentName),
+    email: stringOrNull(row.agentEmail),
+    phone: stringOrNull(row.agentPhone),
+    brokerage: stringOrNull(row.agentOffice),
+  }));
+  const best = candidates
+    .filter((agent) => agent.email || agent.phone || agent.name || agent.brokerage)
+    .sort((a, b) => {
+      const score = (agent: typeof a) =>
+        (agent.email ? 8 : 0)
+        + (agent.phone ? 4 : 0)
+        + (agent.name ? 2 : 0)
+        + (agent.brokerage ? 1 : 0);
+      return score(b) - score(a);
+    })[0];
+  if (best) return best;
   for (const row of histories) {
     const email = stringOrNull(row.agentEmail);
     const phone = stringOrNull(row.agentPhone);
