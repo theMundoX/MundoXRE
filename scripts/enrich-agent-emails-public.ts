@@ -169,6 +169,18 @@ function rawString(row: ListingRow, keys: string[]): string | null {
   return null;
 }
 
+function searchBrokerageText(value: string | null): string | null {
+  if (!value) return null;
+  const cleaned = decodeHtml(value)
+    .replace(/[®™©]/g, "")
+    .replace(/\b(REALTORS?|REALTOR)\b/gi, "realtors")
+    .replace(/\b(LLC|Inc\.?|Corp\.?|Corporation|Company)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s+,/g, ",")
+    .trim();
+  return cleaned || null;
+}
+
 function effectiveBrokerage(row: ListingRow): string | null {
   const rawBrokerage = rawString(row, ["redfinDetail.listingBrokerage", "listingBrokerage", "brokerageName", "brokerName"]);
   const current = row.listing_brokerage?.trim() ?? null;
@@ -192,6 +204,8 @@ function brokerageDomainHints(brokerage: string | null): string[] {
   if (b.includes("highgarden")) hints.push("highgarden.com");
   if (b.includes("trueblood")) hints.push("truebloodre.com");
   if (b.includes("performance team") || b.includes("iptrealty")) hints.push("iptrealty.com");
+  if (b.includes("hoosier")) hints.push("hoosier-realtors.com", "hoosierrealtors.com");
+  if (b.includes("mark dietel")) hints.push("markdietel.com");
   const words = b
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9 ]+/g, " ")
@@ -318,10 +332,36 @@ function emailLocalMatchesName(email: string, name: { first: string; last: strin
   const firstClean = name.first.replace(/[^a-z]/gi, "").toLowerCase();
   const lastClean = name.last.replace(/[^a-z]/gi, "").toLowerCase();
   if (!local || !firstClean || !lastClean) return false;
+  const nicknames: Record<string, string[]> = {
+    anthony: ["tony"],
+    benjamin: ["ben", "benji"],
+    charles: ["charlie", "chuck"],
+    daniel: ["dan", "danny"],
+    david: ["dave"],
+    deborah: ["deb", "debbie"],
+    elizabeth: ["beth", "liz", "lizzy", "bethany"],
+    james: ["jim", "jimmy"],
+    jennifer: ["jen", "jenny"],
+    joseph: ["joe", "joey"],
+    kathleen: ["kathy", "kate"],
+    kenneth: ["ken", "kenny"],
+    michael: ["mike"],
+    nicholas: ["nick"],
+    patricia: ["pat", "patty", "tricia"],
+    raymond: ["ray"],
+    richard: ["rick", "ricky", "dick"],
+    robert: ["rob", "bob", "bobby"],
+    stephen: ["steve"],
+    steven: ["steve"],
+    susan: ["sue", "susie"],
+    thomas: ["tom", "tommy"],
+    william: ["will", "bill", "billy"],
+  };
+  const firstAliases = [firstClean, ...(nicknames[firstClean] ?? [])];
   return local.includes(lastClean)
-    || (firstClean.length >= 4 && local.includes(firstClean))
-    || local.includes(`${firstClean.slice(0, 1)}${lastClean}`)
-    || local.includes(`${firstClean}${lastClean.slice(0, 1)}`);
+    || firstAliases.some(first => first.length >= 3 && local.includes(first))
+    || firstAliases.some(first => local.includes(`${first.slice(0, 1)}${lastClean}`))
+    || firstAliases.some(first => local.includes(`${first}${lastClean.slice(0, 1)}`));
 }
 
 function emailAppearsNearName(text: string, fullName: string, email: string): boolean {
@@ -330,6 +370,22 @@ function emailAppearsNearName(text: string, fullName: string, email: string): bo
   const emailIndex = lower.indexOf(email.toLowerCase());
   if (nameIndex < 0 || emailIndex < 0) return false;
   return Math.abs(nameIndex - emailIndex) <= 320;
+}
+
+function emailAppearsInAgentBlock(text: string, name: { first: string; last: string; full: string }, email: string): boolean {
+  const lower = text.toLowerCase();
+  const emailIndex = lower.indexOf(email.toLowerCase());
+  if (emailIndex < 0) return false;
+
+  const first = name.first.toLowerCase();
+  const last = name.last.toLowerCase();
+  const full = name.full.toLowerCase();
+  const start = Math.max(0, emailIndex - 500);
+  const end = Math.min(lower.length, emailIndex + 500);
+  const block = lower.slice(start, end);
+
+  return block.includes(full)
+    || (block.includes(first) && block.includes(last));
 }
 
 function personTokenVariants(value: string): string[] {
@@ -616,10 +672,9 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   if (emails.length > 0) stats.pages_with_email++;
   const personalEmails = emails.filter(email => !isGenericOrHostedEmail(email));
   const nameMatchedPersonal = personalEmails.find(email => emailLocalMatchesName(email, name)) ?? null;
-  const proximityPersonal = personalEmails.find(email => {
-    if (!emailAppearsNearName(text, name.full, email)) return false;
-    return emailLocalMatchesName(email, name);
-  }) ?? null;
+  const proximityPersonal = personalEmails.find(email =>
+    emailAppearsNearName(text, name.full, email) || emailAppearsInAgentBlock(text, name, email)
+  ) ?? null;
   const personal = nameMatchedPersonal ?? proximityPersonal;
   if (!personal) {
     if (DEBUG && emails.length > 0) {
@@ -641,14 +696,21 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
     && realEstateContext
     && brokerageOrPhoneVerified
     && Boolean(proximityPersonal);
+  const localNamePhoneBrokerageVerified = ALLOW_NAME_EMAIL_PROFILE
+    && !hasName
+    && realEstateContext
+    && hasPhone
+    && hasBrokerage
+    && Boolean(nameMatchedPersonal);
   const nameEmailProfileVerified = ALLOW_NAME_EMAIL_PROFILE
-    && hasName
+    && (hasName || localNamePhoneBrokerageVerified)
     && realEstateContext
     && brokerageOrPhoneVerified
     && Boolean(personal);
   const hasVerifiedIdentity = FAST_SEARCH
-    ? hasName && (hasPhone || (ALLOW_NO_PHONE && !phone && hasBrokerage) || nameEmailProfileVerified || proximityVerified)
-    : hasName && ((hasPhone && hasBrokerage) || (ALLOW_NO_PHONE && !phone && hasBrokerage) || nameEmailProfileVerified || proximityVerified);
+    ? (hasName || localNamePhoneBrokerageVerified) && (hasPhone || (ALLOW_NO_PHONE && !phone && hasBrokerage) || nameEmailProfileVerified || proximityVerified)
+    : (hasName && ((hasPhone && hasBrokerage) || (ALLOW_NO_PHONE && !phone && hasBrokerage) || nameEmailProfileVerified || proximityVerified))
+      || localNamePhoneBrokerageVerified;
   if (!hasVerifiedIdentity) {
     if (emails.length > 0) stats.rejected_identity++;
     if (DEBUG) {
@@ -760,32 +822,35 @@ async function searchPublicEmail(row: ListingRow): Promise<Candidate | null> {
   const mlsNumber = rawString(row, ["mlsNumber", "mls_number", "mlsId", "mls_id"]);
   const address = row.address?.replace(/\s+/g, " ").trim();
   const brokerage = effectiveBrokerage(row);
+  const brokerageSearch = searchBrokerageText(brokerage);
   const portalQueries = FAST_SEARCH ? [] : ["realtor.com", "zillow.com", "homes.com", "redfin.com", "compass.com", "realty.com", "ezhomesearch.com", "coldwellbankerhomes.com"].flatMap(domain => [
     [`site:${domain}`, mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
     [`site:${domain}`, address ? `"${address}"` : "", `"${name.full}"`].filter(Boolean).join(" "),
     [`site:${domain}`, `"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
-    [`site:${domain}`, `"${name.full}"`, brokerage ? `"${brokerage}"` : "", "agent"].filter(Boolean).join(" "),
+    [`site:${domain}`, `"${name.full}"`, brokerageSearch ? `"${brokerageSearch}"` : "", "agent"].filter(Boolean).join(" "),
   ]);
   const listingContextQueries = [
     [`"${name.full}"`, phoneText ? `"${phoneText}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phone ? `"${phone}"` : "", "email"].filter(Boolean).join(" "),
     [phoneText ? `"${phoneText}"` : "", `"${name.full}"`, "email"].filter(Boolean).join(" "),
-    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, brokerage ? `"${brokerage}"` : "", "email"].filter(Boolean).join(" "),
+    [mlsNumber ? `"${mlsNumber}"` : "", `"${name.full}"`, brokerageSearch ? `"${brokerageSearch}"` : "", "email"].filter(Boolean).join(" "),
     [address ? `"${address}"` : "", `"${name.full}"`, "listing agent email"].filter(Boolean).join(" "),
-    [address ? `"${address}"` : "", brokerage ? `"${brokerage}"` : "", "email"].filter(Boolean).join(" "),
+    [address ? `"${address}"` : "", brokerageSearch ? `"${brokerageSearch}"` : "", "email"].filter(Boolean).join(" "),
   ];
   const identityQueries = [
-    [`"${name.full}"`, brokerage ? `"${brokerage}"` : "", "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, brokerageSearch ? `"${brokerageSearch}"` : "", "email"].filter(Boolean).join(" "),
     [`"${name.full}"`, row.city ? `"${row.city}"` : "", row.state_code ?? "", "real estate agent email"].filter(Boolean).join(" "),
     [`"${name.full}"`, phone ? `"${phone}"` : "", "realtor email"].filter(Boolean).join(" "),
     [phoneText ? `"${phoneText}"` : "", "realtor email"].filter(Boolean).join(" "),
-    [`"${name.full}"`, brokerage ? `"${brokerage}"` : "", "email realtor agent"].filter(Boolean).join(" "),
-    [`"${name.full}"`, brokerage ? `"${brokerage}"` : "", "contact"].filter(Boolean).join(" "),
+    [`"${name.full}"`, brokerageSearch ? `"${brokerageSearch}"` : "", "email realtor agent"].filter(Boolean).join(" "),
+    [`"${name.full}"`, brokerageSearch ? `"${brokerageSearch}"` : "", "contact"].filter(Boolean).join(" "),
+    [`"${name.full}"`, "MIBOR", "email"].filter(Boolean).join(" "),
+    [`"${name.full}"`, "property.mibor.com"].filter(Boolean).join(" "),
   ];
   const queries = [
+    ...identityQueries,
     ...listingContextQueries,
     ...portalQueries,
-    ...identityQueries,
   ].filter((query, index, all) => query && all.indexOf(query) === index);
 
   const links: string[] = [];
