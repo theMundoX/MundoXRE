@@ -35,6 +35,8 @@ describe("public agent email matching", () => {
   it("accepts conservative common nicknames in email local parts", () => {
     expect(emailLocalMatchesName("jim@hoosier-realtors.com", { first: "James", last: "Talhelm" })).toBe(true);
     expect(emailLocalMatchesName("mike@example.com", { first: "Michael", last: "Smith" })).toBe(true);
+    expect(emailLocalMatchesName("kim@hoosier-realtors.com", { first: "Kimberly", last: "Lyon" })).toBe(true);
+    expect(emailLocalMatchesName("njnichol@gmail.com", { first: "Nathan", last: "Nicholson" })).toBe(true);
   });
 
   it("verifies broker-domain nickname email when phone and brokerage match", () => {
@@ -78,5 +80,28 @@ describe("public agent email matching", () => {
 
     expect(candidate?.email).toBe("mashupert@gmail.com");
     expect(candidate?.confidence).toBe("public_profile_name_email_proximity");
+  });
+
+  it("rejects another person's nearby email on a noisy result page", () => {
+    const candidate = verifyEmailPage(
+      `
+      <html>
+        <body>
+          Listing agent Ann Krider. Contact nearby office partner David Jr at david.jr@twifordfh.com.
+          Phone 317-417-4554. Real estate listing details.
+        </body>
+      </html>
+      `,
+      {
+        ...baseRow,
+        id: 3,
+        listing_agent_name: "Ann Krider",
+        listing_agent_phone: "3174174554",
+        listing_brokerage: "Ann Krider",
+      },
+      "https://example.test/noisy-result",
+    );
+
+    expect(candidate).toBeNull();
   });
 });

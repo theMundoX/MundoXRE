@@ -347,6 +347,7 @@ function emailLocalMatchesName(email: string, name: { first: string; last: strin
     joseph: ["joe", "joey"],
     kathleen: ["kathy", "kate"],
     kenneth: ["ken", "kenny"],
+    kimberly: ["kim"],
     michael: ["mike"],
     nicholas: ["nick"],
     patricia: ["pat", "patty", "tricia"],
@@ -360,10 +361,12 @@ function emailLocalMatchesName(email: string, name: { first: string; last: strin
     william: ["will", "bill", "billy"],
   };
   const firstAliases = [firstClean, ...(nicknames[firstClean] ?? [])];
+  const lastPrefix = lastClean.length >= 6 ? lastClean.slice(0, 6) : null;
   return local.includes(lastClean)
     || firstAliases.some(first => first.length >= 3 && local.includes(first))
     || firstAliases.some(first => local.includes(`${first.slice(0, 1)}${lastClean}`))
-    || firstAliases.some(first => local.includes(`${first}${lastClean.slice(0, 1)}`));
+    || firstAliases.some(first => local.includes(`${first}${lastClean.slice(0, 1)}`))
+    || Boolean(lastPrefix && firstAliases.some(first => new RegExp(`${first.slice(0, 1)}[a-z]?${lastPrefix}`).test(local)));
 }
 
 function emailAppearsNearName(text: string, fullName: string, email: string): boolean {
@@ -675,7 +678,8 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const personalEmails = emails.filter(email => !isGenericOrHostedEmail(email));
   const nameMatchedPersonal = personalEmails.find(email => emailLocalMatchesName(email, name)) ?? null;
   const proximityPersonal = personalEmails.find(email =>
-    emailAppearsNearName(text, name.full, email) || emailAppearsInAgentBlock(text, name, email)
+    emailLocalMatchesName(email, name)
+    && (emailAppearsNearName(text, name.full, email) || emailAppearsInAgentBlock(text, name, email))
   ) ?? null;
   const personal = nameMatchedPersonal ?? proximityPersonal;
   if (!personal) {
