@@ -401,8 +401,10 @@ async function ensureQueue(): Promise<Candidate[]> {
         coalesce(nullif(l.zip,''), p.zip) as search_zip,
         array_remove(array[
           case when not ${hasDebtCoverageSql} then 'missing_mortgage_balance' end,
+          case when nullif(l.listing_agent_name,'') is null then 'missing_agent_name' end,
           case when nullif(l.listing_agent_email,'') is null then 'missing_agent_email' end,
           case when nullif(l.listing_agent_phone,'') is null then 'missing_agent_phone' end,
+          case when nullif(l.listing_brokerage,'') is null then 'missing_agent_brokerage' end,
           case when not exists (select 1 from mls_history mh where mh.property_id = p.id) then 'missing_mls_history' end
         ], null) as reasons
       from listing_signals l
@@ -417,6 +419,7 @@ async function ensureQueue(): Promise<Candidate[]> {
           $3::boolean = true
           or $5::boolean = true
           or cache.id is null
+          or cache.expires_at <= now()
         )
         and (
           (
@@ -427,8 +430,10 @@ async function ensureQueue(): Promise<Candidate[]> {
             $5::boolean = false
             and (
               $3::boolean = true
+              or nullif(l.listing_agent_name,'') is null
               or nullif(l.listing_agent_email,'') is null
               or nullif(l.listing_agent_phone,'') is null
+              or nullif(l.listing_brokerage,'') is null
               or not exists (select 1 from mls_history mh where mh.property_id = p.id)
               or not ${hasDebtCoverageSql}
             )
@@ -501,12 +506,20 @@ async function loadCandidates(): Promise<Candidate[]> {
       join listing_signals l on l.property_id = p.id and l.is_on_market = true
       where p.state_code = $1
         and upper(coalesce(p.city,'')) = $2
+        and r.status = 'ok'
+        and r.response_body <> '{}'::jsonb
         and (
           $4::boolean = false
           or not ${hasDebtCoverageSql}
         )
       group by p.id, p.address, p.city, p.state_code, p.zip
-      order by p.id
+      order by
+        min(case
+          when nullif(l.listing_agent_name,'') is null
+           and jsonb_path_query_first(r.response_body, '$.mlsHistory[*] ? (@.agentName != null || @.agentEmail != null || @.agentPhone != null || @.agentOffice != null)') is not null
+          then 0 else 1
+        end),
+        p.id
       limit $3
     `, [state, city, limit, onlyMissingEquity]);
     return rows;
@@ -1127,8 +1140,10 @@ function splitName(name: string | null) {
 
 function priorityForReason(reason: string): number {
   if (reason === "missing_mortgage_balance") return 10;
+  if (reason === "missing_agent_name") return 15;
   if (reason === "missing_agent_email") return 20;
   if (reason === "missing_agent_phone") return 25;
+  if (reason === "missing_agent_brokerage") return 26;
   if (reason === "missing_mls_history") return 30;
   return 100;
 }
