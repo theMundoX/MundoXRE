@@ -109,7 +109,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 function cleanText(value: string): string {
-  return value
+  return decodeHtml(value)
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/\\u0040/gi, "@")
@@ -133,11 +133,11 @@ function normalizePhone(value: string | null): string | null {
 }
 
 function splitName(row: ListingRow): { first: string; last: string; full: string } | null {
-  const first = row.listing_agent_first_name?.trim();
-  const last = row.listing_agent_last_name?.trim();
+  const first = row.listing_agent_first_name ? decodeHtml(row.listing_agent_first_name).trim() : undefined;
+  const last = row.listing_agent_last_name ? decodeHtml(row.listing_agent_last_name).trim() : undefined;
   if (first && last) return { first, last, full: `${first} ${last}` };
 
-  const clean = row.listing_agent_name?.replace(/\s+/g, " ").trim();
+  const clean = row.listing_agent_name ? decodeHtml(row.listing_agent_name).replace(/\s+/g, " ").trim() : "";
   if (!clean) return null;
   const parts = clean.split(" ");
   if (parts.length < 2) return null;
@@ -332,6 +332,28 @@ function emailAppearsNearName(text: string, fullName: string, email: string): bo
   return Math.abs(nameIndex - emailIndex) <= 320;
 }
 
+function personTokenVariants(value: string): string[] {
+  const compact = value.replace(/[^a-z]/gi, "").toLowerCase();
+  const tokens = value
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .split(/[^a-z]+/i)
+    .filter(token => token.length >= 2);
+  return [...new Set([compact, ...tokens].filter(Boolean))];
+}
+
+function pageHasAgentName(text: string, name: { first: string; last: string; full: string }): boolean {
+  const normalized = text.toLowerCase().replace(/['’]/g, "");
+  const firstVariants = personTokenVariants(name.first);
+  const lastVariants = personTokenVariants(name.last);
+  const fullCompact = name.full.replace(/[^a-z]/gi, "").toLowerCase();
+  const textCompact = normalized.replace(/[^a-z]/g, "");
+  return (
+    (firstVariants.some(token => normalized.includes(token)) && lastVariants.some(token => normalized.includes(token)))
+    || (fullCompact.length >= 6 && textCompact.includes(fullCompact))
+  );
+}
+
 function sameSiteUrl(baseUrl: string, href: string): string | null {
   try {
     const url = new URL(href, baseUrl);
@@ -432,10 +454,12 @@ function decodeHtml(value: string): string {
   return value
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#39;|&#x27;|&apos;/gi, "'")
     .replace(/&#x2F;/gi, "/")
     .replace(/&#x3A;/gi, ":")
-    .replace(/&#x3D;/gi, "=");
+    .replace(/&#x3D;/gi, "=")
+    .replace(/&#x([0-9a-f]+);/gi, (_match, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_match, decimal) => String.fromCharCode(parseInt(decimal, 10)));
 }
 
 function normalizeSearchResultUrl(value: string): string | null {
@@ -585,7 +609,7 @@ function verifyEmailPage(html: string, row: ListingRow, url: string): Candidate 
   const pageDigits = text.replace(/\D/g, "");
   const tokens = brokerageTokens(effectiveBrokerage(row));
 
-  const hasName = text.includes(first) && text.includes(last);
+  const hasName = pageHasAgentName(text, name);
   const hasPhone = Boolean(phone && pageDigits.includes(phone));
   const hasBrokerage = tokens.length > 0 && tokens.some(token => text.includes(token) || url.toLowerCase().includes(token));
   const emails = extractEmails(html);
