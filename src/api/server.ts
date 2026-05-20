@@ -2775,6 +2775,8 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       max_units: maxUnits,
     },
     inventory: {
+      total_properties: numberOrNull(dashboard?.total_multifamily_properties) ?? 0,
+      known_units: numberOrNull(dashboard?.known_multifamily_units) ?? 0,
       total_multifamily_properties: numberOrNull(dashboard?.total_multifamily_properties) ?? 0,
       known_multifamily_units: numberOrNull(dashboard?.known_multifamily_units) ?? 0,
       by_subtype: dashboard?.inventory_by_subtype ?? {},
