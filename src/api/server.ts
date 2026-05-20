@@ -1532,6 +1532,9 @@ app.post('/v1/bbc/search-runs', async (c) => {
       select
         p.*,
         case
+          when coalesce(p.property_use, '') ilike '%MINI-WAREHOUSE%'
+            or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%self%storage%'
+            or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%mini%warehouse%' then 'self_storage'
           when p.asset_type = 'commercial_multifamily' or coalesce(p.property_use, '') ilike '%APT%UNITS%' then 'commercial_multifamily'
           when p.asset_type = 'small_multifamily'
             or coalesce(p.property_use, '') ilike '%TWO FAMILY%'
@@ -1799,6 +1802,9 @@ app.post('/v1/bbc/search-runs', async (c) => {
           p.state_code,
           p.zip,
           case
+            when coalesce(p.property_use, '') ilike '%MINI-WAREHOUSE%'
+              or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%self%storage%'
+              or lower(coalesce(p.asset_type, '') || ' ' || coalesce(p.asset_subtype, '') || ' ' || coalesce(p.property_type, '') || ' ' || coalesce(p.property_use, '')) like '%mini%warehouse%' then 'self_storage'
             when p.asset_type = 'commercial_multifamily' or coalesce(p.property_use, '') ilike '%APT%UNITS%' then 'commercial_multifamily'
             when p.asset_type = 'small_multifamily'
               or coalesce(p.property_use, '') ilike '%TWO FAMILY%'
@@ -6716,6 +6722,7 @@ function normalizeBbcAssetType(value: string): string {
   if (['single_family', 'sfr', 'residential'].includes(normalized)) return 'single_family';
   if (['small_multifamily', 'multifamily', 'multi_family', 'duplex', 'triplex', 'fourplex'].includes(normalized)) return 'small_multifamily';
   if (['commercial_multifamily', 'apartment', 'apartments'].includes(normalized)) return 'commercial_multifamily';
+  if (['self_storage', 'selfstorage', 'storage', 'mini_warehouse', 'miniwarehouse'].includes(normalized)) return 'self_storage';
   return '';
 }
 
@@ -7193,6 +7200,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td>2-5 unit small multifamily</td><td><code>"unitClasses": ["small_multifamily_2_5"]</code></td><td>Small multifamily rows with 2 through 5 known units.</td></tr>
     <tr><td>5+ multifamily</td><td><code>"unitClasses": ["multifamily_5_plus"]</code></td><td>Multifamily rows with 5 or more known units.</td></tr>
     <tr><td>Commercial apartment scale</td><td><code>"unitClasses": ["commercial_multifamily_6_plus"]</code></td><td>Commercial multifamily classification or 6+ known units.</td></tr>
+    <tr><td>Self-storage</td><td><code>"assetTypes": ["self_storage"]</code></td><td>Assessor mini-warehouse/self-storage rows where the covered market has linked listings.</td></tr>
   </table>
 
   <h2>Recommended BBC Wiring</h2>
