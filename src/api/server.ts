@@ -6985,7 +6985,7 @@ function normalizeBbcSearchFilters(input: Record<string, unknown>) {
   const statusInput = input.status ?? input.statuses;
   const statuses = Array.isArray(statusInput)
     ? statusInput.map((value) => String(value).toLowerCase()).filter((value) => ['active', 'pending', 'off_market'].includes(value))
-    : ['active'];
+    : assetTypes.includes('self_storage') ? ['active', 'off_market'] : ['active'];
 
   return {
     assetTypes: [...new Set(assetTypes)],
@@ -7545,7 +7545,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     }
   ]
 }</pre>
-  <p>Use <code>POST /v1/bbc/search-runs</code> for frontend searches and backend cron searches. The <code>market</code> selects a covered MXRE universe; <code>location</code> and numeric filters narrow the returned active/new/changed leads. Use <code>status</code> or <code>statuses</code> for <code>active</code>, <code>pending</code>, and <code>off_market</code> filters. Use <code>limit</code> and <code>offset</code> for pagination; there is no fixed 500-row cap on this endpoint. Continue while <code>pagination.hasMore</code> is true.</p>
+  <p>Use <code>POST /v1/bbc/search-runs</code> for frontend searches and backend cron searches. The <code>market</code> selects a covered MXRE universe; <code>location</code> and numeric filters narrow the returned active/new/changed leads. Use <code>status</code> or <code>statuses</code> for <code>active</code>, <code>pending</code>, and <code>off_market</code> filters. Self-storage defaults to both <code>active</code> and <code>off_market</code> so BBC receives operating facility evidence plus sale/listing evidence; pass <code>status: ["active"]</code> to restrict to active public listing evidence. Use <code>limit</code> and <code>offset</code> for pagination; there is no fixed 500-row cap on this endpoint. Continue while <code>pagination.hasMore</code> is true.</p>
   <pre>curl "https://api.mxre.mundox.ai/v1/bbc/search-runs" \
   -X POST \
   -H "content-type: application/json" \
@@ -7570,7 +7570,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     "limit": 100,
     "offset": 0
   }'</pre>
-  <p>For <code>assetTypes: ["self_storage"]</code>, MXRE may return both parcel-linked listing rows and verified external public evidence rows. External evidence rows have <code>sourceRecordType: "external_market_listing"</code>, an id like <code>external:107</code>, source URL, observed/first/last seen timestamps, and <code>sourceListedAt</code> only when the public source exposes a reliable original listing date. Treat these as public listing evidence until they are matched to a parcel-backed MXRE property.</p>
+  <p>For <code>assetTypes: ["self_storage"]</code>, MXRE may return parcel-linked rows, active public sale/lease listing evidence, and operating facility evidence from public sources such as OpenStreetMap. External evidence rows have <code>sourceRecordType: "external_market_listing"</code>, an id like <code>external:107</code>, source URL, observed/first/last seen timestamps, and <code>sourceListedAt</code> only when the public source exposes a reliable original listing date. Treat <code>listingSource: "osm_openstreetmap_facility"</code> as facility-exists evidence, not proof the asset is for sale.</p>
   <pre>{
   "pagination": { "limit": 100, "offset": 0, "returned": 6, "nextOffset": null, "hasMore": false },
   "summary": {
@@ -7585,7 +7585,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
       "externalListingId": 107,
       "sourceRecordType": "external_market_listing",
       "assetType": "self_storage",
-      "listingSource": "free_web_loopnet_detail",
+    "listingSource": "osm_openstreetmap_facility",
       "listingUrl": "https://www.loopnet.com/Listing/...",
       "sourceListedAt": null
     }
