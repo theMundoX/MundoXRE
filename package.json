@@ -77,6 +77,8 @@
     "market:indy:enrich:hendricks": "tsx scripts/enrich-hendricks-in-assessor.ts",
     "market:indy:enrich:madison": "tsx scripts/enrich-madison-in-parcels.ts",
     "market:crexi:ingest": "tsx scripts/ingest-crexi-rapidapi.ts",
+    "market:self-storage:classify": "tsx scripts/backfill-self-storage-classification.ts",
+    "market:indy:self-storage:loopnet": "tsx scripts/seed-indy-loopnet-self-storage.ts",
     "autocomplete:migrate": "tsx scripts/apply-address-autocomplete-migration.ts",
     "autocomplete:openaddresses": "tsx scripts/ingest-openaddresses-national-autocomplete.ts",
     "autocomplete:openaddresses:in": "tsx scripts/ingest-openaddresses-national-autocomplete.ts --state=IN",

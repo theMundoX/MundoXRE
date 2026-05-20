@@ -2759,6 +2759,18 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
            source,
            source_url as "sourceUrl",
            confidence,
+           raw->>'listing_description' as "listingDescription",
+           raw->'investment_highlights' as "investmentHighlights",
+           raw->'noi' as "noi",
+           raw->'cap_rate' as "capRate",
+           raw->'debt' as "debt",
+           raw->>'portfolio_name' as "portfolioName",
+           raw->>'portfolio_units' as "portfolioUnits",
+           raw->>'portfolio_nrsf' as "portfolioNrsf",
+           raw->>'portfolio_occupancy_pct' as "portfolioOccupancyPct",
+           raw->>'individual_building_sqft' as "buildingSqft",
+           raw->>'individual_year_built' as "yearBuilt",
+           raw->>'broker' as "broker",
            observed_at as "observedAt"
          from external_active
          order by coalesce(units,0) desc, coalesce(list_price,0) desc
