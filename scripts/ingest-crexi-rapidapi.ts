@@ -106,12 +106,16 @@ function classify(row: CrexiSearchRow, detail?: Record<string, unknown>): Classi
     detail?.investmentHighlights,
   ]).toLowerCase();
 
-  const isSelfStorage = /\bself[-\s]?storage\b|\bmini[-\s]?storage\b|\bstorage units?\b|\bmini[-\s]?warehouse\b/.test(fullText);
+  const selfStoragePattern = /\bself[-\s]?storage\b|\bmini[-\s]?storage\b|\bstorage units?\b|\bmini[-\s]?warehouse\b/;
+  const actualSelfStorageType = selfStoragePattern.test(detailTypeText);
+  const explicitSelfStorageListing =
+    selfStoragePattern.test(rowText) &&
+    !/\bredevelopment\b|\bpotential uses?\b|\bmany potential uses?\b|\bland opportunity\b|\bauto shop\b|\bwarehouse\b|\boffice\b|\bretail\b/.test(rowText);
   const isMultifamily =
     /\bmultifamily\b|\bmulti[-\s]?family\b|\bapartment\b|\bapartments\b|\bduplex\b|\btriplex\b|\bfourplex\b/.test(detailTypeText) ||
     /\bmultifamily\b|\bmulti[-\s]?family\b|\bapartment\b|\bapartments\b|\bduplex\b|\btriplex\b|\bfourplex\b/.test(rowText);
 
-  if (isSelfStorage && (ASSET_CLASS === "all" || ASSET_CLASS === "self_storage")) {
+  if ((actualSelfStorageType || explicitSelfStorageListing) && (ASSET_CLASS === "all" || ASSET_CLASS === "self_storage")) {
     return { assetClass: "self_storage", confidence: detail ? "medium" : "low", row, detail };
   }
   if (isMultifamily && (ASSET_CLASS === "all" || ASSET_CLASS === "multifamily")) {
