@@ -5,7 +5,10 @@ import { createRequire } from 'node:module';
 import { getDb } from '../db/client.js';
 import { buildPropertyResponse } from './transforms/build-response.js';
 import { getSourceRegistry } from '../config/source-registry.js';
+import { firstEnv, hydrateWindowsUserEnv } from '../../scripts/lib/env.js';
 import type { PropertySummary } from './types.js';
+
+hydrateWindowsUserEnv();
 
 const app = new Hono();
 const db = getDb();
@@ -638,6 +641,7 @@ const MARKET_ASSET_CLASSES = [
   { key: 'retail', label: 'Retail', unitRange: null },
   { key: 'office', label: 'Office', unitRange: null },
   { key: 'mobile_home_rv', label: 'Mobile home / RV park', unitRange: null },
+  { key: 'self_storage', label: 'Self-storage', unitRange: null },
 ];
 const BBC_MARKET_ENDPOINTS = [
   '/v1/bbc/search-runs',
@@ -826,6 +830,8 @@ app.use('*', async (c, next) => {
     c.req.path === '/' ||
     (previewsEnabled(c) && (
       c.req.path === '/dashboard' ||
+      c.req.path === '/preview/command-center' ||
+      c.req.path === '/preview/command-center/data' ||
       c.req.path === '/preview/market-dashboard' ||
       c.req.path === '/preview/listing-url-inspector' ||
       c.req.path === '/preview/data-gaps' ||
@@ -1482,7 +1488,14 @@ app.post('/v1/bbc/search-runs', async (c) => {
   const since = parseDateTimeParam(typeof input.onlyChangedSince === 'string' ? input.onlyChangedSince : undefined)
     ?? parseDateTimeParam(typeof input.since === 'string' ? input.since : undefined)
     ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const limit = Math.min(Number(input.limit) > 0 ? Number(input.limit) : 100, 500);
+  const requestedLimit = Number(input.limit);
+  const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+    ? Math.floor(requestedLimit)
+    : 100;
+  const requestedOffset = Number(input.offset ?? input.pageOffset);
+  const offset = Number.isFinite(requestedOffset) && requestedOffset > 0
+    ? Math.floor(requestedOffset)
+    : 0;
   const excludeSql = excludedIds.length > 0 ? `and p.id not in (${excludedIds.join(',')})` : '';
   const assetSql = filters.assetTypes.length > 0 ? `and asset_group in (${filters.assetTypes.map((asset) => `'${sqlString(asset)}'`).join(',')})` : '';
   const unitClassSql = filters.unitClasses.length > 0 ? `and (${filters.unitClasses.map(unitClassSqlCondition).filter(Boolean).join(' or ')})` : '';
@@ -1788,6 +1801,7 @@ app.post('/v1/bbc/search-runs', async (c) => {
       from filtered
       order by changed_at desc
       limit ${limit}
+      offset ${offset}
        ) r) as results;
   `);
   } catch (error) {
@@ -1958,12 +1972,126 @@ app.post('/v1/bbc/search-runs', async (c) => {
           from filtered
           order by changed_at desc
           limit ${limit}
+          offset ${offset}
          ) r) as results;
     `);
   }
 
   const summary = normalizeRecord(result?.summary);
   const results = Array.isArray(result?.results) ? result.results : [];
+  const includeExternalSelfStorage = filters.assetTypes.includes('self_storage');
+  let externalResults: unknown[] = [];
+  let externalSummary = { matched: 0, returned: 0 };
+  if (includeExternalSelfStorage) {
+    const externalStatusSql = filters.statuses.length > 0
+      ? `and status in (${filters.statuses.map((status) => `'${sqlString(status)}'`).join(',')})`
+      : `and status = 'active'`;
+    const externalFilterSql = [
+      filters.minPrice !== null ? `and list_price >= ${filters.minPrice}` : '',
+      filters.maxPrice !== null ? `and list_price <= ${filters.maxPrice}` : '',
+      filters.minUnits !== null ? `and coalesce(units, 0) >= ${filters.minUnits}` : '',
+      filters.maxUnits !== null ? `and coalesce(units, 0) <= ${filters.maxUnits}` : '',
+      filters.states.length > 0 ? `and state_code in (${filters.states.map((state) => `'${sqlString(state)}'`).join(',')})` : '',
+      filters.cities.length > 0 ? `and upper(coalesce(city,'')) in (${filters.cities.map((city) => `'${sqlString(city)}'`).join(',')})` : '',
+      filters.zips.length > 0 ? `and zip in (${filters.zips.map((zip) => `'${sqlString(zip)}'`).join(',')})` : '',
+    ].filter(Boolean).join('\n        ');
+    const baseMatched = numberOrNull(summary.matched) ?? 0;
+    const externalLimit = Math.max(0, limit - results.length);
+    const externalOffset = Math.max(0, offset - baseMatched);
+    try {
+      const [external] = await queryPg<Record<string, unknown>>(`
+        with external_scope as (
+          select
+            id,
+            market,
+            asset_class,
+            source,
+            source_url,
+            title,
+            address,
+            city,
+            state_code,
+            zip,
+            units,
+            list_price,
+            price_per_unit,
+            cap_rate,
+            noi,
+            status,
+            confidence,
+            observed_at,
+            first_seen_at,
+            last_seen_at,
+            raw,
+            greatest(coalesce(last_seen_at, '-infinity'::timestamptz), coalesce(first_seen_at, '-infinity'::timestamptz), coalesce(observed_at, '-infinity'::timestamptz)) as changed_at
+          from external_market_listings
+          where market = '${sqlString(marketConfig.key)}'
+            and asset_class = 'self_storage'
+            ${externalStatusSql}
+            ${externalFilterSql}
+            and greatest(coalesce(last_seen_at, '-infinity'::timestamptz), coalesce(first_seen_at, '-infinity'::timestamptz), coalesce(observed_at, '-infinity'::timestamptz)) >= '${sqlString(since)}'::timestamptz
+        ),
+        totals as (
+          select count(*)::int as matched from external_scope
+        )
+        select
+          (select row_to_json(totals) from totals) as summary,
+          (select coalesce(jsonb_agg(row_to_json(r) order by r."lastChangedAt" desc), '[]'::jsonb)
+           from (
+             select
+               ('external:' || id::text) as "mxreId",
+               id as "externalListingId",
+               'external_market_listing' as "sourceRecordType",
+               'public_listing_evidence' as "eventReason",
+               changed_at as "lastChangedAt",
+               md5('external_market_listing|' || id::text || '|' || changed_at::text) as "recordVersion",
+               array['externalMarketListing'] as "changedFields",
+               title,
+               address,
+               city,
+               state_code as state,
+               zip,
+               'self_storage' as "assetGroup",
+               'self_storage' as "assetType",
+               raw->>'evidence_type' as "assetSubtype",
+               units as "unitCount",
+               status = 'active' as "onMarket",
+               list_price as "listPrice",
+               price_per_unit as "pricePerUnit",
+               cap_rate as "capRate",
+               noi,
+               source as "listingSource",
+               source_url as "listingUrl",
+               raw->>'broker' as "listingBrokerage",
+               raw->>'listing_description' as "listingDescription",
+               raw->>'source_summary' as "sourceSummary",
+               raw->>'accepted_reason' as "acceptedReason",
+               raw->>'verification' as "verification",
+               raw->>'portfolio_name' as "portfolioName",
+               raw->>'activated_on' as "sourceListedAt",
+               observed_at as "observedAt",
+               first_seen_at as "firstSeenAt",
+               last_seen_at as "lastSeenAt",
+               confidence,
+               true as "externalEvidence",
+               'External public evidence row. Call /v1/bbc/property only after/if this row is matched to a parcel-backed MXRE property.' as "underwritingNote"
+             from external_scope
+             order by changed_at desc
+             limit ${externalLimit}
+             offset ${externalOffset}
+           ) r) as results;
+      `);
+      const externalSummaryRecord = normalizeRecord(external?.summary);
+      externalResults = Array.isArray(external?.results) ? external.results : [];
+      externalSummary = {
+        matched: numberOrNull(externalSummaryRecord.matched) ?? externalResults.length,
+        returned: externalResults.length,
+      };
+    } catch (error) {
+      console.warn(`[MXRE BBC search] external self-storage evidence failed for ${marketConfig.key}:`, error);
+    }
+  }
+  const combinedResults = [...results, ...externalResults];
   const partialResult = results.some((row) => normalizeRecord(row).partialResult === true);
 
   return c.json({
@@ -1974,15 +2102,24 @@ app.post('/v1/bbc/search-runs', async (c) => {
     since,
     nextCursor: new Date().toISOString(),
     filters,
+    pagination: {
+      limit,
+      offset,
+      returned: combinedResults.length,
+      nextOffset: combinedResults.length === limit ? offset + combinedResults.length : null,
+      hasMore: combinedResults.length === limit,
+    },
     summary: {
-      matched: numberOrNull(summary.matched) ?? results.length,
+      matched: (numberOrNull(summary.matched) ?? results.length) + externalSummary.matched,
       new: numberOrNull(summary.new_count) ?? 0,
       changed: numberOrNull(summary.changed_count) ?? 0,
       unchangedSkipped: null,
       excludedByClient: excludedIds.length,
-      returned: results.length,
+      returned: combinedResults.length,
+      externalEvidenceMatched: externalSummary.matched,
+      externalEvidenceReturned: externalSummary.returned,
     },
-    results,
+    results: combinedResults,
     clientWorkflow: {
       recommendedBehavior: 'Underwrite returned rows. Keep failed/passed status in Buy Box Club. Reconsider failed deals only when MXRE returns a later recordVersion or underwriting-relevant changedFields.',
       excludeMxreIdsApplied: excludedIds.length,
@@ -2598,13 +2735,15 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
   }
 
   const assetClass = (c.req.query('asset_class') ?? 'multifamily').toLowerCase();
-  const supportedDashboardAssetClasses = ['multifamily', 'self_storage'];
+  const supportedDashboardAssetClasses = ['multifamily', 'self_storage', 'single_family'];
   if (!supportedDashboardAssetClasses.includes(assetClass)) {
     return c.json({ error: 'Unsupported asset_class', supported_asset_classes: supportedDashboardAssetClasses }, 400);
   }
   const propertyAssetFilterSql = assetClass === 'self_storage'
     ? "asset_type = 'self_storage'"
-    : "asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')";
+    : assetClass === 'single_family'
+      ? "asset_type in ('single_family', 'residential')"
+      : "asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')";
   const activePropertyAssetFilterSql = propertyAssetFilterSql.replace(/\basset_type\b/g, 'p.asset_type');
   const minUnits = parsePositiveInt(c.req.query('min_units'));
   const maxUnits = parsePositiveInt(c.req.query('max_units'));
@@ -5182,6 +5321,80 @@ setInterval(load, 60000); // auto-refresh every 60s
 </html>`);
 });
 
+app.get('/preview/command-center', async (c) => {
+  if (!previewsEnabled(c)) return c.json({ error: 'Preview disabled' }, 404);
+  return c.html(renderCommandCenterHtml());
+});
+
+app.get('/preview/command-center/data', async (c) => {
+  if (!previewsEnabled(c)) return c.json({ error: 'Preview disabled' }, 404);
+  const q = (c.req.query('q') ?? '').trim();
+  const assetClass = normalizeBbcAssetType(c.req.query('asset_class') ?? 'single_family') || 'single_family';
+  const parsed = parseCommandCenterAddress(q);
+  const apiKey = getBrowserApiKey(c);
+  if (!apiKey) {
+    return c.json({ error: 'Local MXRE API key is not configured for preview fan-out.' }, 500);
+  }
+
+  const origin = new URL(c.req.url).origin;
+  const apiGet = async (path: string) => {
+    const response = await fetch(`${origin}${path}`, { headers: { 'x-api-key': apiKey } });
+    const body = await response.json().catch(() => ({ error: 'Non-JSON response' }));
+    return { ok: response.ok, status: response.status, path, body };
+  };
+
+  const propertyPath = parsed
+    ? `/v1/bbc/property?${new URLSearchParams({
+      address: parsed.address,
+      city: parsed.city,
+      state: parsed.state,
+      ...(parsed.zip ? { zip: parsed.zip } : {}),
+    }).toString()}`
+    : null;
+
+  const [property, autocomplete, assetDashboard, markets] = await Promise.all([
+    propertyPath ? apiGet(propertyPath) : Promise.resolve(null),
+    q ? apiGet(`/v1/addresses/autocomplete?${new URLSearchParams({ q, limit: '8' }).toString()}`) : Promise.resolve(null),
+    apiGet(`/v1/markets/indianapolis/dashboard?${new URLSearchParams({ asset_class: assetClass }).toString()}`),
+    apiGet('/v1/bbc/markets?includeBelowTarget=true&includeLiveMetrics=true'),
+  ]);
+  const propertyBody = property && typeof property.body === 'object'
+    ? property.body as Record<string, unknown>
+    : {};
+  const propertyRecord = normalizeRecord(propertyBody.property);
+
+  return c.json({
+    schemaVersion: 'mxre.commandCenter.preview.v1',
+    request: {
+      q,
+      parsedAddress: parsed,
+      selectedMarketPanel: {
+        assetClass,
+        endpoint: `/v1/markets/indianapolis/dashboard?asset_class=${assetClass}`,
+      },
+      resolvedPropertyAsset: {
+        assetType: propertyRecord.assetType ?? null,
+        assetSubtype: propertyRecord.assetSubtype ?? null,
+        propertyType: propertyRecord.propertyType ?? null,
+        propertyUse: propertyRecord.propertyUse ?? null,
+      },
+    },
+    endpoints: {
+      property,
+      autocomplete,
+      assetDashboard,
+      markets,
+    },
+    notes: [
+      'This preview calls existing MXRE API endpoints server-side using local credentials.',
+      'No external public geocoder or substitute parcel source is used by this command-center preview.',
+      'The exact-address property result and selected market asset panel are separate payloads. selectedMarketPanel.assetClass is not the property classification.',
+      'Self-storage market searches use assetTypes: ["self_storage"] and dashboard asset_class=self_storage.',
+    ],
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/preview/market-dashboard', async (c) => {
   const market = c.req.query('market')?.toLowerCase();
   const apiKey = getBrowserApiKey(c);
@@ -6863,7 +7076,8 @@ function normalizeJoinedProperty(value: unknown): Record<string, unknown> {
 }
 
 async function queryPg<T extends Record<string, unknown>>(query: string): Promise<T[]> {
-  const directUrl = process.env.MXRE_DIRECT_PG_URL ?? process.env.MXRE_PG_URL ?? process.env.DATABASE_URL;
+  hydrateWindowsUserEnv();
+  const directUrl = firstEnv('MXRE_DIRECT_PG_URL', 'MXRE_PG_URL', 'DATABASE_URL', 'POSTGRES_URL');
   if (directUrl && /^postgres(ql)?:\/\//i.test(directUrl)) {
     if (!directPgPool) {
       directPgPool = new Pool({
@@ -6880,12 +7094,13 @@ async function queryPg<T extends Record<string, unknown>>(query: string): Promis
   }
 
   const url = directUrl && /^https?:\/\//i.test(directUrl)
-    ? directUrl.replace(/\/$/, '').replace(/\/pg\/query$/, '')
-    : process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY;
+    ? directUrl.replace(/\/$/, '')
+    : firstEnv('SUPABASE_URL');
+  const key = firstEnv('SUPABASE_SERVICE_KEY', 'SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !key) throw new Error('Database connection not configured.');
+  const pgQueryUrl = url.endsWith('/pg/query') ? url : `${url.replace(/\/$/, '')}/pg/query`;
 
-  const response = await fetch(`${url.replace(/\/$/, '')}/pg/query`, {
+  const response = await fetch(pgQueryUrl, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -7015,7 +7230,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
       <td>3. Daily saved search</td>
       <td>User has a saved buy box like "active Indianapolis small multifamily under $300k."</td>
       <td><code>POST /v1/bbc/search-runs</code></td>
-      <td>Search run id, returned <code>mxreId</code>s, candidate <code>recordVersion</code>s, underwriting status per user.</td>
+      <td>Search run id, returned <code>mxreId</code>s or <code>external:* </code> evidence ids, candidate <code>recordVersion</code>s, pagination offset, underwriting status per user.</td>
     </tr>
     <tr>
       <td>4. Skip unchanged failures</td>
@@ -7175,7 +7390,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     }
   ]
 }</pre>
-  <p>Use <code>POST /v1/bbc/search-runs</code> for frontend searches and backend cron searches. The <code>market</code> selects a covered MXRE universe; <code>location</code> and numeric filters narrow the returned active/new/changed leads.</p>
+  <p>Use <code>POST /v1/bbc/search-runs</code> for frontend searches and backend cron searches. The <code>market</code> selects a covered MXRE universe; <code>location</code> and numeric filters narrow the returned active/new/changed leads. Use <code>limit</code> and <code>offset</code> for pagination; there is no fixed 500-row cap on this endpoint. Continue while <code>pagination.hasMore</code> is true.</p>
   <pre>curl "https://api.mxre.mundox.ai/v1/bbc/search-runs" \
   -X POST \
   -H "content-type: application/json" \
@@ -7197,8 +7412,30 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     "minEquityPercent": 40,
     "onlyChangedSince": "2026-05-02T00:00:00Z",
     "excludeMxreIds": [50913586],
-    "limit": 100
+    "limit": 100,
+    "offset": 0
   }'</pre>
+  <p>For <code>assetTypes: ["self_storage"]</code>, MXRE may return both parcel-linked listing rows and verified external public evidence rows. External evidence rows have <code>sourceRecordType: "external_market_listing"</code>, an id like <code>external:107</code>, source URL, observed/first/last seen timestamps, and <code>sourceListedAt</code> only when the public source exposes a reliable original listing date. Treat these as public listing evidence until they are matched to a parcel-backed MXRE property.</p>
+  <pre>{
+  "pagination": { "limit": 100, "offset": 0, "returned": 6, "nextOffset": null, "hasMore": false },
+  "summary": {
+    "matched": 6,
+    "returned": 6,
+    "externalEvidenceMatched": 6,
+    "externalEvidenceReturned": 6
+  },
+  "results": [
+    {
+      "mxreId": "external:107",
+      "externalListingId": 107,
+      "sourceRecordType": "external_market_listing",
+      "assetType": "self_storage",
+      "listingSource": "free_web_loopnet_detail",
+      "listingUrl": "https://www.loopnet.com/Listing/...",
+      "sourceListedAt": null
+    }
+  ]
+}</pre>
   <p>Equity filters are computed server-side. For active on-market listings MXRE uses <code>listPrice - estimatedMortgageBalance</code>. For market search rows without an active list price it uses <code>marketValue</code>, then <code>assessedValue</code> as fallback basis. Exact property detail may include <code>estimatedValue</code> where that source field exists.</p>
   <pre>{
   "mxreId": 50913586,
@@ -7219,7 +7456,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     <tr><td>2-5 unit small multifamily</td><td><code>"unitClasses": ["small_multifamily_2_5"]</code></td><td>Small multifamily rows with 2 through 5 known units.</td></tr>
     <tr><td>5+ multifamily</td><td><code>"unitClasses": ["multifamily_5_plus"]</code></td><td>Multifamily rows with 5 or more known units.</td></tr>
     <tr><td>Commercial apartment scale</td><td><code>"unitClasses": ["commercial_multifamily_6_plus"]</code></td><td>Commercial multifamily classification or 6+ known units.</td></tr>
-    <tr><td>Self-storage</td><td><code>"assetTypes": ["self_storage"]</code></td><td>Assessor mini-warehouse/self-storage rows where the covered market has linked listings.</td></tr>
+    <tr><td>Self-storage</td><td><code>"assetTypes": ["self_storage"]</code></td><td>Assessor mini-warehouse/self-storage rows plus verified external public listing evidence where available. Do not treat CREXI category/search results alone as proof; accepted rows require listing/detail evidence.</td></tr>
   </table>
 
   <h2>Recommended BBC Wiring</h2>
@@ -7397,11 +7634,16 @@ function buildOpenApiSpec() {
                   onlyChangedSince: '2026-05-02T00:00:00Z',
                   excludeMxreIds: [50913586],
                   limit: 100,
+                  offset: 0,
                 },
               },
             },
           },
-          responses: { '200': { description: 'Search run summary and new/changed candidates.' } },
+          responses: {
+            '200': {
+              description: 'Search run summary, pagination metadata, and new/changed candidates. Self-storage searches may include sourceRecordType=external_market_listing rows for verified public evidence not yet parcel-linked.',
+            },
+          },
         },
       },
       '/v1/property': {
@@ -7566,6 +7808,124 @@ function escapeHtml(value: unknown): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function parseCommandCenterAddress(input: string): { address: string; city: string; state: string; zip?: string } | null {
+  const cleaned = input.trim().replace(/\s+/g, ' ');
+  const match = cleaned.match(/^(.+?),\s*([^,]+),\s*([A-Za-z]{2})(?:\s+(\d{5})(?:-\d{4})?)?$/);
+  if (!match) return null;
+  return {
+    address: match[1].trim(),
+    city: match[2].trim(),
+    state: match[3].toUpperCase(),
+    ...(match[4] ? { zip: match[4] } : {}),
+  };
+}
+
+function renderCommandCenterHtml(): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MXRE Command Center</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1115;--panel:#121a20;--panel2:#17222a;--line:#2b3a43;--text:#edf6fb;--muted:#9eb0ba;--green:#49dc8b;--blue:#63b3ff;--amber:#f7c65f;--red:#ff8171}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    main{width:min(1240px,calc(100% - 28px));margin:0 auto;padding:24px 0 36px}
+    header{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;padding:28px 0 22px;border-bottom:1px solid var(--line)}
+    h1{font-size:clamp(2.8rem,8vw,6.8rem);line-height:.9;margin:0;letter-spacing:0}.eyebrow{color:var(--green);font-weight:900;text-transform:uppercase;margin:0 0 8px}.muted{color:var(--muted)}.source{color:var(--blue);font-size:.9rem}
+    form{display:grid;grid-template-columns:minmax(260px,1fr) 190px 92px;gap:10px;align-items:end;margin:22px 0}
+    label{display:block;color:var(--muted);font-size:.82rem;font-weight:800;margin:0 0 8px}input,select,button{width:100%;min-height:48px;border-radius:8px;border:1px solid var(--line);font:inherit}
+    input,select{background:#0f1519;color:var(--text);padding:0 12px}button{background:var(--green);color:#06120a;font-weight:900;cursor:pointer}button:disabled{opacity:.65;cursor:wait}
+    .status{min-height:24px;color:var(--muted);margin:0 0 18px}.status.error{color:var(--red)}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-height:150px}.wide{grid-column:span 2}.full{grid-column:1/-1}
+    .head{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}.head strong{color:var(--green);text-transform:uppercase;font-size:.78rem}.pill{color:var(--amber);font-size:.78rem;font-weight:900}
+    .metric{font-size:2rem;font-weight:950}.small{font-size:.86rem;color:var(--muted);line-height:1.45}dl{display:grid;gap:8px;margin:0}div.row{display:grid;grid-template-columns:130px 1fr;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.07)}dt{color:var(--muted)}dd{margin:0;font-weight:800;overflow-wrap:anywhere}
+    pre{height:430px;overflow:auto;background:#080d10;border:1px solid var(--line);border-radius:8px;padding:14px;font-size:.82rem;line-height:1.5;white-space:pre-wrap}
+    table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{text-align:left;padding:10px;border-top:1px solid rgba(255,255,255,.08);vertical-align:top}th{color:var(--muted);font-size:.78rem;text-transform:uppercase}
+    @media(max-width:900px){header,form,.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><p class="eyebrow">MXRE</p><h1>Command Center</h1><p class="muted">Exact address lookup and market panels backed by the existing MXRE API contracts.</p></div>
+    <div class="source">Local preview: /preview/command-center</div>
+  </header>
+  <form id="form">
+    <div><label for="q">Address</label><input id="q" value="8203 W 88th St, Indianapolis, IN 46278" autocomplete="street-address"></div>
+    <div><label for="asset">Market asset panel</label><select id="asset"><option value="single_family">Single-family</option><option value="self_storage">Self-storage</option><option value="multifamily">Multifamily</option></select></div>
+    <button id="run" type="submit">Run</button>
+  </form>
+  <p id="status" class="status">Ready.</p>
+  <section class="grid">
+    <article class="panel wide"><div class="head"><strong>Matched Property</strong><span id="confidence" class="pill">Idle</span></div><h2 id="addr">No lookup yet</h2><dl id="facts"></dl></article>
+    <article class="panel"><div class="head"><strong>Valuation</strong></div><div id="value" class="metric">--</div><p id="valueNote" class="small"></p></article>
+    <article class="panel"><div class="head"><strong>Debt / Equity</strong></div><div id="equity" class="metric">--</div><p id="debtNote" class="small"></p></article>
+    <article class="panel"><div class="head"><strong>Selected Market Panel</strong><span id="panelAsset" class="pill"></span></div><div id="panelCount" class="metric">--</div><p id="panelNote" class="small"></p></article>
+    <article class="panel"><div class="head"><strong>External Evidence</strong></div><div id="externalCount" class="metric">--</div><p id="externalNote" class="small"></p></article>
+    <article class="panel full"><div class="head"><strong>External Top Listings</strong><span class="pill">Verified rows only</span></div><div id="externalTable"></div></article>
+    <article class="panel full"><div class="head"><strong>Raw MXRE Return Data</strong><span id="schema" class="pill"></span></div><pre id="json">{}</pre></article>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => typeof n === 'number' ? new Intl.NumberFormat().format(n) : '--';
+const money = (n) => typeof n === 'number' ? new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n) : '--';
+function setStatus(text, error=false){$('status').textContent=text;$('status').classList.toggle('error',error)}
+function row(k,v){return '<div class="row"><dt>'+esc(k)+'</dt><dd>'+esc(v ?? '--')+'</dd></div>'}
+function esc(v){return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function render(data){
+  $('json').textContent = JSON.stringify(data, null, 2);
+  $('schema').textContent = data.schemaVersion || '';
+  const propWrap = data.endpoints?.property;
+  const prop = propWrap?.body;
+  if(propWrap && propWrap.ok){
+    const p = prop.property || {}, o = prop.ownership || {}, v = prop.valuation || {}, d = prop.debtAndLiens || {};
+    $('confidence').textContent = prop.request?.confidence || 'Matched';
+    $('addr').textContent = [p.address,p.city,p.state,p.zip].filter(Boolean).join(', ');
+    $('facts').innerHTML = row('MXRE ID', prop.mxreId) + row('Parcel / APN', p.parcelId || p.apn) + row('Asset', [p.assetType,p.assetSubtype].filter(Boolean).join(' / ')) + row('Units', p.unitCount) + row('Owner', o.ownerName) + row('Year built', p.yearBuilt);
+    $('value').textContent = money(v.marketValue || v.estimatedValue || v.assessedValue);
+    $('valueNote').textContent = 'Assessed: '+money(v.assessedValue)+' | Tax year: '+(v.taxYear || '--');
+    $('equity').textContent = money(d.estimatedEquity || d.equityValue);
+    $('debtNote').textContent = 'Open balance: '+money(d.openMortgageBalance)+' | Free/clear: '+(d.freeClear ?? '--');
+  } else {
+    $('confidence').textContent = propWrap ? 'No MXRE match' : 'Address not parsed';
+    $('addr').textContent = propWrap?.body?.error || 'Use: street, city, ST zip';
+    $('facts').innerHTML = '';
+    $('value').textContent = '--'; $('valueNote').textContent = ''; $('equity').textContent = '--'; $('debtNote').textContent = '';
+  }
+  const panel = data.endpoints?.assetDashboard?.body || {};
+  const inv = panel.inventory || {}, om = panel.on_market || {};
+  $('panelAsset').textContent = data.request?.selectedMarketPanel?.assetClass || '';
+  $('panelCount').textContent = fmt(inv.total_properties);
+  $('panelNote').textContent = 'Selected Indianapolis market panel only. The exact property asset is shown above from /v1/bbc/property. Active internal listing rows: '+fmt(om.active_listing_rows)+'.';
+  $('externalCount').textContent = fmt(om.external_listing_rows);
+  $('externalNote').textContent = 'Rows from external_market_listings for the selected market panel and status=active.';
+  const external = om.external_top_listings || [];
+  $('externalTable').innerHTML = external.length ? '<table><thead><tr><th>Title</th><th>Address</th><th>Units</th><th>Source</th><th>Broker</th></tr></thead><tbody>'+external.map(r => '<tr><td>'+esc(r.title)+'</td><td>'+esc([r.address,r.city,r.state,r.zip].filter(Boolean).join(', '))+'</td><td>'+esc(r.units || r.portfolioUnits || '')+'</td><td>'+esc(r.source)+'</td><td>'+esc(r.broker)+'</td></tr>').join('')+'</tbody></table>' : '<p class="small">No active external evidence rows returned.</p>';
+}
+$('form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  $('run').disabled = true;
+  setStatus('Loading MXRE data...');
+  try {
+    const params = new URLSearchParams({ q: $('q').value.trim(), asset_class: $('asset').value });
+    const res = await fetch('/preview/command-center/data?' + params.toString());
+    const data = await res.json();
+    render(data);
+    setStatus(res.ok ? 'Loaded from MXRE API endpoints.' : (data.error || 'Lookup failed'), !res.ok);
+  } catch (error) {
+    setStatus(error.message || 'Lookup failed', true);
+  } finally {
+    $('run').disabled = false;
+  }
+});
+$('form').dispatchEvent(new Event('submit'));
+</script>
+</body>
+</html>`;
 }
 
 async function fetchAndRespond(
