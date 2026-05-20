@@ -575,6 +575,160 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  cleveland: {
+    key: 'cleveland',
+    aliases: ['cleveland', 'cleveland-oh'],
+    label: 'Cleveland',
+    publicLabel: 'Cleveland, OH',
+    city: 'Cleveland',
+    cityUpper: 'CLEVELAND',
+    county: 'Cuyahoga',
+    state: 'OH',
+    countyId: 1698988,
+    latitude: 41.4993,
+    longitude: -81.6944,
+    status: 'pilot',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first refresh job is enabled; paid detail calls are capped when enabled',
+    restrictions: [
+      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
+    ],
+  },
+  fortWayne: {
+    key: 'fort-wayne',
+    aliases: ['fort-wayne', 'fort-wayne-in', 'fort wayne'],
+    label: 'Fort Wayne',
+    publicLabel: 'Fort Wayne, IN',
+    city: 'Fort Wayne',
+    cityUpper: 'FORT WAYNE',
+    county: 'Allen',
+    state: 'IN',
+    countyId: 797481,
+    latitude: 41.0793,
+    longitude: -85.1394,
+    status: 'pilot',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing, contact, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and capped',
+    restrictions: [
+      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
+    ],
+  },
+  southBend: {
+    key: 'south-bend',
+    aliases: ['south-bend', 'south-bend-in', 'south bend'],
+    label: 'South Bend',
+    publicLabel: 'South Bend, IN',
+    city: 'South Bend',
+    cityUpper: 'SOUTH BEND',
+    county: 'St. Joseph',
+    state: 'IN',
+    countyId: 797737,
+    latitude: 41.6764,
+    longitude: -86.2520,
+    status: 'pilot',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing, contact, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and capped',
+    restrictions: [
+      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
+    ],
+  },
+  sanAntonio: {
+    key: 'san-antonio',
+    aliases: ['san-antonio', 'san-antonio-tx', 'san antonio'],
+    label: 'San Antonio',
+    publicLabel: 'San Antonio, TX',
+    city: 'San Antonio',
+    cityUpper: 'SAN ANTONIO',
+    county: 'Bexar',
+    state: 'TX',
+    countyId: 1741238,
+    latitude: 29.4241,
+    longitude: -98.4936,
+    status: 'pilot',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing, contact, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and capped',
+    restrictions: [
+      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
+    ],
+  },
+  birmingham: {
+    key: 'birmingham',
+    aliases: ['birmingham', 'birmingham-al'],
+    label: 'Birmingham',
+    publicLabel: 'Birmingham, AL',
+    city: 'Birmingham',
+    cityUpper: 'BIRMINGHAM',
+    county: 'Jefferson',
+    state: 'AL',
+    countyId: 1973348,
+    latitude: 33.5186,
+    longitude: -86.8104,
+    status: 'pilot',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public ZIP market refresh is enabled; public-first and no paid calls by default',
+    restrictions: [
+      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
+    ],
+  },
+  memphis: {
+    key: 'memphis',
+    aliases: ['memphis', 'memphis-tn'],
+    label: 'Memphis',
+    publicLabel: 'Memphis, TN',
+    city: 'Memphis',
+    cityUpper: 'MEMPHIS',
+    county: 'Shelby',
+    state: 'TN',
+    countyId: 1741244,
+    latitude: 35.1495,
+    longitude: -90.0490,
+    status: 'pilot',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing, contact, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and capped',
+    restrictions: [
+      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
+    ],
+  },
+  detroit: {
+    key: 'detroit',
+    aliases: ['detroit', 'detroit-mi'],
+    label: 'Detroit',
+    publicLabel: 'Detroit, MI',
+    city: 'Detroit',
+    cityUpper: 'DETROIT',
+    county: 'Wayne',
+    state: 'MI',
+    countyId: 1973412,
+    latitude: 42.3314,
+    longitude: -83.0458,
+    status: 'pilot',
+    readinessTarget: 60,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public ZIP market refresh is enabled; public-first and no paid calls by default',
+    restrictions: [
+      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
+    ],
+  },
   westChester: {
     key: 'west-chester',
     aliases: ['west-chester', 'west-chester-pa', 'westchester'],
@@ -6828,8 +6982,9 @@ function normalizeBbcSearchFilters(input: Record<string, unknown>) {
     ? input.assetTypes.map((value) => String(value)).map(normalizeBbcAssetType).filter(Boolean)
     : [];
   const unitClasses = normalizeUnitClassFilters(input.unitClass ?? input.unitClasses ?? input.unit_class ?? input.unit_classes);
-  const statuses = Array.isArray(input.status)
-    ? input.status.map((value) => String(value).toLowerCase()).filter((value) => ['active', 'pending', 'off_market'].includes(value))
+  const statusInput = input.status ?? input.statuses;
+  const statuses = Array.isArray(statusInput)
+    ? statusInput.map((value) => String(value).toLowerCase()).filter((value) => ['active', 'pending', 'off_market'].includes(value))
     : ['active'];
 
   return {
@@ -7390,7 +7545,7 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     }
   ]
 }</pre>
-  <p>Use <code>POST /v1/bbc/search-runs</code> for frontend searches and backend cron searches. The <code>market</code> selects a covered MXRE universe; <code>location</code> and numeric filters narrow the returned active/new/changed leads. Use <code>limit</code> and <code>offset</code> for pagination; there is no fixed 500-row cap on this endpoint. Continue while <code>pagination.hasMore</code> is true.</p>
+  <p>Use <code>POST /v1/bbc/search-runs</code> for frontend searches and backend cron searches. The <code>market</code> selects a covered MXRE universe; <code>location</code> and numeric filters narrow the returned active/new/changed leads. Use <code>status</code> or <code>statuses</code> for <code>active</code>, <code>pending</code>, and <code>off_market</code> filters. Use <code>limit</code> and <code>offset</code> for pagination; there is no fixed 500-row cap on this endpoint. Continue while <code>pagination.hasMore</code> is true.</p>
   <pre>curl "https://api.mxre.mundox.ai/v1/bbc/search-runs" \
   -X POST \
   -H "content-type: application/json" \
@@ -7623,6 +7778,7 @@ function buildOpenApiSpec() {
                   assetTypes: ['single_family', 'small_multifamily'],
                   unitClasses: ['duplex', 'triplex', 'fourplex', 'fiveplex'],
                   status: ['active'],
+                  statuses: ['active'],
                   minPrice: 50000,
                   maxPrice: 250000,
                   minBeds: 2,
