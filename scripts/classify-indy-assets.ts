@@ -11,9 +11,13 @@
  */
 
 import "dotenv/config";
+import { firstEnv, hydrateWindowsUserEnv } from "./lib/env.ts";
 
-const PG_URL = `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
-const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
+hydrateWindowsUserEnv();
+
+const basePgUrl = (firstEnv("MXRE_PG_URL") ?? firstEnv("SUPABASE_URL") ?? "").replace(/\/$/, "");
+const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
+const PG_KEY = firstEnv("SUPABASE_SERVICE_KEY") ?? "";
 const DRY_RUN = process.argv.includes("--dry-run");
 const getArg = (name: string) => process.argv.find((arg) => arg.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 const BATCH_SIZE = Math.max(100, Number.parseInt(getArg("batch-size") ?? "1000", 10));
@@ -103,6 +107,27 @@ async function main() {
     county_id = 797583
     AND upper(coalesce(city,'')) LIKE '%INDIANAPOLIS%'
   `;
+
+  await updateBatched(
+    "Self-storage / mini-warehouse code",
+    `asset_type = 'self_storage',
+             asset_subtype = 'self_storage',
+             total_units = NULL,
+             unit_count_source = 'not_applicable',
+             asset_confidence = 'high',
+             is_apartment = false,
+             is_sfr = false,
+             updated_at = now()`,
+    `${indyWhere}
+     AND (
+       upper(coalesce(property_use,'')) LIKE '%MINI-WAREHOUSE%'
+       OR lower(coalesce(asset_type,'') || ' ' || coalesce(asset_subtype,'') || ' ' || coalesce(property_type,'') || ' ' || coalesce(property_use,'')) LIKE '%self%storage%'
+       OR lower(coalesce(asset_type,'') || ' ' || coalesce(asset_subtype,'') || ' ' || coalesce(property_type,'') || ' ' || coalesce(property_use,'')) LIKE '%mini%warehouse%'
+     )
+     AND (asset_type IS DISTINCT FROM 'self_storage'
+       OR asset_subtype IS DISTINCT FROM 'self_storage'
+       OR unit_count_source IS DISTINCT FROM 'not_applicable')`,
+  );
 
   await updateBatched(
     "Commercial multifamily 40+ unit code",

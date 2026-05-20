@@ -2598,9 +2598,14 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
   }
 
   const assetClass = (c.req.query('asset_class') ?? 'multifamily').toLowerCase();
-  if (assetClass !== 'multifamily') {
-    return c.json({ error: 'Unsupported asset_class', supported_asset_classes: ['multifamily'] }, 400);
+  const supportedDashboardAssetClasses = ['multifamily', 'self_storage'];
+  if (!supportedDashboardAssetClasses.includes(assetClass)) {
+    return c.json({ error: 'Unsupported asset_class', supported_asset_classes: supportedDashboardAssetClasses }, 400);
   }
+  const propertyAssetFilterSql = assetClass === 'self_storage'
+    ? "asset_type = 'self_storage'"
+    : "asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')";
+  const activePropertyAssetFilterSql = propertyAssetFilterSql.replace(/\basset_type\b/g, 'p.asset_type');
   const minUnits = parsePositiveInt(c.req.query('min_units'));
   const maxUnits = parsePositiveInt(c.req.query('max_units'));
   const unitFilterSql = [
@@ -2618,7 +2623,7 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       from properties
       where county_id = ${marketConfig.countyId}
         and upper(coalesce(city, '')) = '${marketConfig.cityUpper}'
-        and asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
+        and ${propertyAssetFilterSql}
         ${unitFilterSql}
     ),
     active as (
@@ -2651,14 +2656,14 @@ app.get('/v1/markets/:market/dashboard', async (c) => {
       where l.is_on_market = true
         and p.county_id = ${marketConfig.countyId}
         and upper(coalesce(p.city, '')) = '${marketConfig.cityUpper}'
-        and p.asset_type in ('small_multifamily', 'apartment', 'commercial_multifamily')
+        and ${activePropertyAssetFilterSql}
         ${activeUnitFilterSql}
     ),
     external_active as (
       select *
       from external_market_listings
       where market = '${marketConfig.key}'
-        and asset_class = 'multifamily'
+        and asset_class = '${assetClass}'
         and status = 'active'
         ${minUnits !== null ? `and coalesce(units, 0) >= ${minUnits}` : ''}
         ${maxUnits !== null ? `and coalesce(units, 0) <= ${maxUnits}` : ''}
@@ -6024,7 +6029,7 @@ async function load() {
       <td>\${row.units ?? '-'}</td>
       <td>\${money(row.listPrice)}</td>
       <td>\${money(row.pricePerUnit)}</td>
-      <td>\${row.source === 'crexi_search_snapshot' ? 'Crexi snapshot' : (row.source ?? '-')}</td>
+      <td>\${row.source === 'crexi_search_snapshot' ? 'Crexi snapshot' : row.source === 'crexi_rapidapi' ? 'Crexi RapidAPI' : (row.source ?? '-')}</td>
     </tr>
   \`).join('');
   document.getElementById('loading').style.display = 'none';

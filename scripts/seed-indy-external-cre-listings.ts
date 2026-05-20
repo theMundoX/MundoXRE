@@ -1,5 +1,8 @@
 import "dotenv/config";
 import { getWriteDb } from "../src/db/client.js";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
+
+hydrateWindowsUserEnv();
 
 const db = getWriteDb();
 
@@ -107,6 +110,66 @@ const rows = [
     raw: {
       note: "Public search-result snapshot; needs direct source verification before underwriting.",
       snippet: "Multifamily, Office, Hospitality, Mixed Use",
+    },
+  },
+  {
+    market: "indianapolis",
+    asset_class: "self_storage",
+    source: "crexi_search_snapshot",
+    source_url: "https://www.crexi.com/properties/IN/Indianapolis/Self-Storage/",
+    title: "2.93 AC Redevelopment Opportunity | Indianapolis, IN",
+    address: "3415 English Ave",
+    city: "Indianapolis",
+    state_code: "IN",
+    zip: "46201",
+    list_price: 2000000,
+    status: "active",
+    confidence: "low",
+    observed_at: observedAt,
+    last_seen_at: observedAt,
+    raw: {
+      note: "Public Crexi self-storage search-result snapshot; verify direct source before underwriting.",
+      snippet: "Industrial, Mixed Use, Retail, Self Storage - 3415 English Ave Indianapolis, IN 46201",
+    },
+  },
+  {
+    market: "indianapolis",
+    asset_class: "self_storage",
+    source: "crexi_search_snapshot",
+    source_url: "https://www.crexi.com/properties/IN/Indianapolis/Self-Storage/",
+    title: "auto Shop",
+    address: "5990 E Raymond St",
+    city: "Indianapolis",
+    state_code: "IN",
+    zip: "46203",
+    list_price: 279000,
+    status: "active",
+    confidence: "low",
+    observed_at: observedAt,
+    last_seen_at: observedAt,
+    raw: {
+      note: "Public Crexi self-storage search-result snapshot; verify direct source before underwriting.",
+      snippet: "Industrial, Office, Retail, Self Storage - Industrial - 20,423 SF",
+    },
+  },
+  {
+    market: "indianapolis",
+    asset_class: "self_storage",
+    source: "crexi_search_snapshot",
+    source_url: "https://www.crexi.com/properties/IN/Indianapolis/Self-Storage/",
+    title: "8301 Craig St",
+    address: "8301 Craig St",
+    city: "Indianapolis",
+    state_code: "IN",
+    zip: "46250",
+    list_price: 550000,
+    status: "active",
+    confidence: "low",
+    observed_at: observedAt,
+    last_seen_at: observedAt,
+    raw: {
+      note: "Public Crexi self-storage search-result snapshot; verify direct source before underwriting.",
+      snippet: "Hospitality, Land, Multifamily, Office, Self Storage - Land Opportunity in northeast Indianapolis",
     },
   },
 ];

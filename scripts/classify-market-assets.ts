@@ -94,6 +94,26 @@ async function main() {
   console.log(`Dry run: ${DRY_RUN}`);
 
   await updateBatched(
+    "Self-storage / mini-warehouse flags",
+    `asset_type = 'self_storage',
+     asset_subtype = 'self_storage',
+     total_units = null,
+     unit_count_source = 'not_applicable',
+     asset_confidence = 'high',
+     is_sfr = false,
+     is_apartment = false`,
+    `${marketWhere}
+     and (
+       coalesce(property_use,'') ~* '(MINI[- ]?WAREHOUSE|SELF[- ]?STORAGE)'
+       or lower(coalesce(asset_type,'') || ' ' || coalesce(asset_subtype,'') || ' ' || coalesce(property_type,'') || ' ' || coalesce(property_use,'')) like '%self%storage%'
+       or lower(coalesce(asset_type,'') || ' ' || coalesce(asset_subtype,'') || ' ' || coalesce(property_type,'') || ' ' || coalesce(property_use,'')) like '%mini%warehouse%'
+     )
+     and (asset_type is distinct from 'self_storage'
+       or asset_subtype is distinct from 'self_storage'
+       or unit_count_source is distinct from 'not_applicable')`,
+  );
+
+  await updateBatched(
     "Small multifamily flags from property type/use",
     `asset_type = 'small_multifamily',
      asset_subtype = coalesce(asset_subtype, 'multifamily_unknown'),
