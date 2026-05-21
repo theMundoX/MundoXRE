@@ -986,6 +986,7 @@ app.use('*', async (c, next) => {
       c.req.path === '/dashboard' ||
       c.req.path === '/preview/command-center' ||
       c.req.path === '/preview/command-center/data' ||
+      c.req.path === '/preview/command-center/self-storage' ||
       c.req.path === '/preview/market-dashboard' ||
       c.req.path === '/preview/listing-url-inspector' ||
       c.req.path === '/preview/data-gaps' ||
@@ -8180,6 +8181,7 @@ function renderCommandCenterHtml(): string {
   </section>
 </main>
 <script>
+const apiKey = ${JSON.stringify(process.env.MXRE_API_KEY ?? loadApiClients()[0]?.key ?? '')};
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => typeof n === 'number' ? new Intl.NumberFormat().format(n) : '--';
 const money = (n) => typeof n === 'number' ? new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n) : '--';
@@ -8226,7 +8228,7 @@ function render(data){
 let selfStorageLoaded=false;
 async function loadSelfStorage(){
   if(selfStorageLoaded) return;
-  const res = await fetch('/preview/command-center/self-storage');
+  const res = await fetch('/preview/command-center/self-storage', { headers: apiKey ? { 'x-api-key': apiKey } : {} });
   const data = await res.json();
   if(!res.ok){
     $('ssTable').innerHTML = '<p class="small" style="color:var(--red)">'+esc(data.error || 'Self-storage report failed')+'</p>';
