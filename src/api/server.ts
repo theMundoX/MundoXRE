@@ -987,6 +987,7 @@ app.use('*', async (c, next) => {
       c.req.path === '/preview/command-center' ||
       c.req.path === '/preview/command-center/data' ||
       c.req.path === '/preview/command-center/self-storage' ||
+      c.req.path.startsWith('/preview/command-center/self-storage/') ||
       c.req.path === '/preview/market-dashboard' ||
       c.req.path === '/preview/listing-url-inspector' ||
       c.req.path === '/preview/data-gaps' ||
@@ -5687,6 +5688,128 @@ app.get('/preview/command-center/self-storage', async (c) => {
   });
 });
 
+app.get('/preview/command-center/self-storage/:market', async (c) => {
+  if (!previewsEnabled(c)) return c.json({ error: 'Preview disabled' }, 404);
+  const marketConfig = resolveMarketConfig(c.req.param('market'));
+  if (!marketConfig) return c.json({ error: 'Unsupported market', supported_markets: SUPPORTED_MARKETS }, 400);
+
+  const [parcelRows, evidenceRows] = await Promise.all([
+    queryPg<Record<string, unknown>>(`
+      select
+        p.id as "mxreId",
+        p.parcel_id as "parcelId",
+        p.address,
+        p.city,
+        p.state_code as state,
+        p.zip,
+        p.owner_name as "ownerName",
+        p.asset_type as "assetType",
+        p.asset_subtype as "assetSubtype",
+        p.asset_confidence as "assetConfidence",
+        p.property_type as "propertyType",
+        p.property_use as "propertyUse",
+        p.total_units as "unitCount",
+        p.market_value as "marketValue",
+        p.assessed_value as "assessedValue",
+        p.year_built as "yearBuilt",
+        p.latitude,
+        p.longitude,
+        p.updated_at as "updatedAt",
+        exists (
+          select 1
+          from listing_signals l
+          where l.property_id = p.id
+            and l.is_on_market = true
+        ) as "hasActiveListing",
+        (
+          select row_to_json(lx)
+          from (
+            select
+              l.id as "listingId",
+              l.mls_list_price as "listPrice",
+              l.days_on_market as "daysOnMarket",
+              l.listing_source as "listingSource",
+              l.listing_url as "listingUrl",
+              l.listing_agent_name as "listingAgentName",
+              l.listing_brokerage as "listingBrokerage",
+              l.last_seen_at as "lastSeenAt"
+            from listing_signals l
+            where l.property_id = p.id
+              and l.is_on_market = true
+            order by l.last_seen_at desc nulls last, l.id desc
+            limit 1
+          ) lx
+        ) as "activeListing"
+      from properties p
+      where p.county_id = ${marketConfig.countyId}
+        and p.state_code = '${sqlString(marketConfig.state)}'
+        and p.asset_type = 'self_storage'
+      order by p.address nulls last, p.id
+      limit 5000;
+    `),
+    queryPg<Record<string, unknown>>(`
+      select
+        ('external:' || e.id::text) as "mxreId",
+        e.id as "externalListingId",
+        e.title,
+        e.address,
+        e.city,
+        e.state_code as state,
+        e.zip,
+        e.status,
+        e.source,
+        e.source_url as "sourceUrl",
+        e.confidence,
+        e.units as "unitCount",
+        e.list_price as "listPrice",
+        e.observed_at as "observedAt",
+        e.first_seen_at as "firstSeenAt",
+        e.last_seen_at as "lastSeenAt",
+        e.raw->>'evidence_type' as "evidenceType",
+        e.raw->>'source_summary' as "sourceSummary",
+        e.raw->>'accepted_reason' as "acceptedReason",
+        e.raw->>'rejected_as_active_reason' as "rejectedAsActiveReason",
+        e.raw->>'verification' as "verification",
+        e.raw->>'lat' as lat,
+        e.raw->>'lon' as lon
+      from external_market_listings e
+      where e.market = '${sqlString(marketConfig.key)}'
+        and e.asset_class = 'self_storage'
+      order by
+        case when e.status = 'active' then 0 else 1 end,
+        case when e.source in ('free_web_loopnet_detail', 'loopnet_search_snapshot') then 0 else 1 end,
+        e.address nulls last,
+        e.id
+      limit 5000;
+    `),
+  ]);
+
+  const parcelRowsNormalized = parcelRows.map((row) => ({
+    ...row,
+    recordType: 'parcel_backed',
+    status: normalizeRecord(row.activeListing).listingId ? 'active_listing' : 'parcel_backed_off_market_or_unknown',
+  }));
+  const evidenceRowsNormalized = evidenceRows.map((row) => ({
+    ...row,
+    recordType: 'external_evidence',
+  }));
+
+  return c.json({
+    schemaVersion: 'mxre.commandCenter.selfStorageMarketDetail.v1',
+    market: marketConfig.key,
+    label: marketConfig.publicLabel,
+    totals: {
+      parcelBacked: parcelRowsNormalized.length,
+      externalEvidence: evidenceRowsNormalized.length,
+      activeListingEvidence: evidenceRowsNormalized.filter((row) => normalizeRecord(row).status === 'active').length,
+      facilityEvidence: evidenceRowsNormalized.filter((row) => normalizeRecord(row).source === 'osm_openstreetmap_facility').length,
+      combinedRows: parcelRowsNormalized.length + evidenceRowsNormalized.length,
+    },
+    rows: [...parcelRowsNormalized, ...evidenceRowsNormalized],
+    generated_at: new Date().toISOString(),
+  });
+});
+
 app.get('/preview/market-dashboard', async (c) => {
   const market = c.req.query('market')?.toLowerCase();
   const apiKey = getBrowserApiKey(c);
@@ -8139,6 +8262,7 @@ function renderCommandCenterHtml(): string {
     .metric{font-size:2rem;font-weight:950}.small{font-size:.86rem;color:var(--muted);line-height:1.45}dl{display:grid;gap:8px;margin:0}div.row{display:grid;grid-template-columns:130px 1fr;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.07)}dt{color:var(--muted)}dd{margin:0;font-weight:800;overflow-wrap:anywhere}
     pre{height:430px;overflow:auto;background:#080d10;border:1px solid var(--line);border-radius:8px;padding:14px;font-size:.82rem;line-height:1.5;white-space:pre-wrap}
     table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{text-align:left;padding:10px;border-top:1px solid rgba(255,255,255,.08);vertical-align:top}th{color:var(--muted);font-size:.78rem;text-transform:uppercase}
+    tr.clickable{cursor:pointer}tr.clickable:hover{background:rgba(255,255,255,.04)}.nowrap{white-space:nowrap}.detail-scroll{max-height:720px;overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:8px}
     @media(max-width:900px){header,form,.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
   </style>
 </head>
@@ -8175,7 +8299,8 @@ function renderCommandCenterHtml(): string {
       <article class="panel"><div class="head"><strong>Facility evidence</strong></div><div id="ssFacility" class="metric">--</div><p class="small">Operating facility rows from public OpenStreetMap tags.</p></article>
       <article class="panel"><div class="head"><strong>Verified listings</strong></div><div id="ssListings" class="metric">--</div><p class="small">Accepted public listing/detail evidence, active and historical.</p></article>
       <article class="panel"><div class="head"><strong>Active listing evidence</strong></div><div id="ssActive" class="metric">--</div><p class="small">Verified public rows currently marked active.</p></article>
-      <article class="panel full"><div class="head"><strong>All-Market Self-storage Summary</strong><span id="ssGenerated" class="pill"></span></div><div id="ssTable"><p class="small">Loading self-storage report...</p></div></article>
+      <article class="panel full"><div class="head"><strong>All-Market Self-storage Summary</strong><span id="ssGenerated" class="pill"></span></div><p class="small">Click a market row to drill into every parcel-backed self-storage record and every external evidence row.</p><div id="ssTable"><p class="small">Loading self-storage report...</p></div></article>
+      <article class="panel full" id="ssDetailPanel" style="display:none"><div class="head"><strong id="ssDetailTitle">Market Detail</strong><span id="ssDetailCount" class="pill"></span></div><div class="status" id="ssDetailStatus"></div><div id="ssDetailTable"></div></article>
       <article class="panel full"><div class="head"><strong>Source Definitions</strong><span class="pill">Important</span></div><div id="ssDefinitions" class="small"></div></article>
     </section>
   </section>
@@ -8226,6 +8351,7 @@ function render(data){
   $('externalTable').innerHTML = external.length ? '<table><thead><tr><th>Title</th><th>Address</th><th>Units</th><th>Source</th><th>Broker</th></tr></thead><tbody>'+external.map(r => '<tr><td>'+esc(r.title)+'</td><td>'+esc([r.address,r.city,r.state,r.zip].filter(Boolean).join(', '))+'</td><td>'+esc(r.units || r.portfolioUnits || '')+'</td><td>'+esc(r.source)+'</td><td>'+esc(r.broker)+'</td></tr>').join('')+'</tbody></table>' : '<p class="small">No active external evidence rows returned.</p>';
 }
 let selfStorageLoaded=false;
+let selfStorageDetailMarket='';
 async function loadSelfStorage(){
   if(selfStorageLoaded) return;
   const res = await fetch('/preview/command-center/self-storage', { headers: apiKey ? { 'x-api-key': apiKey } : {} });
@@ -8246,8 +8372,57 @@ async function loadSelfStorage(){
   $('ssTable').innerHTML = '<table><thead><tr><th>Market</th><th>Parcel-backed</th><th>Facility evidence</th><th>Verified listings</th><th>Active listings</th><th>Total evidence</th><th>Examples</th></tr></thead><tbody>'
     + rows.map(r => {
       const examples = (r.examples || []).slice(0,3).map(x => '<div><a href="'+esc(x.sourceUrl||'#')+'" target="_blank" rel="noopener noreferrer">'+esc(x.title || x.address || 'Evidence')+'</a><div class="small">'+esc([x.address,x.city,x.state,x.zip].filter(Boolean).join(', '))+' · '+esc(x.source)+' · '+esc(x.status)+'</div></div>').join('');
-      return '<tr><td><strong>'+esc(r.label || r.market)+'</strong><div class="small">'+esc(r.market)+'</div></td><td>'+fmt(r.parcelBackedCount)+'</td><td>'+fmt(r.operatingFacilityEvidence)+'</td><td>'+fmt(r.verifiedListingEvidence)+'</td><td>'+fmt(r.activeListingEvidence)+'</td><td>'+fmt(r.externalEvidenceCount)+'</td><td>'+examples+'</td></tr>';
+      return '<tr class="clickable" data-ss-market="'+esc(r.market || '')+'" data-ss-label="'+esc(r.label || r.market || '')+'"><td><strong>'+esc(r.label || r.market)+'</strong><div class="small">'+esc(r.market)+'</div></td><td>'+fmt(r.parcelBackedCount)+'</td><td>'+fmt(r.operatingFacilityEvidence)+'</td><td>'+fmt(r.verifiedListingEvidence)+'</td><td>'+fmt(r.activeListingEvidence)+'</td><td>'+fmt(r.externalEvidenceCount)+'</td><td>'+examples+'</td></tr>';
     }).join('') + '</tbody></table>';
+  document.querySelectorAll('[data-ss-market]').forEach(row => row.addEventListener('click', event => {
+    if(event.target.closest('a')) return;
+    loadSelfStorageMarket(row.dataset.ssMarket, row.dataset.ssLabel);
+  }));
+}
+function renderSelfStorageValue(row){
+  if(typeof row.listPrice === 'number') return money(row.listPrice);
+  if(typeof row.marketValue === 'number') return money(row.marketValue);
+  if(typeof row.assessedValue === 'number') return money(row.assessedValue);
+  return '--';
+}
+function renderSelfStorageSource(row){
+  if(row.recordType === 'parcel_backed') return 'MXRE parcel';
+  return [row.source, row.evidenceType].filter(Boolean).join(' / ') || 'External evidence';
+}
+async function loadSelfStorageMarket(market,label){
+  if(!market) return;
+  selfStorageDetailMarket = market;
+  $('ssDetailPanel').style.display = '';
+  $('ssDetailTitle').textContent = (label || market) + ' Self-storage Detail';
+  $('ssDetailCount').textContent = 'Loading...';
+  $('ssDetailStatus').textContent = 'Loading every row for '+(label || market)+'...';
+  $('ssDetailTable').innerHTML = '';
+  const res = await fetch('/preview/command-center/self-storage/' + encodeURIComponent(market), { headers: apiKey ? { 'x-api-key': apiKey } : {} });
+  const data = await res.json();
+  if(selfStorageDetailMarket !== market) return;
+  if(!res.ok){
+    $('ssDetailCount').textContent = 'Error';
+    $('ssDetailStatus').textContent = data.error || 'Market detail failed';
+    $('ssDetailStatus').classList.add('error');
+    return;
+  }
+  $('ssDetailStatus').classList.remove('error');
+  const totals = data.totals || {};
+  const rows = data.rows || [];
+  $('ssDetailCount').textContent = fmt(totals.parcelBacked) + ' parcel-backed / ' + fmt(totals.combinedRows) + ' total rows';
+  $('ssDetailStatus').textContent = 'Parcel-backed: '+fmt(totals.parcelBacked)+' | External evidence: '+fmt(totals.externalEvidence)+' | Active listing evidence: '+fmt(totals.activeListingEvidence)+' | Facility evidence: '+fmt(totals.facilityEvidence);
+  $('ssDetailTable').innerHTML = rows.length ? '<div class="detail-scroll"><table><thead><tr><th>Type</th><th>Status</th><th>Address</th><th>Owner / Title</th><th>MXRE / Parcel ID</th><th>Source / Confidence</th><th>Value / Price</th><th>Link</th></tr></thead><tbody>'
+    + rows.map(row => {
+      const address = [row.address,row.city,row.state,row.zip].filter(Boolean).join(', ');
+      const ownerOrTitle = row.ownerName || row.title || '--';
+      const ids = row.recordType === 'parcel_backed'
+        ? 'MXRE '+esc(row.mxreId)+'<div class="small">'+esc(row.parcelId || '')+'</div>'
+        : esc(row.externalListingId || row.mxreId || '');
+      const confidence = [renderSelfStorageSource(row), row.assetConfidence || row.confidence].filter(Boolean).join(' | ');
+      const url = row.listingUrl || row.sourceUrl;
+      const link = url ? '<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Open</a>' : '--';
+      return '<tr><td class="nowrap">'+esc(row.recordType)+'</td><td class="nowrap">'+esc(row.status || '--')+'</td><td>'+esc(address || '--')+'</td><td>'+esc(ownerOrTitle)+'</td><td>'+ids+'</td><td>'+esc(confidence || '--')+'</td><td class="nowrap">'+esc(renderSelfStorageValue(row))+'</td><td>'+link+'</td></tr>';
+    }).join('') + '</tbody></table></div>' : '<p class="small">No rows returned for this market.</p>';
 }
 $('form').addEventListener('submit', async (event) => {
   event.preventDefault();
