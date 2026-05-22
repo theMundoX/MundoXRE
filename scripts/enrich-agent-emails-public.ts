@@ -1,9 +1,13 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
 import { pathToFileURL } from "node:url";
+import { firstEnv, hydrateWindowsUserEnv } from "./lib/env.ts";
 
-const PG_URL = process.env.MXRE_PG_URL ?? `${(process.env.SUPABASE_URL ?? "").replace(/\/$/, "")}/pg/query`;
-const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
+hydrateWindowsUserEnv();
+
+const basePgUrl = (firstEnv("MXRE_PG_URL") ?? firstEnv("SUPABASE_URL") ?? "").replace(/\/$/, "");
+const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
+const PG_KEY = firstEnv("SUPABASE_SERVICE_KEY") ?? "";
 const LIMIT = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] ?? "100", 10));
 const FAST_SEARCH = process.argv.includes("--fast-search");
 const DELAY_MS = Math.max(0, parseInt(process.argv.find(a => a.startsWith("--delay-ms="))?.split("=")[1] ?? (FAST_SEARCH ? "0" : "2500"), 10));
@@ -18,6 +22,7 @@ const MAX_PAGE_CHARS = Math.max(50_000, parseInt(process.argv.find(a => a.starts
 const RETRY_AFTER_HOURS = Math.max(1, parseInt(process.argv.find(a => a.startsWith("--retry-after-hours="))?.split("=")[1] ?? "72", 10));
 const DRY_RUN = process.argv.includes("--dry-run");
 const DEBUG = process.argv.includes("--debug");
+const SUPPRESS_EMAIL_LOG = process.argv.includes("--suppress-email-log");
 const DISABLE_DUCKDUCKGO = process.argv.includes("--disable-duckduckgo");
 const ALLOW_NO_PHONE = process.argv.includes("--allow-no-phone");
 const ALLOW_NAME_EMAIL_PROFILE = process.argv.includes("--allow-name-email-profile") || process.env.NODE_ENV === "test";
@@ -1097,7 +1102,7 @@ async function main() {
       return;
     }
     found++;
-    console.log(`    email found: ${label} -> ${candidate.email} (${candidate.confidence}, ${Date.now() - started}ms)`);
+    console.log(`    email found: ${label}${SUPPRESS_EMAIL_LOG ? "" : ` -> ${candidate.email}`} (${candidate.confidence}, ${Date.now() - started}ms)`);
 
     if (!DRY_RUN) {
       updated += await saveVerifiedEmail(row, candidate);
