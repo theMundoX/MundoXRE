@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+export { preflightOutboundNetwork } from "./network.js";
 
 const WINDOWS_USER_ENV_NAMES = [
   "REALESTATEAPI_KEY",
@@ -14,7 +15,11 @@ const WINDOWS_USER_ENV_NAMES = [
   "POSTGRES_URL",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
   "MXRE_BUY_BOX_CLUB_SANDBOX_KEY",
+  "MXRE_CLIENT_API_KEYS",
+  "MXRE_API_KEY",
+  "MXRE_DOCS_API_KEY",
 ];
 
 const userEnvCache = new Map<string, string | undefined>();
@@ -33,6 +38,9 @@ export function hydrateWindowsUserEnv(names = WINDOWS_USER_ENV_NAMES): void {
     if (process.env[name]) continue;
     const value = readWindowsUserEnv(name);
     if (value) process.env[name] = value;
+  }
+  if (!process.env.SUPABASE_SERVICE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    process.env.SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
   }
   normalizeLocalPgBridgeEnv();
 }

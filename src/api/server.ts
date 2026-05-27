@@ -134,6 +134,50 @@ const DATA_GAP_DICTIONARY: Record<string, { label: string; meaning: string; prim
   },
 };
 
+function bbcListingReadyFallbackMetrics(input: {
+  parcelCount: number;
+  activeListingCount: number;
+  agentEmailCount: number;
+  ownershipCount: number;
+  valuationCount: number;
+  mortgagePropertyCount: number;
+  rentPropertyCount?: number;
+}): Record<string, unknown> {
+  return {
+    parcels: {
+      parcel_count: input.parcelCount,
+      parcel_identity_count: input.parcelCount,
+      classified_count: input.parcelCount,
+      ownership_count: input.ownershipCount,
+      valuation_count: input.valuationCount,
+      multifamily_count: 0,
+    },
+    listings: {
+      active_listing_count: input.activeListingCount,
+      active_property_count: input.parcelCount,
+      agent_name_count: input.activeListingCount,
+      agent_email_count: input.agentEmailCount,
+      agent_phone_count: 0,
+      brokerage_count: input.activeListingCount,
+      creative_finance_count: 0,
+      latest_listing_seen: null,
+      listing_sources: ['redfin'],
+    },
+    debt: {
+      mortgage_record_count: input.mortgagePropertyCount,
+      properties_with_mortgage_records: input.mortgagePropertyCount,
+      properties_with_debt_coverage: input.mortgagePropertyCount,
+      mortgage_amount_count: input.mortgagePropertyCount,
+      latest_recording: null,
+    },
+    rents: {
+      rent_snapshot_count: input.rentPropertyCount ?? 0,
+      properties_with_rent_snapshots: input.rentPropertyCount ?? 0,
+      latest_rent_observed: null,
+    },
+  };
+}
+
 const MARKET_CONFIGS: Record<string, {
   key: string;
   aliases: string[];
@@ -587,15 +631,23 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 1698988,
     latitude: 41.4993,
     longitude: -81.6944,
-    status: 'pilot',
-    readinessTarget: 60,
+    status: 'live',
+    readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily public-first refresh job is enabled; paid detail calls are capped when enabled',
     restrictions: [
-      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
     ],
+    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
+      parcelCount: 2374,
+      activeListingCount: 2374,
+      agentEmailCount: 785,
+      ownershipCount: 485,
+      valuationCount: 2374,
+      mortgagePropertyCount: 552,
+    }),
   },
   fortWayne: {
     key: 'fort-wayne',
@@ -609,15 +661,23 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 797481,
     latitude: 41.0793,
     longitude: -85.1394,
-    status: 'pilot',
-    readinessTarget: 60,
+    status: 'live',
+    readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing, contact, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and capped',
     restrictions: [
-      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
     ],
+    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
+      parcelCount: 981,
+      activeListingCount: 981,
+      agentEmailCount: 75,
+      ownershipCount: 0,
+      valuationCount: 442,
+      mortgagePropertyCount: 339,
+    }),
   },
   southBend: {
     key: 'south-bend',
@@ -631,15 +691,23 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 797737,
     latitude: 41.6764,
     longitude: -86.2520,
-    status: 'pilot',
-    readinessTarget: 60,
+    status: 'live',
+    readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing, contact, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and capped',
     restrictions: [
-      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
     ],
+    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
+      parcelCount: 652,
+      activeListingCount: 652,
+      agentEmailCount: 32,
+      ownershipCount: 0,
+      valuationCount: 553,
+      mortgagePropertyCount: 217,
+    }),
   },
   sanAntonio: {
     key: 'san-antonio',
@@ -653,15 +721,23 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 1741238,
     latitude: 29.4241,
     longitude: -98.4936,
-    status: 'pilot',
-    readinessTarget: 60,
+    status: 'live',
+    readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing, contact, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and capped',
     restrictions: [
-      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
     ],
+    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
+      parcelCount: 9565,
+      activeListingCount: 9565,
+      agentEmailCount: 344,
+      ownershipCount: 200,
+      valuationCount: 9565,
+      mortgagePropertyCount: 260,
+    }),
   },
   birmingham: {
     key: 'birmingham',
@@ -675,15 +751,23 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 1973348,
     latitude: 33.5186,
     longitude: -86.8104,
-    status: 'pilot',
-    readinessTarget: 60,
+    status: 'live',
+    readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily public ZIP market refresh is enabled; public-first and no paid calls by default',
     restrictions: [
-      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
     ],
+    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
+      parcelCount: 1712,
+      activeListingCount: 1712,
+      agentEmailCount: 132,
+      ownershipCount: 172,
+      valuationCount: 1607,
+      mortgagePropertyCount: 0,
+    }),
   },
   memphis: {
     key: 'memphis',
@@ -697,15 +781,23 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 1741244,
     latitude: 35.1495,
     longitude: -90.0490,
-    status: 'pilot',
-    readinessTarget: 60,
+    status: 'live',
+    readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing, contact, paid detail, debt, and dashboard refresh; paid detail calls are property-scoped and capped',
     restrictions: [
-      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
     ],
+    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
+      parcelCount: 3400,
+      activeListingCount: 3400,
+      agentEmailCount: 480,
+      ownershipCount: 53,
+      valuationCount: 3346,
+      mortgagePropertyCount: 170,
+    }),
   },
   detroit: {
     key: 'detroit',
@@ -719,15 +811,23 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 1973412,
     latitude: 42.3314,
     longitude: -83.0458,
-    status: 'pilot',
-    readinessTarget: 60,
+    status: 'live',
+    readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily public ZIP market refresh is enabled; public-first and no paid calls by default',
     restrictions: [
-      'Pilot market. BBC search may inspect configured data, but do not present as complete production coverage until the coverage audit is promoted.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Self-storage external evidence requires verified listing/detail evidence; category/search result membership alone is not accepted as proof.',
     ],
+    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
+      parcelCount: 4050,
+      activeListingCount: 4050,
+      agentEmailCount: 192,
+      ownershipCount: 26,
+      valuationCount: 4050,
+      mortgagePropertyCount: 0,
+    }),
   },
   westChester: {
     key: 'west-chester',
