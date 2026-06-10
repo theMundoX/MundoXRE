@@ -50,6 +50,9 @@ const NEGATIVE_PATTERNS: Array<[string, RegExp]> = [
   ["no_seller_carry", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:consider\s+)?seller\s+(?:carry|carryback|terms)\b/i],
   ["no_owner_carry", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:consider\s+)?owner\s+(?:carry|carryback|terms)\b/i],
   ["no_creative_financing", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:creative\s+)?financ\w+\b/i],
+  ["no_listed_wholesalers_assignments_or_creative", /\bno\s+[^.!?;]{0,140}\b(?:wholesalers?|assignments?|creative\s+financ\w+)\b[^.!?;]{0,140}\b(?:wholesalers?|assignments?|creative\s+financ\w+)\b/i],
+  ["will_not_respond_to_owner_finance_or_assignments", /\bwill\s+not\s+(?:respond\s+to|consider|accept|entertain)\b[^.!?;]{0,180}\b(?:owner\s+financ\w+|seller\s+financ\w+|assignments?)\b/i],
+  ["not_accepting_offers_with_owner_finance", /\b(?:not|won'?t|will\s+not|cannot|can't)\s+(?:respond\s+to|consider|accept|entertain)\b[^.!?;]{0,180}\boffers?\s+that\s+include\s+(?:owner|seller)\s+financ\w+\b/i],
   ["no_subject_to", /\b(no|not|won'?t|will\s+not|cannot|can't)\s+(?:subject\s+to|sub[\s-]?to|sub\s*2)\b/i],
   ["cash_or_conventional_only", /\b(cash|conventional)\s+(?:or\s+cash\s+)?only\b/i],
 ];
