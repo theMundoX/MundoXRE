@@ -20,6 +20,8 @@ const STATE = "FL";
 const CITY = "PANAMA CITY BEACH";
 const TARGET_ZIPS = ["32407", "32408", "32413"];
 const COUNTY_FIPS = "12005";
+const ATTEMPT_PROVIDER = "bay_county_recorder";
+const ATTEMPT_REASON = "debt_status_name_search";
 
 type CandidateProperty = {
   id: number;
@@ -168,6 +170,12 @@ async function candidates(): Promise<CandidateProperty[]> {
        where property_id in (select id from ap)
          and status = 'ok'
          and response_body <> '{}'::jsonb
+      union
+      select distinct property_id from property_enrichment_queue
+       where property_id in (select id from ap)
+         and provider = '${ATTEMPT_PROVIDER}'
+         and reason = '${ATTEMPT_REASON}'
+         and status = 'completed'
     )
     select id, address, owner_name, legal_description
       from ap
@@ -188,6 +196,22 @@ async function candidates(): Promise<CandidateProperty[]> {
   });
   if (!response.ok) throw new Error(`pg/query ${response.status}: ${await response.text()}`);
   return response.json();
+}
+
+async function saveAttempt(property: CandidateProperty, outcome: "matched" | "no_data", rowsSeen: number, matches: number): Promise<void> {
+  if (DRY_RUN) return;
+  const { error } = await db.from("property_enrichment_queue").upsert({
+    property_id: property.id,
+    provider: ATTEMPT_PROVIDER,
+    reason: ATTEMPT_REASON,
+    status: "completed",
+    priority: 500,
+    attempts: 1,
+    completed_at: new Date().toISOString(),
+    last_error: `${outcome}: Bay County Official Records name search rows_seen=${rowsSeen}; debt_matches=${matches}`,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "property_id,provider,reason" });
+  if (error) console.log(`  attempt marker skipped: ${error.message}`);
 }
 
 async function setupPage(page: Page) {
@@ -294,10 +318,17 @@ async function main() {
       await page.waitForTimeout(DELAY_MS);
       searched++;
       console.log(`  [${searched}/${props.length}] ${property.owner_name} -> ${searches.join(" | ")}`);
-      let rows: ParsedRow[] = [];
+      const seen = new Set<string>();
+      const rows: ParsedRow[] = [];
       for (const search of searches) {
-        rows = await searchName(page, search);
-        if (rows.some((row) => classify(row.documentType).debtRelevant && matchesProperty(row, property))) break;
+        const searchRows = await searchName(page, search);
+        for (const row of searchRows) {
+          const key = row.documentNumber ?? row.bookPage ?? `${row.date}:${row.documentType}:${row.grantor}:${row.grantee}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          rows.push(row);
+        }
+        if (searchRows.some((row) => classify(row.documentType).debtRelevant && matchesProperty(row, property))) break;
         await page.waitForTimeout(Math.max(500, Math.floor(DELAY_MS / 2)));
       }
       rowsSeen += rows.length;
@@ -307,6 +338,7 @@ async function main() {
       for (const match of matches) {
         if (!DRY_RUN && await insertMatch(match, property)) inserted++;
       }
+      await saveAttempt(property, matches.length > 0 ? "matched" : "no_data", rows.length, matches.length);
     }
   } finally {
     await browser.close();
