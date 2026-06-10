@@ -14,6 +14,10 @@ const arg = (name: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 const STATE = arg("state")?.toUpperCase();
 const CITY = arg("city")?.toUpperCase();
+const ZIPS = (arg("zips") ?? arg("zip") ?? "")
+  .split(",")
+  .map((zip) => zip.trim())
+  .filter(Boolean);
 
 type ListingRow = {
   id: number;
@@ -147,11 +151,13 @@ async function main() {
   console.log("MXRE - Creative finance signal scorer");
   console.log(`Dry run: ${DRY_RUN}`);
   console.log(`Limit: ${LIMIT}`);
-  if (STATE || CITY) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}`);
+  if (STATE || CITY || ZIPS.length) console.log(`Market filter: ${CITY ?? "all cities"}, ${STATE ?? "all states"}${ZIPS.length ? ` zips=${ZIPS.join(",")}` : ""}`);
 
   const filters = [
     STATE ? `state_code = ${sqlString(STATE)}` : null,
-    CITY ? `upper(coalesce(city,'')) = ${sqlString(CITY)}` : null,
+    CITY && ZIPS.length ? `(upper(coalesce(city,'')) = ${sqlString(CITY)} or zip = any(array[${ZIPS.map(sqlString).join(",")}]))` : null,
+    CITY && ZIPS.length === 0 ? `upper(coalesce(city,'')) = ${sqlString(CITY)}` : null,
+    !CITY && ZIPS.length ? `zip = any(array[${ZIPS.map(sqlString).join(",")}])` : null,
   ].filter(Boolean).join("\n      and ");
 
   const rows = await pg(`
