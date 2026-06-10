@@ -70,7 +70,8 @@ async function summarizeTarget(target: TargetMarket) {
            count(*) filter (where nullif(listing_brokerage,'') is not null)::int as brokerage_count,
            count(*) filter (where nullif(listing_url,'') is not null)::int as listing_url_count,
            count(*) filter (where creative_finance_status = 'positive')::int as creative_positive_count,
-           count(*) filter (where creative_finance_status is not null and creative_finance_status <> 'no_data')::int as creative_scored_count
+           count(*) filter (where creative_finance_observed_at is not null or creative_finance_status is not null)::int as creative_reviewed_count,
+           count(*) filter (where creative_finance_status is not null and creative_finance_status <> 'no_data')::int as creative_signal_count
       from listing_signals
      where ${listingWhere};
   `);
@@ -122,7 +123,8 @@ async function summarizeTarget(target: TargetMarket) {
     agent_phone_pct: pct(listings.agent_phone_count, active),
     asset_type_pct: pct(properties.classified_count, props),
     coordinate_pct: pct(properties.coordinate_count, props),
-    creative_signal_pct: pct(listings.creative_scored_count, active),
+    creative_reviewed_pct: pct(listings.creative_reviewed_count, active),
+    creative_signal_pct: pct(listings.creative_signal_count, active),
   };
 
   const blockingGaps = [
@@ -160,13 +162,13 @@ async function pg(query: string): Promise<Record<string, unknown>[]> {
 }
 
 function toMarkdown(payload: { generated_at: string; markets: Awaited<ReturnType<typeof summarizeTarget>>[] }) {
-  const rows = payload.markets.map((m) => `| ${m.label} | ${m.active_listing_count} | ${m.completion.listing_link_pct}% | ${m.completion.listing_url_pct}% | ${m.completion.owner_name_pct}% | ${m.completion.owner_mailing_pct}% | ${m.completion.debt_status_pct}% | ${m.completion.rent_estimate_pct}% | ${m.completion.agent_name_pct}% | ${m.completion.agent_email_pct}% | ${m.completion.agent_phone_pct}% | ${m.completion.asset_type_pct}% | ${m.completion.coordinate_pct}% | ${m.completion.creative_signal_pct}% | ${m.publishable_now ? "yes" : "no"} | ${m.blocking_gaps.join("; ")} |`);
+  const rows = payload.markets.map((m) => `| ${m.label} | ${m.active_listing_count} | ${m.completion.listing_link_pct}% | ${m.completion.listing_url_pct}% | ${m.completion.owner_name_pct}% | ${m.completion.owner_mailing_pct}% | ${m.completion.debt_status_pct}% | ${m.completion.rent_estimate_pct}% | ${m.completion.agent_name_pct}% | ${m.completion.agent_email_pct}% | ${m.completion.agent_phone_pct}% | ${m.completion.asset_type_pct}% | ${m.completion.coordinate_pct}% | ${m.completion.creative_reviewed_pct}% | ${m.completion.creative_signal_pct}% | ${m.publishable_now ? "yes" : "no"} | ${m.blocking_gaps.join("; ")} |`);
   return `# MXRE Publishability Targets
 
 Generated: ${payload.generated_at}
 
-| Market | Active listings | Linked | URLs | Owner | Mailing | Debt | Rents | Agent names | Agent emails | Agent phones | Asset type | Coordinates | Creative scored | Publishable | Gaps |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
+| Market | Active listings | Linked | URLs | Owner | Mailing | Debt | Rents | Agent names | Agent emails | Agent phones | Asset type | Coordinates | Creative reviewed | Creative signal | Publishable | Gaps |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
 ${rows.join("\n")}
 `;
 }
