@@ -679,6 +679,7 @@ export const LANDMARK_COUNTIES: LandmarkCountyConfig[] = [
   { county_name: "Martin", state: "FL", base_url: "http://or.martinclerk.com", path_prefix: "/LandmarkWeb", county_id: 0 },
   { county_name: "Walton", state: "FL", base_url: "https://orsearch.clerkofcourts.co.walton.fl.us", path_prefix: "/LandmarkWeb", county_id: 0 },
   { county_name: "Citrus", state: "FL", base_url: "https://search.citrusclerk.org", path_prefix: "/LandmarkWeb", county_id: 0 },
+  { county_name: "Bay", state: "FL", base_url: "https://records2.baycoclerk.com", path_prefix: "/recording", county_id: 0 },
   // ── Discovered 2026-03-27 — ready for ingestion ──────────────
   { county_name: "Brevard", state: "FL", base_url: "https://officialrecords.brevardclerk.com", path_prefix: "/LandmarkWeb", county_id: 0 },
   { county_name: "Clay", state: "FL", base_url: "https://landmark.clayclerk.com", path_prefix: "/landmarkweb", county_id: 0 },
