@@ -1594,14 +1594,15 @@ function resolveMarketConfig(value: string) {
 }
 
 function loadApiClients(): ApiClient[] {
+  const clients: ApiClient[] = [];
   const rawJson = process.env.MXRE_CLIENT_API_KEYS;
   if (rawJson) {
     try {
       const parsed = JSON.parse(rawJson) as unknown;
       if (Array.isArray(parsed)) {
-        return parsed
+        clients.push(...parsed
           .map((client) => client as Partial<ApiClient>)
-          .filter((client): client is ApiClient => Boolean(client.id && client.key));
+          .filter((client): client is ApiClient => Boolean(client.id && client.key)));
       }
     } catch (error) {
       console.error('[MXRE API] Failed to parse MXRE_CLIENT_API_KEYS:', error);
@@ -1609,9 +1610,13 @@ function loadApiClients(): ApiClient[] {
   }
 
   const legacyKey = process.env.MXRE_API_KEY;
-  const clients: ApiClient[] = legacyKey ? [{ id: 'legacy', key: legacyKey, environment: process.env.NODE_ENV }] : [];
+  if (legacyKey && !clients.some((client) => client.id === 'legacy')) {
+    clients.push({ id: 'legacy', key: legacyKey, environment: process.env.NODE_ENV });
+  }
   const docsKey = process.env.MXRE_DOCS_API_KEY;
-  if (docsKey) clients.push({ id: 'buy_box_club_docs', key: docsKey, environment: 'docs', scope: 'docs' });
+  if (docsKey && !clients.some((client) => client.id === 'buy_box_club_docs')) {
+    clients.push({ id: 'buy_box_club_docs', key: docsKey, environment: 'docs', scope: 'docs' });
+  }
   return clients;
 }
 
