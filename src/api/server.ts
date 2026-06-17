@@ -3042,6 +3042,160 @@ app.post('/v1/bbc/search-runs', async (c) => {
   });
 });
 
+app.get('/v1/bbc/external-listings', async (c) => {
+  const assetClass = normalizeBbcAssetType(c.req.query('asset_class') ?? c.req.query('assetType') ?? 'mobile_home_rv') || 'mobile_home_rv';
+  const source = c.req.query('source');
+  const state = c.req.query('state')?.toUpperCase();
+  const city = c.req.query('city')?.toUpperCase();
+  const market = c.req.query('market');
+  const status = c.req.query('status')?.toLowerCase();
+  const subAssetType = c.req.query('sub_asset_type') ?? c.req.query('subAssetType');
+  const subAssetTypes = (subAssetType ?? '')
+    .split(/[|,]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const requestedLimit = Number(c.req.query('limit'));
+  const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(Math.floor(requestedLimit), 5000) : 100;
+  const requestedOffset = Number(c.req.query('offset'));
+  const offset = Number.isFinite(requestedOffset) && requestedOffset > 0 ? Math.floor(requestedOffset) : 0;
+  const since = parseDateTimeParam(c.req.query('updated_after') ?? c.req.query('since') ?? undefined);
+  const filters = [
+    `asset_class = '${sqlString(assetClass)}'`,
+    source ? `source = '${sqlString(source)}'` : '',
+    status ? `status = '${sqlString(status)}'` : `coalesce(status, 'active') not in ('sold', 'off_market', 'closed', 'withdrawn')`,
+    state ? `state_code = '${sqlString(state)}'` : '',
+    city ? `upper(coalesce(city,'')) = '${sqlString(city)}'` : '',
+    market ? `market = '${sqlString(market)}'` : '',
+    subAssetTypes.length === 1 ? `raw->>'sub_asset_type' = '${sqlString(subAssetTypes[0])}'` : '',
+    subAssetTypes.length > 1 ? `raw->>'sub_asset_type' in (${subAssetTypes.map((value) => `'${sqlString(value)}'`).join(', ')})` : '',
+    !subAssetTypes.length && assetClass === 'mobile_home_rv' ? `coalesce(raw->>'sub_asset_type', 'unknown') <> 'unknown'` : '',
+    since ? `greatest(coalesce(last_seen_at, '-infinity'::timestamptz), coalesce(first_seen_at, '-infinity'::timestamptz), coalesce(observed_at, '-infinity'::timestamptz)) >= '${sqlString(since)}'::timestamptz` : '',
+  ].filter(Boolean).join('\n      and ');
+
+  const [result] = await queryPg<Record<string, unknown>>(`
+    with external_scope as (
+      select
+        id,
+        market,
+        asset_class,
+        source,
+        source_url,
+        title,
+        address,
+        city,
+        state_code,
+        zip,
+        units,
+        list_price,
+        price_per_unit,
+        cap_rate,
+        noi,
+        status,
+        confidence,
+        observed_at,
+        first_seen_at,
+        last_seen_at,
+        raw,
+        greatest(coalesce(last_seen_at, '-infinity'::timestamptz), coalesce(first_seen_at, '-infinity'::timestamptz), coalesce(observed_at, '-infinity'::timestamptz)) as changed_at
+      from external_market_listings
+      where ${filters}
+    ),
+    totals as (
+      select count(*)::int as matched from external_scope
+    )
+    select
+      (select row_to_json(totals) from totals) as summary,
+      (select coalesce(jsonb_agg(row_to_json(r) order by r."lastChangedAt" desc), '[]'::jsonb)
+       from (
+         select
+           ('external:' || id::text) as "mxreId",
+           id as "externalListingId",
+           market,
+           'external_market_listing' as "sourceRecordType",
+           'public_listing_evidence' as "eventReason",
+           changed_at as "lastChangedAt",
+           md5('external_market_listing|' || id::text || '|' || changed_at::text) as "recordVersion",
+           title,
+           address,
+           city,
+           state_code as state,
+           zip,
+           asset_class as "assetGroup",
+           asset_class as "assetType",
+           raw->>'sub_asset_type' as "subAssetType",
+           raw->>'sub_type' as "assetSubtype",
+           units as "unitCount",
+           status = 'active' as "onMarket",
+           list_price as "listPrice",
+           price_per_unit as "pricePerUnit",
+           cap_rate as "capRate",
+           noi,
+           nullif(raw->>'pro_forma_noi', '')::numeric as "proFormaNoi",
+           nullif(raw->>'pro_forma_cap_rate', '')::numeric as "proFormaCapRate",
+           nullif(raw->>'cash_on_cash_return', '')::numeric as "cashOnCashReturn",
+           nullif(raw->>'gross_income', '')::numeric as "grossIncome",
+           nullif(raw->>'nightly_rent', '')::numeric as "nightlyRent",
+           nullif(raw->>'weekly_rent', '')::numeric as "weeklyRent",
+           nullif(raw->>'monthly_rent', '')::numeric as "monthlyRent",
+           nullif(raw->>'pads', '')::int as "pads",
+           nullif(raw->>'lot_size_acres', '')::numeric as "lotSizeAcres",
+           raw->'unit_mix' as "unitMix",
+           raw->>'price_per_item_type' as "pricePerItemType",
+           source as "listingSource",
+           source_url as "listingUrl",
+           raw->>'brokerage_name' as "listingBrokerage",
+           raw->>'listing_description' as "listingDescription",
+           raw->>'marketing_description' as "marketingDescription",
+           raw->>'investment_highlights' as "investmentHighlights",
+           raw->'creative_finance' as "creativeFinance",
+           raw->'creative_finance'->>'status' as "creativeFinanceStatus",
+           nullif(raw->'creative_finance'->>'score', '')::numeric as "creativeFinanceScore",
+           raw->'creative_finance'->'signals' as "creativeFinanceTerms",
+           raw->'creative_finance'->'negativeSignals' as "creativeFinanceNegativeTerms",
+           raw->'creative_finance'->'evidence' as "creativeFinanceEvidence",
+           raw->>'activated_on' as "sourceListedAt",
+           raw->>'created_on' as "sourceCreatedAt",
+           raw->>'updated_on' as "sourceUpdatedAt",
+           raw->>'property_type' as "sourcePropertyType",
+           raw->>'sub_type' as "sourceSubType",
+           raw->>'broker_co_op' as "brokerCoOp",
+           raw->>'class' as "sourceClass",
+           raw->>'thumbnail_url' as "thumbnailUrl",
+           raw->>'vault_access_status' as "vaultAccessStatus",
+           (raw->>'has_om')::boolean as "hasOM",
+           (raw->>'has_vault')::boolean as "hasVault",
+           (raw->>'has_flyer')::boolean as "hasFlyer",
+           (raw->>'is_in_opportunity_zone')::boolean as "isInOpportunityZone",
+           observed_at as "observedAt",
+           first_seen_at as "firstSeenAt",
+           last_seen_at as "lastSeenAt",
+           confidence,
+           true as "externalEvidence"
+         from external_scope
+         order by changed_at desc
+         limit ${limit}
+         offset ${offset}
+       ) r) as results;
+  `);
+  const summary = normalizeRecord(result?.summary);
+  const results = Array.isArray(result?.results) ? result.results : [];
+  const matched = numberOrNull(summary.matched) ?? results.length;
+  return c.json({
+    schemaVersion: 'mxre.bbc.externalListings.v1',
+    asOf: new Date().toISOString(),
+    filters: { assetClass, subAssetTypes, source: source ?? null, state: state ?? null, city: city ?? null, market: market ?? null, status: status ?? 'active_like', since: since ?? null },
+    pagination: {
+      limit,
+      offset,
+      returned: results.length,
+      nextOffset: offset + results.length < matched ? offset + results.length : null,
+      hasMore: offset + results.length < matched,
+    },
+    summary: { matched, returned: results.length },
+    results,
+  });
+});
+
 app.get('/v1/property', async (c) => {
   const address = c.req.query('address');
   const city = c.req.query('city');
@@ -8582,7 +8736,8 @@ x-api-key: &lt;MXRE_BUY_BOX_CLUB_SANDBOX_KEY&gt;</pre>
     "limit": 100,
     "offset": 0
   }'</pre>
-  <p>For <code>assetTypes: ["self_storage"]</code>, MXRE may return parcel-linked rows, active public sale/lease listing evidence, and operating facility evidence from public sources such as OpenStreetMap. External evidence rows have <code>sourceRecordType: "external_market_listing"</code>, an id like <code>external:107</code>, source URL, observed/first/last seen timestamps, and <code>sourceListedAt</code> only when the public source exposes a reliable original listing date. Treat <code>listingSource: "osm_openstreetmap_facility"</code> as facility-exists evidence, not proof the asset is for sale.</p>
+  <p>For <code>assetTypes: ["self_storage"]</code> or <code>assetTypes: ["mobile_home_rv"]</code>, MXRE may return parcel-linked rows plus external public listing evidence. External evidence rows have <code>sourceRecordType: "external_market_listing"</code>, an id like <code>external:107</code>, source URL, observed/first/last seen timestamps, and <code>sourceListedAt</code> when the public source exposes a reliable original listing date. RV park / mobile-home community rows may include <code>noi</code>, <code>capRate</code>, <code>proFormaNoi</code>, <code>proFormaCapRate</code>, <code>pads</code>, <code>lotSizeAcres</code>, <code>marketingDescription</code>, and <code>investmentHighlights</code>. Treat <code>listingSource: "osm_openstreetmap_facility"</code> as facility-exists evidence, not proof the asset is for sale.</p>
+  <p>Use <code>GET /v1/bbc/external-listings?asset_class=mobile_home_rv&amp;source=crexi_rapidapi</code> for nationwide Crexi RV/mobile-home external listing evidence. For RV-only screens, pass <code>sub_asset_type=rv_park,mixed_rv_mhp,campground</code>. The endpoint defaults to <code>limit=100</code>, accepts up to <code>limit=5000</code>, and returns <code>nextOffset</code>; continue with <code>offset=nextOffset</code> while <code>hasMore</code> is true.</p>
   <pre>{
   "pagination": { "limit": 100, "offset": 0, "returned": 6, "nextOffset": null, "hasMore": false },
   "summary": {
@@ -8811,6 +8966,27 @@ function buildOpenApiSpec() {
             '200': {
               description: 'Search run summary, pagination metadata, and new/changed candidates. Self-storage searches may include sourceRecordType=external_market_listing rows for verified public evidence not yet parcel-linked.',
             },
+          },
+        },
+      },
+      '/v1/bbc/external-listings': {
+        get: {
+          summary: 'Nationwide external listing evidence',
+          description: 'Returns paginated external public listing evidence for source-driven asset classes such as Crexi RV parks/mobile-home communities. For asset_class=mobile_home_rv, unclassified rows are excluded by default. Continue with offset=nextOffset while hasMore is true.',
+          parameters: [
+            { name: 'asset_class', in: 'query', schema: { type: 'string', default: 'mobile_home_rv', enum: ['mobile_home_rv', 'self_storage'] } },
+            { name: 'source', in: 'query', schema: { type: 'string', example: 'crexi_rapidapi' } },
+            { name: 'sub_asset_type', in: 'query', schema: { type: 'string' }, example: 'rv_park,mixed_rv_mhp,campground' },
+            { name: 'state', in: 'query', schema: { type: 'string', minLength: 2, maxLength: 2 } },
+            { name: 'city', in: 'query', schema: { type: 'string' } },
+            { name: 'market', in: 'query', schema: { type: 'string' } },
+            { name: 'status', in: 'query', schema: { type: 'string', example: 'active' } },
+            { name: 'updated_after', in: 'query', schema: { type: 'string', format: 'date-time' } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 100, maximum: 5000 } },
+            { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          ],
+          responses: {
+            '200': { description: 'mxre.bbc.externalListings.v1 with summary, pagination, and listing evidence rows including listPrice, NOI, capRate, unitMix, sourceListedAt, descriptions, OM/vault flags, and creative finance fields.' },
           },
         },
       },

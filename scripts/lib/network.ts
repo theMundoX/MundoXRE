@@ -1,0 +1,25 @@
+let cachedAllowed: boolean | null = null;
+
+export async function preflightOutboundNetwork(opts?: { timeoutMs?: number; url?: string; urls?: string[] }): Promise<boolean> {
+  if (cachedAllowed != null) return cachedAllowed;
+  const timeoutMs = opts?.timeoutMs ?? 2_000;
+  const urls = [
+    ...(opts?.urls ?? (opts?.url ? [opts.url] : [])),
+    "https://example.com",
+    "https://www.arcgis.com/sharing/rest/info?f=json",
+    "https://overpass-api.de/api/status",
+  ];
+
+  cachedAllowed = false;
+  for (const url of urls) {
+    try {
+      // Any HTTP response indicates outbound reachability, even when it is 401/403/404.
+      await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+      cachedAllowed = true;
+      break;
+    } catch {
+      // Try the next URL.
+    }
+  }
+  return cachedAllowed;
+}
