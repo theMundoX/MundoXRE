@@ -30137,6 +30137,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'gatlinburg',
   'severance',
   'hutchins',
+  'pickerington',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
