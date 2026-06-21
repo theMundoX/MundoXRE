@@ -18549,14 +18549,14 @@ const MARKET_CONFIGS: Record<string, {
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory with public-first enrichment; verified contact fields remain absent and must not be guessed.',
-      'Parcel identity and ownership are strong but not complete, and recorder/debt coverage is currently empty for the linked active inventory.',
-      'Rent snapshot coverage exists for most linked properties, but the market still depends on later parcel reconciliation and broader listing-source expansion.',
+      'Parcel identity and ownership are strong but not complete, while asset classification, recorder/debt coverage, and verified contact fields remain sparse or absent for the linked active inventory.',
+      'Rent snapshot coverage is currently absent, and the market still depends on later parcel reconciliation and broader listing-source expansion.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 62,
         parcel_identity_count: 59,
-        classified_count: 62,
+        classified_count: 3,
         ownership_count: 59,
         valuation_count: 62,
         multifamily_count: 0,
@@ -18569,7 +18569,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 62,
         creative_finance_count: 0,
-        latest_listing_seen: '2026-04-15T01:39:24.634+00:00',
+        latest_listing_seen: '2026-05-28T03:06:44.433074+00:00',
         listing_sources: ['redfin'],
       },
       debt: {
@@ -18580,9 +18580,9 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: null,
       },
       rents: {
-        rent_snapshot_count: 59,
-        properties_with_rent_snapshots: 59,
-        latest_rent_observed: '2026-03-28',
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
       },
     },
   },
@@ -29856,6 +29856,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'beavercreek',
   'baltimore-md',
   'springfield-nj',
+  'severance',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
