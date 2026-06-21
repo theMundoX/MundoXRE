@@ -15635,14 +15635,14 @@ const MARKET_CONFIGS: Record<string, {
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Dallas County property rows for Hutchins with no remaining unlinked active listings, including 2 listing-backed shells for active listings that did not resolve to parcel identity.',
-      'Verified agent phone/email and recorder/debt coverage are absent for the current active inventory and must not be guessed or implied.',
-      'Ownership and rent support currently exist on the 32 parcel-identity-backed rows, while the 2 shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent phone/email, recorder/debt coverage, and rent support are absent for the current active inventory and must not be guessed or implied.',
+      'Ownership exists on the 32 parcel-identity-backed rows, while asset classification is sparse and the 2 shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 34,
         parcel_identity_count: 32,
-        classified_count: 34,
+        classified_count: 2,
         ownership_count: 32,
         valuation_count: 34,
         multifamily_count: 0,
@@ -15655,7 +15655,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 34,
         creative_finance_count: 0,
-        latest_listing_seen: '2026-04-15T01:14:58.993+00:00',
+        latest_listing_seen: '2026-05-28T03:07:46.409854+00:00',
         listing_sources: ['redfin'],
       },
       debt: {
@@ -15666,9 +15666,9 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: null,
       },
       rents: {
-        rent_snapshot_count: 64,
-        properties_with_rent_snapshots: 32,
-        latest_rent_observed: '2026-03-26',
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
       },
     },
   },
@@ -29857,6 +29857,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'baltimore-md',
   'springfield-nj',
   'severance',
+  'hutchins',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
