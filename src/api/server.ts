@@ -29977,6 +29977,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'deer-park',
   'south-houston',
   'lancaster-tx',
+  'lancaster',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
