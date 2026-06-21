@@ -29974,6 +29974,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'springfield-nj',
   'severance',
   'hutchins',
+  'deer-park',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
