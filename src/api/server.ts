@@ -18777,8 +18777,9 @@ const MARKET_CONFIGS: Record<string, {
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory with public-first enrichment; verified contact fields remain absent and must not be guessed.',
-      'Parcel identity and ownership are strong but not complete, while asset classification, recorder/debt coverage, and verified contact fields remain sparse or absent for the linked active inventory.',
-      'Rent snapshot coverage is currently absent, and the market still depends on later parcel reconciliation and broader listing-source expansion.',
+      'Parcel identity and ownership are strong but not complete; the 3 listing-backed shell rows remain address-level fallback coverage pending Weld County parcel reconciliation.',
+      'Asset classification, recorder/debt coverage, and verified agent contact fields remain sparse or absent for the linked active inventory and must not be guessed.',
+      'Rent snapshot support exists for 59 assessor-backed active properties, while shell-backed rows and debt gaps must be disclosed as incomplete enrichment.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
@@ -18808,9 +18809,9 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: null,
       },
       rents: {
-        rent_snapshot_count: 0,
-        properties_with_rent_snapshots: 0,
-        latest_rent_observed: null,
+        rent_snapshot_count: 59,
+        properties_with_rent_snapshots: 59,
+        latest_rent_observed: '2026-03-28',
       },
     },
   },
@@ -30134,6 +30135,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'pigeon-forge',
   'sevierville',
   'gatlinburg',
+  'severance',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
