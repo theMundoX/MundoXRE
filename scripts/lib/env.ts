@@ -14,6 +14,7 @@ const WINDOWS_USER_ENV_NAMES = [
   "DATABASE_URL",
   "POSTGRES_URL",
   "SUPABASE_URL",
+  "MXRE_SUPABASE_SERVICE_KEY",
   "SUPABASE_SERVICE_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "MXRE_BUY_BOX_CLUB_SANDBOX_KEY",
@@ -41,6 +42,9 @@ export function hydrateWindowsUserEnv(names = WINDOWS_USER_ENV_NAMES): void {
   }
   if (!process.env.SUPABASE_SERVICE_KEY && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     process.env.SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  }
+  if (!process.env.SUPABASE_SERVICE_KEY && process.env.MXRE_SUPABASE_SERVICE_KEY) {
+    process.env.SUPABASE_SERVICE_KEY = process.env.MXRE_SUPABASE_SERVICE_KEY;
   }
   normalizeLocalPgBridgeEnv();
 }
