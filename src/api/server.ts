@@ -15863,8 +15863,8 @@ const MARKET_CONFIGS: Record<string, {
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Dallas County property rows for Hutchins with no remaining unlinked active listings, including 2 listing-backed shells for active listings that did not resolve to parcel identity.',
-      'Verified agent phone/email, recorder/debt coverage, and rent support are absent for the current active inventory and must not be guessed or implied.',
-      'Ownership exists on the 32 parcel-identity-backed rows, while asset classification is sparse and the 2 shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent phone/email and recorder/debt coverage are absent for the current active inventory and must not be guessed or implied.',
+      'Ownership and rent snapshot support exist on the 32 parcel-identity-backed rows, while asset classification is sparse and the 2 shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
@@ -15894,9 +15894,9 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: null,
       },
       rents: {
-        rent_snapshot_count: 0,
-        properties_with_rent_snapshots: 0,
-        latest_rent_observed: null,
+        rent_snapshot_count: 64,
+        properties_with_rent_snapshots: 32,
+        latest_rent_observed: '2026-03-26',
       },
     },
   },
@@ -30136,6 +30136,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'sevierville',
   'gatlinburg',
   'severance',
+  'hutchins',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
