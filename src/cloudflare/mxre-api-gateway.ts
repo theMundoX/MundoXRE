@@ -38,6 +38,7 @@ const BBC_APPROVED_MARKET_IDS = new Set([
   'pigeon-forge',
   'sevierville',
   'gatlinburg',
+  'hillsboro-oh',
 ]);
 
 function json(body: unknown, status = 200, headers: HeadersInit = {}) {
@@ -209,7 +210,7 @@ async function filteredBbcMarketsResponse(
     : (filteredMarkets.length > 0 ? marketIdOf(filteredMarkets[0]) : null);
 
   responseHeaders.set('content-type', 'application/json; charset=utf-8');
-  responseHeaders.set('x-mxre-bbc-market-allowlist', 'approved-15');
+  responseHeaders.set('x-mxre-bbc-market-allowlist', 'approved-16');
   return new Response(JSON.stringify({
     ...payload,
     markets: filteredMarkets,
