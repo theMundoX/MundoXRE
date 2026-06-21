@@ -6406,15 +6406,15 @@ const MARKET_CONFIGS: Record<string, {
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Union County property rows for Springfield, including 4 listing-backed shells for active listings that did not resolve to parcel identity.',
-      'Verified agent contact fields, parcel ownership coverage, and building size coverage are currently absent for Springfield active listings and must not be guessed or implied.',
-      'Valuation coverage spans all 15 linked active properties, while year-built and rent support exist only on the 11 parcel-identity-backed rows and debt coverage exists on only 3 linked properties.',
+      'Verified agent contact fields and building size coverage are currently absent for Springfield active listings and must not be guessed or implied.',
+      'Valuation coverage spans all 15 linked active properties, ownership exists only on the 11 parcel-identity-backed rows, rent support is currently absent, and debt coverage exists on only 3 linked properties.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 15,
         parcel_identity_count: 11,
         classified_count: 4,
-        ownership_count: 0,
+        ownership_count: 11,
         valuation_count: 15,
         multifamily_count: 0,
       },
@@ -6426,7 +6426,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 15,
         creative_finance_count: 0,
-        latest_listing_seen: '2026-03-28T17:43:36.791+00:00',
+        latest_listing_seen: '2026-05-30T08:12:19.340687+00:00',
         listing_sources: ['redfin'],
       },
       debt: {
@@ -6437,9 +6437,9 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: '2024-09-23',
       },
       rents: {
-        rent_snapshot_count: 11,
-        properties_with_rent_snapshots: 11,
-        latest_rent_observed: '2026-03-28',
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
       },
     },
   },
@@ -29855,6 +29855,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'crossville',
   'beavercreek',
   'baltimore-md',
+  'springfield-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
