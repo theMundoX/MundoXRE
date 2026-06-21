@@ -29782,6 +29782,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'toledo',
   'akron',
   'peoria',
+  'circleville',
   'cleveland',
   'cincinnati',
   'elyria',
