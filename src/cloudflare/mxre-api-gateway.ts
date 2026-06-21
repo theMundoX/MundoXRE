@@ -22,6 +22,23 @@ type RateBucket = {
 };
 
 const rateBuckets = new Map<string, RateBucket>();
+const BBC_APPROVED_MARKET_IDS = new Set([
+  'indianapolis',
+  'dallas',
+  'columbus',
+  'dayton',
+  'toledo',
+  'akron',
+  'peoria',
+  'cleveland',
+  'cincinnati',
+  'birmingham',
+  'memphis',
+  'detroit',
+  'pigeon-forge',
+  'sevierville',
+  'gatlinburg',
+]);
 
 function json(body: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(body), {
@@ -156,6 +173,55 @@ function shouldCache(request: Request, url: URL): boolean {
   return url.pathname === '/v1/coverage' || url.pathname.startsWith('/v1/coverage/state/');
 }
 
+function isBbcMarketListPath(url: URL): boolean {
+  return url.pathname === '/v1/bbc/markets'
+    || url.pathname === '/v1/markets'
+    || url.pathname === '/v1/coverage/markets';
+}
+
+function marketIdOf(market: unknown): string | null {
+  if (!market || typeof market !== 'object') return null;
+  const row = market as Record<string, unknown>;
+  const id = row.marketId ?? row.id ?? row.key;
+  return typeof id === 'string' ? id : null;
+}
+
+async function filteredBbcMarketsResponse(
+  upstreamResponse: Response,
+  responseHeaders: Headers,
+): Promise<Response> {
+  const payload = await upstreamResponse.json().catch(() => null) as Record<string, unknown> | null;
+  if (!payload || !Array.isArray(payload.markets)) {
+    return new Response(JSON.stringify(payload ?? { error: 'Invalid upstream market response' }), {
+      status: upstreamResponse.status,
+      statusText: upstreamResponse.statusText,
+      headers: responseHeaders,
+    });
+  }
+
+  const filteredMarkets = payload.markets.filter((market) => {
+    const id = marketIdOf(market);
+    return Boolean(id && BBC_APPROVED_MARKET_IDS.has(id));
+  });
+  const visibleIds = new Set(filteredMarkets.map(marketIdOf).filter((id): id is string => Boolean(id)));
+  const defaultMarket = typeof payload.defaultMarket === 'string' && visibleIds.has(payload.defaultMarket)
+    ? payload.defaultMarket
+    : (filteredMarkets.length > 0 ? marketIdOf(filteredMarkets[0]) : null);
+
+  responseHeaders.set('content-type', 'application/json; charset=utf-8');
+  responseHeaders.set('x-mxre-bbc-market-allowlist', 'approved-15');
+  return new Response(JSON.stringify({
+    ...payload,
+    markets: filteredMarkets,
+    defaultMarket,
+    visibleMarketCount: filteredMarkets.length,
+  }), {
+    status: upstreamResponse.status,
+    statusText: upstreamResponse.statusText,
+    headers: responseHeaders,
+  });
+}
+
 async function proxyToOrigin(request: Request, env: Env, client: ApiClient | null): Promise<Response> {
   if (!env.MXRE_ORIGIN_URL || !env.MXRE_UPSTREAM_API_KEY) {
     return json({ error: 'Gateway origin not configured for this endpoint' }, 503);
@@ -189,6 +255,10 @@ async function proxyToOrigin(request: Request, env: Env, client: ApiClient | nul
     responseHeaders.set('cdn-cache-control', `max-age=${seconds}`);
   } else {
     responseHeaders.set('cache-control', 'no-store');
+  }
+
+  if (request.method === 'GET' && upstreamResponse.ok && isBbcMarketListPath(incomingUrl)) {
+    return filteredBbcMarketsResponse(upstreamResponse, responseHeaders);
   }
 
   return new Response(upstreamResponse.body, {

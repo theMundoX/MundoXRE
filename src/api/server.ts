@@ -1085,6 +1085,114 @@ const MARKET_CONFIGS: Record<string, {
       mortgagePropertyCount: 260,
     }),
   },
+  cincinnati: {
+    key: 'cincinnati',
+    aliases: ['cincinnati', 'cincinnati-oh'],
+    label: 'Cincinnati',
+    publicLabel: 'Cincinnati, OH',
+    city: 'Cincinnati',
+    cityUpper: 'CINCINNATI',
+    county: 'Hamilton',
+    state: 'OH',
+    countyId: 1698997,
+    latitude: 39.1031,
+    longitude: -84.5120,
+    status: 'live',
+    readinessTarget: 30,
+    scope: 'city',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first while parcel/debt/contact backfill continues',
+    restrictions: [
+      'Cincinnati is approved for BBC discovery with field-level quality flags while enrichment continues.',
+      'Do not present Cincinnati as complete underwriting coverage; missing owner, debt, rent, and contact fields must remain explicit no_data or unknown states.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 0, parcel_identity_count: 0, classified_count: 0, ownership_count: 0, valuation_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 0, active_property_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: null, listing_sources: [] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
+  pigeonForge: {
+    key: 'pigeon-forge',
+    aliases: ['pigeon-forge', 'pigeon-forge-tn'],
+    label: 'Pigeon Forge',
+    publicLabel: 'Pigeon Forge, TN',
+    city: 'Pigeon Forge',
+    cityUpper: 'PIGEON FORGE',
+    county: 'Sevier',
+    state: 'TN',
+    countyId: 31,
+    latitude: 35.7884,
+    longitude: -83.5543,
+    status: 'live',
+    readinessTarget: 30,
+    scope: 'city',
+    refreshCadence: 'daily listing refresh is enabled; Sevier County parcel/recorder enrichment remains in backfill',
+    restrictions: [
+      'Pigeon Forge is approved for BBC discovery with field-level quality flags while enrichment continues.',
+      'Do not present Pigeon Forge as complete underwriting coverage; short-term rental and RV-adjacent records require explicit source evidence.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 0, parcel_identity_count: 0, classified_count: 0, ownership_count: 0, valuation_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 0, active_property_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: null, listing_sources: [] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
+  sevierville: {
+    key: 'sevierville',
+    aliases: ['sevierville', 'sevierville-tn'],
+    label: 'Sevierville',
+    publicLabel: 'Sevierville, TN',
+    city: 'Sevierville',
+    cityUpper: 'SEVIERVILLE',
+    county: 'Sevier',
+    state: 'TN',
+    countyId: 31,
+    latitude: 35.8681,
+    longitude: -83.5618,
+    status: 'live',
+    readinessTarget: 30,
+    scope: 'city',
+    refreshCadence: 'daily listing refresh is enabled; Sevier County parcel/recorder enrichment remains in backfill',
+    restrictions: [
+      'Sevierville is approved for BBC discovery with field-level quality flags while enrichment continues.',
+      'Do not present Sevierville as complete underwriting coverage; owner, debt, rent, and listing-contact fields must stay source-qualified.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 0, parcel_identity_count: 0, classified_count: 0, ownership_count: 0, valuation_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 0, active_property_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: null, listing_sources: [] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
+  gatlinburg: {
+    key: 'gatlinburg',
+    aliases: ['gatlinburg', 'gatlinburg-tn'],
+    label: 'Gatlinburg',
+    publicLabel: 'Gatlinburg, TN',
+    city: 'Gatlinburg',
+    cityUpper: 'GATLINBURG',
+    county: 'Sevier',
+    state: 'TN',
+    countyId: 31,
+    latitude: 35.7143,
+    longitude: -83.5102,
+    status: 'live',
+    readinessTarget: 30,
+    scope: 'city',
+    refreshCadence: 'daily listing refresh is enabled; Sevier County parcel/recorder enrichment remains in backfill',
+    restrictions: [
+      'Gatlinburg is approved for BBC discovery with field-level quality flags while enrichment continues.',
+      'Do not present Gatlinburg as complete underwriting coverage; hospitality, cabin, and RV-adjacent records require explicit source evidence.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 0, parcel_identity_count: 0, classified_count: 0, ownership_count: 0, valuation_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 0, active_property_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: null, listing_sources: [] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   birmingham: {
     key: 'birmingham',
     aliases: ['birmingham', 'birmingham-al'],
@@ -1870,6 +1978,23 @@ function validateMarketConfigs() {
 validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
+const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'indianapolis',
+  'dallas',
+  'columbus',
+  'dayton',
+  'toledo',
+  'akron',
+  'peoria',
+  'cleveland',
+  'cincinnati',
+  'birmingham',
+  'memphis',
+  'detroit',
+  'pigeon-forge',
+  'sevierville',
+  'gatlinburg',
+]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
   'asset_classification',
@@ -2205,7 +2330,7 @@ const coverageMarketsHandler = async (c: Context) => {
   const markets = await buildCoverageMarketRows(includeLiveMetrics);
   const filtered = markets.filter((market) => {
     if (!includeBuilding && market.status === 'building') return false;
-    if (!includeBelowTarget && market.meetsReadinessTarget !== true) return false;
+    if (!includeBelowTarget && market.meetsReadinessTarget !== true && !BBC_PUBLISHED_MARKET_IDS.has(String(market.marketId))) return false;
     return true;
   });
   return c.json({
@@ -3313,11 +3438,25 @@ app.post('/v1/bbc/search-runs', async (c) => {
                'self_storage' as "assetType",
                raw->>'evidence_type' as "assetSubtype",
                units as "unitCount",
+               units as "totalUnits",
+               raw->>'unit_count_status' as "unitCountStatus",
+               raw->>'unit_count_source' as "unitCountSource",
                status = 'active' as "onMarket",
                list_price as "listPrice",
                price_per_unit as "pricePerUnit",
                cap_rate as "capRate",
                noi,
+               nullif(raw->>'pro_forma_noi', '')::numeric as "proFormaNoi",
+               nullif(raw->>'pro_forma_cap_rate', '')::numeric as "proFormaCapRate",
+               nullif(raw->>'cash_on_cash_return', '')::numeric as "cashOnCashReturn",
+               nullif(raw->>'gross_income', '')::numeric as "grossIncome",
+               nullif(raw->>'nightly_rent', '')::numeric as "nightlyRent",
+               nullif(raw->>'weekly_rent', '')::numeric as "weeklyRent",
+               nullif(raw->>'monthly_rent', '')::numeric as "monthlyRent",
+               nullif(raw->>'pads', '')::int as "pads",
+               nullif(raw->>'lot_size_acres', '')::numeric as "lotSizeAcres",
+               raw->'unit_mix' as "unitMix",
+               raw->'unit_mix' as "unitBreakdown",
                source as "listingSource",
                source_url as "listingUrl",
                raw->>'broker' as "listingBrokerage",
@@ -3327,6 +3466,35 @@ app.post('/v1/bbc/search-runs', async (c) => {
                raw->>'verification' as "verification",
                raw->>'portfolio_name' as "portfolioName",
                raw->>'activated_on' as "sourceListedAt",
+               raw->>'created_on' as "sourceCreatedAt",
+               raw->>'updated_on' as "sourceUpdatedAt",
+               raw->>'property_type' as "sourcePropertyType",
+               raw->>'sub_type' as "sourceSubType",
+               raw->>'broker_co_op' as "brokerCoOp",
+               raw->>'class' as "sourceClass",
+               raw->>'building_class' as "buildingClass",
+               raw->>'building_class_status' as "buildingClassStatus",
+               raw->>'building_class_evidence' as "buildingClassEvidence",
+               raw->'multifamily' as "multifamily",
+               nullif(raw->>'apartment_units', '')::int as "apartmentUnits",
+               nullif(raw->>'building_count', '')::int as "buildingCount",
+               nullif(raw->>'story_count', '')::int as "storyCount",
+               nullif(raw->>'year_built', '')::int as "yearBuilt",
+               raw->'years_built' as "yearsBuilt",
+               nullif(raw->>'occupancy_pct', '')::numeric as "occupancyPct",
+               raw->>'occupancy_status' as "occupancyStatus",
+               raw->>'tenancy' as "tenancy",
+               raw->>'zoning' as "zoning",
+               nullif(raw->>'keys', '')::numeric as "keys",
+               nullif(raw->>'price_per_sqft', '')::numeric as "pricePerSqft",
+               nullif(raw->>'avg_unit_sqft', '')::numeric as "avgUnitSqft",
+               raw->>'price_per_item_type' as "pricePerItemType",
+               raw->>'thumbnail_url' as "thumbnailUrl",
+               raw->>'vault_access_status' as "vaultAccessStatus",
+               (raw->>'has_om')::boolean as "hasOM",
+               (raw->>'has_vault')::boolean as "hasVault",
+               (raw->>'has_flyer')::boolean as "hasFlyer",
+               (raw->>'is_in_opportunity_zone')::boolean as "isInOpportunityZone",
                observed_at as "observedAt",
                first_seen_at as "firstSeenAt",
                last_seen_at as "lastSeenAt",
@@ -3394,7 +3562,9 @@ app.post('/v1/bbc/search-runs', async (c) => {
 });
 
 app.get('/v1/bbc/external-listings', async (c) => {
-  const assetClass = normalizeBbcAssetType(c.req.query('asset_class') ?? c.req.query('assetType') ?? 'mobile_home_rv') || 'mobile_home_rv';
+  const assetClass = normalizeExternalListingAssetClass(
+    c.req.query('asset_class') ?? c.req.query('assetClass') ?? c.req.query('assetType') ?? 'mobile_home_rv',
+  );
   const source = c.req.query('source');
   const state = c.req.query('state')?.toUpperCase();
   const city = c.req.query('city')?.toUpperCase();
@@ -3476,6 +3646,9 @@ app.get('/v1/bbc/external-listings', async (c) => {
            raw->>'sub_asset_type' as "subAssetType",
            raw->>'sub_type' as "assetSubtype",
            units as "unitCount",
+           units as "totalUnits",
+           raw->>'unit_count_status' as "unitCountStatus",
+           raw->>'unit_count_source' as "unitCountSource",
            status = 'active' as "onMarket",
            list_price as "listPrice",
            price_per_unit as "pricePerUnit",
@@ -3491,6 +3664,7 @@ app.get('/v1/bbc/external-listings', async (c) => {
            nullif(raw->>'pads', '')::int as "pads",
            nullif(raw->>'lot_size_acres', '')::numeric as "lotSizeAcres",
            raw->'unit_mix' as "unitMix",
+           raw->'unit_mix' as "unitBreakdown",
            raw->>'price_per_item_type' as "pricePerItemType",
            source as "listingSource",
            source_url as "listingUrl",
@@ -3511,6 +3685,22 @@ app.get('/v1/bbc/external-listings', async (c) => {
            raw->>'sub_type' as "sourceSubType",
            raw->>'broker_co_op' as "brokerCoOp",
            raw->>'class' as "sourceClass",
+           raw->>'building_class' as "buildingClass",
+           raw->>'building_class_status' as "buildingClassStatus",
+           raw->>'building_class_evidence' as "buildingClassEvidence",
+           raw->'multifamily' as "multifamily",
+           nullif(raw->>'apartment_units', '')::int as "apartmentUnits",
+           nullif(raw->>'building_count', '')::int as "buildingCount",
+           nullif(raw->>'story_count', '')::int as "storyCount",
+           nullif(raw->>'year_built', '')::int as "yearBuilt",
+           raw->'years_built' as "yearsBuilt",
+           nullif(raw->>'occupancy_pct', '')::numeric as "occupancyPct",
+           raw->>'occupancy_status' as "occupancyStatus",
+           raw->>'tenancy' as "tenancy",
+           raw->>'zoning' as "zoning",
+           nullif(raw->>'keys', '')::numeric as "keys",
+           nullif(raw->>'price_per_sqft', '')::numeric as "pricePerSqft",
+           nullif(raw->>'avg_unit_sqft', '')::numeric as "avgUnitSqft",
            raw->>'thumbnail_url' as "thumbnailUrl",
            raw->>'vault_access_status' as "vaultAccessStatus",
            (raw->>'has_om')::boolean as "hasOM",
@@ -8628,6 +8818,20 @@ function normalizeBbcAssetType(value: string): string {
   if (['commercial_multifamily', 'apartment', 'apartments'].includes(normalized)) return 'commercial_multifamily';
   if (['self_storage', 'selfstorage', 'storage', 'mini_warehouse', 'miniwarehouse'].includes(normalized)) return 'self_storage';
   return '';
+}
+
+function normalizeExternalListingAssetClass(value: string): string {
+  const normalized = value.toLowerCase().replace(/[-\s]+/g, '_');
+  if (['multifamily', 'multi_family', 'small_multifamily', 'commercial_multifamily', 'apartment', 'apartments'].includes(normalized)) {
+    return 'multifamily';
+  }
+  if (['mobile_home_rv', 'mobile_home_park', 'mhp', 'rv', 'rv_park', 'campground'].includes(normalized)) {
+    return 'mobile_home_rv';
+  }
+  if (['self_storage', 'selfstorage', 'storage', 'mini_warehouse', 'miniwarehouse'].includes(normalized)) {
+    return 'self_storage';
+  }
+  return 'mobile_home_rv';
 }
 
 function positiveNumberOrNull(value: unknown): number | null {

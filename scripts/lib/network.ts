@@ -14,6 +14,7 @@ export async function preflightOutboundNetwork(opts?: { timeoutMs?: number; url?
   for (const url of urls) {
     try {
       // Any HTTP response indicates outbound reachability, even when it is 401/403/404.
+      // Some environments block specific domains (e.g. example.com) but allow others.
       await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
       cachedAllowed = true;
       break;
