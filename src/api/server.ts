@@ -2601,6 +2601,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'sevierville',
   'gatlinburg',
   'circleville',
+  'severance',
   'xenia',
   'springboro',
   'mason',
