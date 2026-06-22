@@ -4036,6 +4036,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'hutchins',
   'duncanville',
   'sachse',
+  'pickerington',
   'lancaster-oh',
   'west-chester',
   'centennial',
