@@ -2345,14 +2345,50 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 817175,
     latitude: 39.9607,
     longitude: -75.6055,
-    status: 'pilot',
-    readinessTarget: 90,
+    status: 'live',
+    readinessTarget: 48,
     scope: 'city',
-    refreshCadence: 'pipeline available; production daily refresh should be enabled after first coverage audit',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Chester parcel reconciliation and recorder/debt coverage improve',
     restrictions: [
-      'Pilot market. Treat Chester County / West Chester borough as the first coverage boundary.',
-      'Do not promise full metro coverage until county and listing coverage audits are marked live.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Chester County property rows for West Chester, including 23 listing-backed shells created only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 110 of 329 active properties currently carry parcel identity and ownership support; shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent emails cover 91 of 329 active listings and phone/brokerage coverage is stronger, but recorder/debt coverage, active-property rent support, and complete structure facts remain incomplete and must not be guessed or implied.',
     ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 329,
+        parcel_identity_count: 110,
+        classified_count: 325,
+        ownership_count: 110,
+        valuation_count: 219,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 329,
+        active_property_count: 329,
+        agent_name_count: 293,
+        agent_email_count: 91,
+        agent_phone_count: 293,
+        brokerage_count: 290,
+        creative_finance_count: 0,
+        latest_listing_seen: '2026-06-20 13:38:44.213+00',
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0,
+        properties_with_mortgage_records: 0,
+        properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
   },
 };
 
@@ -2397,6 +2433,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'springboro',
   'mason',
   'fairborn',
+  'west-chester',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
