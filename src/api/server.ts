@@ -4038,6 +4038,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'sachse',
   'pickerington',
   'lancaster-oh',
+  'deer-park',
   'west-chester',
   'centennial',
   'englewood-co',
