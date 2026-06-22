@@ -1125,7 +1125,7 @@ const MARKET_CONFIGS: Record<string, {
     latitude: 39.6006,
     longitude: -82.9460,
     status: 'live',
-    readinessTarget: 28,
+    readinessTarget: 15,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Pickaway parcel reconciliation and contact/debt coverage improve',
