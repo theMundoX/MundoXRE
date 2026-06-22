@@ -5715,7 +5715,7 @@ const MARKET_CONFIGS: Record<string, {
     latitude: 39.6265,
     longitude: -82.5485,
     status: 'live',
-    readinessTarget: 30,
+    readinessTarget: 28,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact coverage improve',
@@ -5729,7 +5729,7 @@ const MARKET_CONFIGS: Record<string, {
       parcels: {
         parcel_count: 22,
         parcel_identity_count: 1,
-        classified_count: 21,
+        classified_count: 22,
         ownership_count: 1,
         valuation_count: 22,
         multifamily_count: 0,
@@ -5742,7 +5742,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 22,
         creative_finance_count: 0,
-        latest_listing_seen: '2026-03-30T00:13:42.557+00:00',
+        latest_listing_seen: '2026-05-30 03:06:05.906719+00',
         listing_sources: ['redfin'],
       },
       debt: {
@@ -30256,6 +30256,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'pickerington',
   'springfield-oh',
   'xenia',
+  'sugar-grove',
   'cedar-hill',
 ]);
 const MARKET_DATA_DOMAINS = [
