@@ -13599,16 +13599,18 @@ const MARKET_CONFIGS: Record<string, {
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until paid detail caps are approved',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'Cedar Hill currently blends 259 parcel-backed rows with 119 listing-backed shells for active inventory coverage; shell-backed records should be treated as listing-first until parcel enrichment catches up.',
+      'Cedar Hill currently blends 292 parcel-identity rows with 131 clearly labeled listing-backed shells for active inventory coverage; shell-backed records should be treated as listing-first until parcel enrichment catches up.',
+      'Active inventory is fully linked after exact-address matching plus 12 new listing-backed shells, but coverage remains single-source Redfin and verified agent contact fields are currently absent.',
+      'Recorder/debt coverage is minimal with 1 active property carrying mortgage records and no amount-bearing debt rows; rent snapshot support covers 292 active properties and should be shown as field-level support, not full underwriting completeness.',
     ],
     fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
-      parcelCount: 378,
-      activeListingCount: 378,
+      parcelCount: 423,
+      activeListingCount: 423,
       agentEmailCount: 0,
-      ownershipCount: 258,
-      valuationCount: 377,
-      mortgagePropertyCount: 0,
-      rentPropertyCount: 259,
+      ownershipCount: 291,
+      valuationCount: 422,
+      mortgagePropertyCount: 1,
+      rentPropertyCount: 292,
     }),
   },
   grandPrairie: {
@@ -30254,6 +30256,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'pickerington',
   'springfield-oh',
   'xenia',
+  'cedar-hill',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
