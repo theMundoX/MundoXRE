@@ -2606,6 +2606,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'springboro',
   'mason',
   'fairborn',
+  'hutchins',
   'west-chester',
 ]);
 const MARKET_DATA_DOMAINS = [
