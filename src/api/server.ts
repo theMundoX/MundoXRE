@@ -2600,6 +2600,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'pigeon-forge',
   'sevierville',
   'gatlinburg',
+  'circleville',
   'xenia',
   'springboro',
   'mason',
