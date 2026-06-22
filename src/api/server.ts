@@ -2395,6 +2395,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'gatlinburg',
   'xenia',
   'springboro',
+  'mason',
   'fairborn',
 ]);
 const MARKET_DATA_DOMAINS = [
