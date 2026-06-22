@@ -4040,6 +4040,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lancaster-oh',
   'deer-park',
   'chardon',
+  'south-houston',
   'west-chester',
   'centennial',
   'englewood-co',
