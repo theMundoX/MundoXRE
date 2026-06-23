@@ -8175,6 +8175,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'pickerington',
   'thornville',
   'lancaster-oh',
+  'lancaster-tx',
   'deer-park',
   'chardon',
   'south-houston',
