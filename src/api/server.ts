@@ -27201,15 +27201,15 @@ const MARKET_CONFIGS: Record<string, {
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Burlington County property rows for Southampton, including 9 listing-backed shells for active listings that did not yet resolve to parcel identity.',
-      'Verified agent contact fields and ownership coverage are currently absent for Southampton active listings and must not be guessed or implied; recorder/debt support exists on only a limited parcel-backed subset.',
-      'Valuation coverage is broad across the linked inventory, year-built coverage is partial, size fields are currently absent, and rent support exists on the 29 parcel-identity-backed rows only.',
+      'Verified agent contact fields are currently absent for Southampton active listings and must not be guessed or implied; ownership and rent support exist on the 29 parcel-identity-backed rows while 9 listing-backed shells remain address-level fallback coverage.',
+      'Valuation and classification span all 38 linked active properties, year-built coverage is partial, size fields are currently absent, and recorder/debt support exists on only a limited parcel-backed subset.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 38,
         parcel_identity_count: 29,
-        classified_count: 29,
-        ownership_count: 0,
+        classified_count: 38,
+        ownership_count: 29,
         valuation_count: 38,
         multifamily_count: 0,
       },
@@ -30258,6 +30258,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'xenia',
   'sugar-grove',
   'cedar-hill',
+  'southampton',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
