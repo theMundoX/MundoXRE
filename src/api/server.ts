@@ -4327,7 +4327,8 @@ const MARKET_CONFIGS: Record<string, {
       parcels: {
         parcel_count: 74,
         parcel_identity_count: 61,
-        classified_count: 61,
+        classified_count: 13,
+        listing_backed_shell_count: 13,
         ownership_count: 61,
         valuation_count: 74,
         multifamily_count: 0,
@@ -8185,6 +8186,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'desoto',
   'rowlett',
   'garland',
+  'coppell',
   'deer-park',
   'chardon',
   'south-houston',
