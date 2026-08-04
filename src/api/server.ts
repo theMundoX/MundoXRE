@@ -10052,6 +10052,32 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  flemington: {
+    key: 'flemington', aliases: ['flemington', 'flemington-nj'], label: 'Flemington', publicLabel: 'Flemington, NJ',
+    city: 'Flemington', cityUpper: 'FLEMINGTON', county: 'Hunterdon', state: 'NJ', countyId: 13563,
+    latitude: 40.5123, longitude: -74.8593, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until ownership, contact, and deeper debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Hunterdon County property rows for Flemington, including 16 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 51 active listings are linked with no remaining unlinked rows; 35 active properties carry parcel identity, while parcel ownership and verified agent contact fields remain absent and must not be guessed or implied.',
+      'Valuation and brokerage span all 51 linked active properties, three properties have amount-bearing debt records, and rent snapshots exist on the 35 parcel-identity-backed properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 51, parcel_identity_count: 35, classified_count: 16, ownership_count: 0, valuation_count: 51, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 51, active_property_count: 51, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 51, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:34.667+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 3, properties_with_mortgage_records: 3, properties_with_debt_coverage: 3,
+        mortgage_amount_count: 3, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 35, properties_with_rent_snapshots: 35, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
