@@ -10484,6 +10484,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
     },
   },
+  westPeoria: {
+    key: 'west-peoria', aliases: ['west-peoria', 'west peoria', 'west-peoria-il'], label: 'West Peoria', publicLabel: 'West Peoria, IL',
+    city: 'West Peoria', cityUpper: 'WEST PEORIA', county: 'Peoria', state: 'IL', countyId: 2338837,
+    latitude: 40.6925, longitude: -89.6276, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until contact, coordinate, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Peoria county_id 2338837 property rows for West Peoria, including one clearly labeled listing-backed shell created only for the final active listing that did not resolve to parcel identity.',
+      'All 31 active listing rows are linked with no remaining unlinked rows; 30 active properties carry parcel identity and ownership support while one remains address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, brokerage attribution, coordinates, and recorder/debt coverage are absent and must not be guessed; classification and valuation span all 31 properties, while year built, square footage, and rent snapshots cover the 30 parcel-backed properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 31, parcel_identity_count: 30, classified_count: 31, ownership_count: 30, valuation_count: 31, year_built_count: 30, size_count: 30, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 31, active_property_count: 31, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-04T15:09:45.613+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 30, properties_with_rent_snapshots: 30, latest_rent_observed: null },
+    },
+  },
   cary: {
     key: 'cary', aliases: ['cary', 'cary-nc'], label: 'Cary', publicLabel: 'Cary, NC',
     city: 'Cary', cityUpper: 'CARY', county: 'Wake', state: 'NC', countyId: 1018480,
@@ -10895,6 +10921,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'brook-park',
   'plainfield',
   'marmora',
+  'west-peoria',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
