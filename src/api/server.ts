@@ -10078,6 +10078,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 35, properties_with_rent_snapshots: 35, latest_rent_observed: '2026-03-28' },
     },
   },
+  lyndhurst: {
+    key: 'lyndhurst', aliases: ['lyndhurst', 'lyndhurst-nj'], label: 'Lyndhurst', publicLabel: 'Lyndhurst, NJ',
+    city: 'Lyndhurst', cityUpper: 'LYNDHURST', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.8103, longitude: -74.1265, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Bergen County property rows for Lyndhurst, including 8 listing-backed shells created only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 11 of 19 active properties currently carry parcel identity; shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contact fields and parcel ownership are absent and must not be guessed or implied; debt coverage exists on 2 linked properties and rent snapshots exist on the 11 parcel-identity-backed rows.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 19, parcel_identity_count: 11, classified_count: 8, ownership_count: 0, valuation_count: 19, multifamily_count: 2 },
+      listings: { active_listing_count: 19, active_property_count: 19, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 19, creative_finance_count: 0, latest_listing_seen: '2026-06-04T02:52:20.99018+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2, mortgage_amount_count: 2, latest_recording: null },
+      rents: { rent_snapshot_count: 11, properties_with_rent_snapshots: 11, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -10172,6 +10191,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'broomfield',
   'thornton-co',
   'wimauma',
+  'lyndhurst',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
