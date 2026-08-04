@@ -10406,6 +10406,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  lauderhill: {
+    key: 'lauderhill', aliases: ['lauderhill', 'lauderhill-fl'], label: 'Lauderhill', publicLabel: 'Lauderhill, FL',
+    city: 'Lauderhill', cityUpper: 'LAUDERHILL', county: 'Broward', state: 'FL', countyId: 12,
+    latitude: 26.1404, longitude: -80.2134, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked primarily into county_id 12 property rows for Lauderhill, including 62 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 132 active listings are linked with no remaining unlinked rows; 70 active properties carry parcel identity and ownership support while 62 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields and recorder/debt coverage are absent and must not be guessed; classification, valuation, and brokerage span all 132 properties, coordinates cover 57, year built and square footage cover 70, and rent snapshots cover only 13.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 132, parcel_identity_count: 70, classified_count: 132, ownership_count: 70, valuation_count: 132, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 132, active_property_count: 132, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 132, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:42:50.780+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 13, properties_with_rent_snapshots: 13, latest_rent_observed: '2026-03-26' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
