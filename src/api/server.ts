@@ -10484,6 +10484,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  groveport: {
+    key: 'groveport', aliases: ['groveport', 'groveport-oh'], label: 'Groveport', publicLabel: 'Groveport, OH',
+    city: 'Groveport', cityUpper: 'GROVEPORT', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 39.8784, longitude: -82.8838, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, contact, physical, debt-amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Franklin county_id 1698985 property rows for Groveport, including 24 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 73 active listing rows are linked with no remaining unlinked rows across 73 active properties; 49 active properties carry parcel identity and ownership support while 24 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, square footage, mortgage amount fields, and creative-finance signals are absent and must not be guessed; classification and valuation cover all 73 properties, coordinates cover 44, year built covers 48, brokerage covers 23 listing rows, public debt rows cover 14 properties, and rent snapshots cover 37.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 73, parcel_identity_count: 49, classified_count: 73, ownership_count: 49, valuation_count: 73, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 73, active_property_count: 73, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 23, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-04T11:21:28.65+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 22, properties_with_mortgage_records: 14, properties_with_debt_coverage: 14,
+        mortgage_amount_count: 0, latest_recording: '2026-02-20',
+      },
+      rents: { rent_snapshot_count: 37, properties_with_rent_snapshots: 37, latest_rent_observed: '2026-05-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
