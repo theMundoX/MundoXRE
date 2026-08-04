@@ -10669,7 +10669,7 @@ const MARKET_CONFIGS: Record<string, {
   lakewoodNj: {
     key: 'lakewood-nj', aliases: ['lakewood', 'lakewood-nj'], label: 'Lakewood', publicLabel: 'Lakewood, NJ',
     city: 'Lakewood', cityUpper: 'LAKEWOOD', county: 'Ocean', state: 'NJ', countyId: 13602,
-    latitude: 40.0821, longitude: -74.2097, status: 'live', readinessTarget: 30, scope: 'city',
+    latitude: 40.0821, longitude: -74.2097, status: 'live', readinessTarget: 28, scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical and debt coverage improve',
     restrictions: [
