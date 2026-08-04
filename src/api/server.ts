@@ -10136,6 +10136,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  universityHeights: {
+    key: 'university-heights', aliases: ['university-heights', 'university heights', 'university-heights-oh'], label: 'University Heights', publicLabel: 'University Heights, OH',
+    city: 'University Heights', cityUpper: 'UNIVERSITY HEIGHTS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.4967, longitude: -81.5404, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for University Heights, including 8 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 48 active listings are linked with no remaining unlinked rows; 40 active properties carry parcel identity and ownership, while 8 shell rows remain listing-led address coverage pending assessor reconciliation.',
+      'Verified agent contact fields remain absent and must not be guessed; brokerage labels appear on only 3 active listings, valuation spans all 48 linked properties, and asset classification is limited to 8 properties.',
+      'Public debt coverage reaches only 1 linked property and has no usable amount fields; no rent snapshots are currently available, so debt and rental underwriting must remain explicitly incomplete.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 48, parcel_identity_count: 40, classified_count: 8, ownership_count: 40, valuation_count: 48, multifamily_count: 0 },
+      listings: { active_listing_count: 48, active_property_count: 48, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 3, creative_finance_count: 0, latest_listing_seen: '2026-08-02T14:58:44.357+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1, mortgage_amount_count: 0, latest_recording: '2023-02-15' },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   plainfield: {
     key: 'plainfield', aliases: ['plainfield', 'plainfield-nj'], label: 'Plainfield', publicLabel: 'Plainfield, NJ',
     city: 'Plainfield', cityUpper: 'PLAINFIELD', county: 'Union', state: 'NJ', countyId: 13647,
