@@ -10156,6 +10156,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  moorestown: {
+    key: 'moorestown', aliases: ['moorestown', 'moorestown-nj'], label: 'Moorestown', publicLabel: 'Moorestown, NJ',
+    city: 'Moorestown', cityUpper: 'MOORESTOWN', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 39.9809, longitude: -74.9405, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington County property rows for Moorestown, including 31 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 52 active listings are linked with no remaining unlinked rows; 21 active properties carry parcel identity, while 31 shell rows remain listing-led address coverage pending assessor reconciliation.',
+      'Verified agent contact fields and parcel ownership remain absent and must not be guessed; brokerage and valuation span all 52 linked properties, while asset classification is limited to 31 properties.',
+      'Debt records cover 7 linked properties with 10 amount-bearing rows, and rent snapshots cover only the 21 parcel-identity-backed properties, so debt and rental underwriting remain incomplete.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 52, parcel_identity_count: 21, classified_count: 31, ownership_count: 0, valuation_count: 52, multifamily_count: 0 },
+      listings: { active_listing_count: 52, active_property_count: 52, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 52, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:37:06.756+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 10, properties_with_mortgage_records: 7, properties_with_debt_coverage: 7, mortgage_amount_count: 10, latest_recording: '2025-12-24' },
+      rents: { rent_snapshot_count: 21, properties_with_rent_snapshots: 21, latest_rent_observed: '2026-03-28' },
+    },
+  },
   plainfield: {
     key: 'plainfield', aliases: ['plainfield', 'plainfield-nj'], label: 'Plainfield', publicLabel: 'Plainfield, NJ',
     city: 'Plainfield', cityUpper: 'PLAINFIELD', county: 'Union', state: 'NJ', countyId: 13647,
