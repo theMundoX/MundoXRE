@@ -10645,6 +10645,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: null },
     },
   },
+  clementonNj: {
+    key: 'clementon-nj', aliases: ['clementon', 'clementon-nj'], label: 'Clementon', publicLabel: 'Clementon, NJ',
+    city: 'Clementon', cityUpper: 'CLEMENTON', county: 'Camden', state: 'NJ', countyId: 13690,
+    latitude: 39.8115, longitude: -74.9829, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, and broader debt and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Camden county_id 13690 property rows for Clementon, including 36 clearly labeled listing-backed shells retained only for active listings that did not resolve to NJGIN parcel identity.',
+      'All 54 active listing rows are linked with no remaining unlinked rows across 54 active properties; 18 active properties carry parcel identity and ownership support while 36 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, square footage, and coordinates are absent and must not be guessed; valuation, classification, and brokerage cover all 54 properties, year built and rent snapshots cover 18, and eight amount-bearing debt rows cover six properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 54, parcel_identity_count: 18, classified_count: 54, ownership_count: 18, valuation_count: 54, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 54, active_property_count: 54, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 54, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:36:52.048+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 8, properties_with_mortgage_records: 6, properties_with_debt_coverage: 6,
+        mortgage_amount_count: 8, latest_recording: '2025-12-12',
+      },
+      rents: { rent_snapshot_count: 18, properties_with_rent_snapshots: 18, latest_rent_observed: '2026-03-28' },
+    },
+  },
   groveport: {
     key: 'groveport', aliases: ['groveport', 'groveport-oh'], label: 'Groveport', publicLabel: 'Groveport, OH',
     city: 'Groveport', cityUpper: 'GROVEPORT', county: 'Franklin', state: 'OH', countyId: 1698985,
