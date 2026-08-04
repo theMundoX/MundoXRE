@@ -10619,6 +10619,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  shamongNj: {
+    key: 'shamong-nj', aliases: ['shamong', 'shamong-nj'], label: 'Shamong', publicLabel: 'Shamong, NJ',
+    city: 'Shamong', cityUpper: 'SHAMONG', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 39.7954, longitude: -74.7424, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington county_id 13680 property rows for Shamong, including four clearly labeled listing-backed shells retained only for active listings that did not resolve to NJGIN parcel identity.',
+      'All 12 active listing rows are linked with no remaining unlinked rows across 12 active properties; eight active properties carry parcel identity and ownership support while four remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, recorder/debt coverage, and creative-finance signals are absent and must not be guessed; valuation, classification, and brokerage cover all 12 active properties, while year built and rent snapshots cover eight.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 12, parcel_identity_count: 8, classified_count: 12, ownership_count: 8, valuation_count: 12, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 12, active_property_count: 12, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 12, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:14.194+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: null },
+    },
+  },
   groveport: {
     key: 'groveport', aliases: ['groveport', 'groveport-oh'], label: 'Groveport', publicLabel: 'Groveport, OH',
     city: 'Groveport', cityUpper: 'GROVEPORT', county: 'Franklin', state: 'OH', countyId: 1698985,
