@@ -10195,6 +10195,35 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
     },
   },
+  groveCity: {
+    key: 'grove-city', aliases: ['grove-city', 'grove city', 'grove-city-oh'], label: 'Grove City', publicLabel: 'Grove City, OH',
+    city: 'Grove City', cityUpper: 'GROVE CITY', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 39.8815, longitude: -83.0929, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, contact, physical, and debt amount coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Franklin County property rows for Grove City, including 225 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 580 active listings are linked with no remaining unlinked rows after exact address/ZIP matching resolved 103 listings and 81 address/ZIP-qualified listing-backed shells were created; 355 active properties carry parcel identity and ownership support.',
+      'Verified agent contact fields are absent and must not be guessed; brokerage appears on 165 active listings, valuation spans 568 properties, square-footage coverage is absent, debt records cover 110 properties without usable amount fields, and rent snapshots cover 349 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 580, parcel_identity_count: 355, classified_count: 580, ownership_count: 355,
+        valuation_count: 568, multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 580, active_property_count: 580, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 165, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-02T12:05:37.335+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 189, properties_with_mortgage_records: 110, properties_with_debt_coverage: 110,
+        mortgage_amount_count: 0, latest_recording: '2026-03-30',
+      },
+      rents: { rent_snapshot_count: 349, properties_with_rent_snapshots: 349, latest_rent_observed: '2026-05-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
