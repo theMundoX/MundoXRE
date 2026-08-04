@@ -10593,6 +10593,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  morrisvilleNc: {
+    key: 'morrisville-nc', aliases: ['morrisville', 'morrisville-nc'], label: 'Morrisville', publicLabel: 'Morrisville, NC',
+    city: 'Morrisville', cityUpper: 'MORRISVILLE', county: 'Wake', state: 'NC', countyId: 1018480,
+    latitude: 35.8235, longitude: -78.8256, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until cross-county shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into North Carolina property rows for Morrisville, including 18 clearly labeled listing-backed shells retained only for active listings that did not resolve to NC OneMap parcel identity.',
+      'All 81 active listing rows are linked with no remaining unlinked rows across 81 active properties; 60 properties link within Wake county_id 1018480 and 21 link within Durham county_id 376654, so coverage must not be described as strictly Wake-bounded.',
+      'Verified agent contacts, square footage, coordinates, recorder/debt coverage, and rent support are absent and must not be guessed; parcel identity and ownership cover 63 properties, valuation covers 74, year built covers 38, and classification and brokerage cover the full active inventory.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 81, parcel_identity_count: 63, classified_count: 81, ownership_count: 63, valuation_count: 74, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 81, active_property_count: 81, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 81, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:28:51.755+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   groveport: {
     key: 'groveport', aliases: ['groveport', 'groveport-oh'], label: 'Groveport', publicLabel: 'Groveport, OH',
     city: 'Groveport', cityUpper: 'GROVEPORT', county: 'Franklin', state: 'OH', countyId: 1698985,
