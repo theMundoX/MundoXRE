@@ -10588,6 +10588,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 26, properties_with_rent_snapshots: 26, latest_rent_observed: '2026-03-28' },
     },
   },
+  northBrunswick: {
+    key: 'north-brunswick', aliases: ['north-brunswick', 'north-brunswick-nj'], label: 'North Brunswick', publicLabel: 'North Brunswick, NJ',
+    city: 'North Brunswick', cityUpper: 'NORTH BRUNSWICK', county: 'Middlesex', state: 'NJ', countyId: 13578,
+    latitude: 40.4525, longitude: -74.4618, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, and broader physical and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Middlesex county_id 13578 property rows for North Brunswick, including 22 address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 50 active listing rows are linked with no remaining unlinked rows across 50 active properties; 28 active properties carry parcel identity and ownership support while 22 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 50 rows, coordinates cover 28 properties, year built covers 27, size covers 26, four amount-bearing debt rows cover four properties, and rent snapshots cover 28.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 50, parcel_identity_count: 28, classified_count: 22, ownership_count: 28, valuation_count: 50, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 50, active_property_count: 50, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 50, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:40.97+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 4, properties_with_mortgage_records: 4, properties_with_debt_coverage: 4,
+        mortgage_amount_count: 4, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 28, properties_with_rent_snapshots: 28, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
