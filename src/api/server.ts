@@ -10718,6 +10718,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
     },
   },
+  mahwah: {
+    key: 'mahwah', aliases: ['mahwah', 'mahwah-nj'], label: 'Mahwah', publicLabel: 'Mahwah, NJ',
+    city: 'Mahwah', cityUpper: 'MAHWAH', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 41.0887, longitude: -74.1438, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Bergen county_id 13672 property rows for Mahwah, including 13 address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 35 active listing rows are linked with no remaining unlinked rows across 35 active properties; 22 active properties carry parcel identity while 13 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership and verified agent contacts are absent and must not be guessed; valuation and brokerage cover all 35 rows, year built and rent snapshots cover 22 properties, size covers 11, coordinates cover 19, and one property has an amount-bearing debt record.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 35, parcel_identity_count: 22, classified_count: 13, ownership_count: 0, valuation_count: 35, year_built_count: 22, size_count: 11, coordinate_count: 19, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 35, active_property_count: 35, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 35, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 22, properties_with_rent_snapshots: 22, latest_rent_observed: '2026-03-28' },
+    },
+  },
   lakewoodNj: {
     key: 'lakewood-nj', aliases: ['lakewood', 'lakewood-nj'], label: 'Lakewood', publicLabel: 'Lakewood, NJ',
     city: 'Lakewood', cityUpper: 'LAKEWOOD', county: 'Ocean', state: 'NJ', countyId: 13602,
@@ -10976,6 +11002,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'west-peoria',
   'burlington-nj',
   'egg-harbor-city',
+  'mahwah',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
