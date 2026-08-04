@@ -10697,6 +10697,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 24, properties_with_rent_snapshots: 24, latest_rent_observed: '2026-03-28' },
     },
   },
+  morrisonCo: {
+    key: 'morrison-co', aliases: ['morrison', 'morrison-co'], label: 'Morrison', publicLabel: 'Morrison, CO',
+    city: 'Morrison', cityUpper: 'MORRISON', county: 'Jefferson', state: 'CO', countyId: 53660,
+    latitude: 39.6536, longitude: -105.1911, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Jefferson county_id 53660 property rows for Morrison, including 6 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 10 active listing rows are linked with no remaining unlinked rows across 10 active properties; 4 active properties carry parcel identity and ownership support while 6 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, year built, square footage, and debt coverage are absent and must not be guessed; valuation, classification, and brokerage cover all 10 properties, coordinates and rent snapshots cover one property each.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 10, parcel_identity_count: 4, classified_count: 10, ownership_count: 4, valuation_count: 10, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 10, active_property_count: 10, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 10, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: null },
+    },
+  },
   clementonNj: {
     key: 'clementon-nj', aliases: ['clementon', 'clementon-nj'], label: 'Clementon', publicLabel: 'Clementon, NJ',
     city: 'Clementon', cityUpper: 'CLEMENTON', county: 'Camden', state: 'NJ', countyId: 13690,
