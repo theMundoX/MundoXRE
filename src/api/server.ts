@@ -10097,6 +10097,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 11, properties_with_rent_snapshots: 11, latest_rent_observed: '2026-03-28' },
     },
   },
+  atco: {
+    key: 'atco', aliases: ['atco', 'atco-nj'], label: 'Atco', publicLabel: 'Atco, NJ',
+    city: 'Atco', cityUpper: 'ATCO', county: 'Camden', state: 'NJ', countyId: 13690,
+    latitude: 39.7652, longitude: -74.883, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Camden County property rows for Atco, including 9 listing-backed shells created only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows; parcel identity and ownership reach 15 of 24 active properties while 9 shell rows remain listing-led address coverage.',
+      'Verified agent contact fields remain absent and must not be guessed; debt support exists on only 2 linked properties with 1 amount-bearing mortgage row, while rent snapshots exist on the 15 parcel-identity-backed rows.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 24, parcel_identity_count: 15, classified_count: 24, ownership_count: 15, valuation_count: 24, multifamily_count: 0 },
+      listings: { active_listing_count: 24, active_property_count: 24, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 24, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:36:47.295+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2, mortgage_amount_count: 1, latest_recording: '2025-09-18' },
+      rents: { rent_snapshot_count: 15, properties_with_rent_snapshots: 15, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -10192,6 +10211,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'thornton-co',
   'wimauma',
   'lyndhurst',
+  'atco',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
