@@ -10692,6 +10692,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 121, properties_with_rent_snapshots: 121, latest_rent_observed: '2026-03-28' },
     },
   },
+  delranNj: {
+    key: 'delran-nj', aliases: ['delran', 'delran-nj'], label: 'Delran', publicLabel: 'Delran, NJ',
+    city: 'Delran', cityUpper: 'DELRAN', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 40.0159, longitude: -74.9560, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington county_id 13680 property rows for Delran, including 9 address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 17 active listing rows are linked with no remaining unlinked rows across 17 active properties; 8 active properties carry parcel identity while 9 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, unit counts, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 17 rows, classification covers 9 properties, coordinates cover 6, year built and size cover 7, two amount-bearing debt rows cover two properties, and rent snapshots cover 7.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 17, parcel_identity_count: 8, classified_count: 9, ownership_count: 0, valuation_count: 17, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 17, active_property_count: 17, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 17, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:00.000+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
