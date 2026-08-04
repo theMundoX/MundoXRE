@@ -10458,6 +10458,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 12, properties_with_rent_snapshots: 12, latest_rent_observed: '2026-03-28' },
     },
   },
+  marmora: {
+    key: 'marmora', aliases: ['marmora', 'marmora-nj'], label: 'Marmora', publicLabel: 'Marmora, NJ',
+    city: 'Marmora', cityUpper: 'MARMORA', county: 'Cape May', state: 'NJ', countyId: 13700,
+    latitude: 39.2587, longitude: -74.6599, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, owner/contact, structure, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cape May county_id 13700 property rows for Marmora, including 12 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 17 active listing rows are linked with no remaining unlinked rows; 5 active properties carry parcel identity support while 12 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified owner and agent contact fields and square footage are absent and must not be guessed; classification, valuation, and brokerage span all 17 properties, coordinates cover 1, year built and rent snapshots cover 5, and five amount-bearing public debt rows cover 2 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 17, parcel_identity_count: 5, classified_count: 17, ownership_count: 0, valuation_count: 17, year_built_count: 5, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 17, active_property_count: 17, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 17, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:12.627+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 5, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 5, latest_recording: '2024-07-19',
+      },
+      rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
+    },
+  },
   cary: {
     key: 'cary', aliases: ['cary', 'cary-nc'], label: 'Cary', publicLabel: 'Cary, NC',
     city: 'Cary', cityUpper: 'CARY', county: 'Wake', state: 'NC', countyId: 1018480,
@@ -10868,6 +10894,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'atco',
   'brook-park',
   'plainfield',
+  'marmora',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
