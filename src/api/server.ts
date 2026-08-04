@@ -10796,6 +10796,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 34, properties_with_rent_snapshots: 34, latest_rent_observed: '2026-03-28' },
     },
   },
+  eggHarborCityNj: {
+    key: 'egg-harbor-city', aliases: ['egg-harbor-city', 'egg harbor city', 'egg-harbor-city-nj'], label: 'Egg Harbor City', publicLabel: 'Egg Harbor City, NJ',
+    city: 'Egg Harbor City', cityUpper: 'EGG HARBOR CITY', county: 'Atlantic', state: 'NJ', countyId: 13663,
+    latitude: 39.5287, longitude: -74.6477, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into New Jersey property rows for Egg Harbor City, including 22 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 42 active listing rows are linked with no remaining unlinked rows across 42 active properties; 41 rows link within Atlantic county_id 13663 and one mailing-city row at 13 Charles Ave links to an NJGIN parcel in Washington Township, Burlington county_id 13680, so coverage must not be described as strictly county-bounded.',
+      'Ownership, verified agent contacts, square footage, unit counts, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 42 rows, classification covers 22 properties, coordinates and rent snapshots cover 20, year built covers 19, and four amount-bearing debt rows cover four properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 42, parcel_identity_count: 20, classified_count: 22, ownership_count: 0, valuation_count: 42, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 42, active_property_count: 42, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 42, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:12.263+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 4, properties_with_mortgage_records: 4, properties_with_debt_coverage: 4,
+        mortgage_amount_count: 4, latest_recording: '2025-11-11',
+      },
+      rents: { rent_snapshot_count: 20, properties_with_rent_snapshots: 20, latest_rent_observed: '2026-03-28' },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
@@ -10949,6 +10975,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'marmora',
   'west-peoria',
   'burlington-nj',
+  'egg-harbor-city',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
