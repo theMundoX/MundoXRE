@@ -10354,6 +10354,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
     },
   },
+  roanoke: {
+    key: 'roanoke', aliases: ['roanoke', 'roanoke-tx'], label: 'Roanoke', publicLabel: 'Roanoke, TX',
+    city: 'Roanoke', cityUpper: 'ROANOKE', county: 'Denton', state: 'TX', countyId: 10,
+    latitude: 33.0082, longitude: -97.2275, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked primarily into Denton county_id 10 property rows for Roanoke, including 90 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 190 active listings are linked with no remaining unlinked rows; 100 active properties carry parcel identity and ownership support while 90 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, square footage, and debt records are absent and must not be guessed; valuation and brokerage span all 190 properties, while classification covers 90, coordinates 81, year built 96, and rent snapshots 37.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 190, parcel_identity_count: 100, classified_count: 90, ownership_count: 100, valuation_count: 190, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 190, active_property_count: 190, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 190, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-14T08:53:33.810+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 37, properties_with_rent_snapshots: 37, latest_rent_observed: '2026-03-26' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
