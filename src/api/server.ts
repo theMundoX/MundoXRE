@@ -10671,6 +10671,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  voorheesNj: {
+    key: 'voorhees-nj', aliases: ['voorhees', 'voorhees-nj'], label: 'Voorhees', publicLabel: 'Voorhees, NJ',
+    city: 'Voorhees', cityUpper: 'VOORHEES', county: 'Camden', state: 'NJ', countyId: 13690,
+    latitude: 39.83967, longitude: -74.955526, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, and broader debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Camden county_id 13690 property rows for Voorhees, including 18 clearly labeled listing-backed shells retained only for active listings that did not resolve to NJGIN parcel identity.',
+      'All 42 active listing rows are linked with no remaining unlinked rows across 42 active properties; 24 active properties carry parcel identity and ownership support while 18 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts and square footage are absent and must not be guessed; valuation, classification, and brokerage cover all 42 properties, year built and rent snapshots cover 24, coordinates cover 16, and two amount-bearing debt rows cover two properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 42, parcel_identity_count: 24, classified_count: 42, ownership_count: 24, valuation_count: 42, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 42, active_property_count: 42, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 42, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:37:02.012+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: '2024-09-10',
+      },
+      rents: { rent_snapshot_count: 24, properties_with_rent_snapshots: 24, latest_rent_observed: '2026-03-28' },
+    },
+  },
   clementonNj: {
     key: 'clementon-nj', aliases: ['clementon', 'clementon-nj'], label: 'Clementon', publicLabel: 'Clementon, NJ',
     city: 'Clementon', cityUpper: 'CLEMENTON', county: 'Camden', state: 'NJ', countyId: 13690,
