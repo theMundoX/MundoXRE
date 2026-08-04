@@ -10744,6 +10744,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 31, properties_with_rent_snapshots: 31, latest_rent_observed: '2026-03-28' },
     },
   },
+  tamaracFl: {
+    key: 'tamarac-fl', aliases: ['tamarac', 'tamarac-fl'], label: 'Tamarac', publicLabel: 'Tamarac, FL',
+    city: 'Tamarac', cityUpper: 'TAMARAC', county: 'Broward', state: 'FL', countyId: 12,
+    latitude: 26.2129, longitude: -80.2498, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, debt, and broader rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Broward county_id 12 property rows for Tamarac, including 56 address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 93 active listing rows are linked with no remaining unlinked rows across 93 active properties; 37 active properties carry parcel identity and ownership support while 56 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, debt records, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 93 rows, classification covers 56 properties, year built and size cover 37, and coordinates and rent snapshots cover 11.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 93, parcel_identity_count: 37, classified_count: 56, ownership_count: 37, valuation_count: 93, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 93, active_property_count: 93, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 93, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:00.000+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 11, properties_with_rent_snapshots: 11, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
