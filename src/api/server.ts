@@ -10116,6 +10116,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 15, properties_with_rent_snapshots: 15, latest_rent_observed: '2026-03-28' },
     },
   },
+  brookPark: {
+    key: 'brook-park', aliases: ['brook-park', 'brook park', 'brook-park-oh'], label: 'Brook Park', publicLabel: 'Brook Park, OH',
+    city: 'Brook Park', cityUpper: 'BROOK PARK', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.3993, longitude: -81.8093, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and public recorder amount coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Brook Park, including 15 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 56 active listings are linked with no remaining unlinked rows; 41 active properties carry parcel identity and ownership, while 15 shell rows remain listing-led address coverage pending assessor reconciliation.',
+      'Verified agent contact fields remain absent and must not be guessed; brokerage labels appear on 5 active listings, valuation and asset classification span all 56 linked properties, and public debt records cover only 3 properties with no usable amount fields.',
+      'No rent snapshots are currently available for Brook Park, so rental underwriting must remain explicitly incomplete.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 56, parcel_identity_count: 41, classified_count: 56, ownership_count: 41, valuation_count: 56, multifamily_count: 0 },
+      listings: { active_listing_count: 56, active_property_count: 56, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 5, creative_finance_count: 0, latest_listing_seen: '2026-08-02T14:59:25.626+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 9, properties_with_mortgage_records: 3, properties_with_debt_coverage: 3, mortgage_amount_count: 0, latest_recording: '2026-01-15' },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -10212,6 +10232,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'wimauma',
   'lyndhurst',
   'atco',
+  'brook-park',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
