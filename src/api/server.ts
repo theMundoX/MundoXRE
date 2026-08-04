@@ -10328,6 +10328,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 65, properties_with_rent_snapshots: 65, latest_rent_observed: '2026-05-28' },
     },
   },
+  glenRock: {
+    key: 'glen-rock', aliases: ['glen-rock', 'glen-rock-nj'], label: 'Glen Rock', publicLabel: 'Glen Rock, NJ',
+    city: 'Glen Rock', cityUpper: 'GLEN ROCK', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.9648, longitude: -74.1287, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked primarily into Bergen county_id 13672 property rows for Glen Rock, including 5 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 12 active listings are linked with no remaining unlinked rows; 7 active properties carry parcel identity and ownership support while 5 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields and square footage are absent and must not be guessed; valuation and brokerage span all 12 properties, while classification covers 5, coordinates and year built cover 6, one property has an amount-bearing debt record, and rent snapshots cover 7.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 12, parcel_identity_count: 7, classified_count: 5, ownership_count: 7, valuation_count: 12, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 12, active_property_count: 12, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 12, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:04.259+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: '2025-01-22',
+      },
+      rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
