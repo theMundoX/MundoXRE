@@ -10770,6 +10770,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 13, properties_with_rent_snapshots: 13, latest_rent_observed: '2026-03-28' },
     },
   },
+  runnemede: {
+    key: 'runnemede', aliases: ['runnemede', 'runnemede-nj'], label: 'Runnemede', publicLabel: 'Runnemede, NJ',
+    city: 'Runnemede', cityUpper: 'RUNNEMEDE', county: 'Camden', state: 'NJ', countyId: 13690,
+    latitude: 39.8523, longitude: -75.0671, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, size, and broader debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Camden county_id 13690 property rows for Runnemede, including 17 address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 27 active listing rows are linked with no remaining unlinked rows across 27 active properties; 10 active properties carry parcel identity while 17 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, and square footage are absent and must not be guessed; valuation and brokerage cover all 27 rows, classification covers 17, year built and coordinates cover 9, rent snapshots cover 10, and four amount-bearing debt rows cover three properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 27, parcel_identity_count: 10, classified_count: 17, ownership_count: 0, valuation_count: 27, year_built_count: 9, size_count: 0, coordinate_count: 9, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 27, active_property_count: 27, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 27, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:37:07.093+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 4, properties_with_mortgage_records: 3, properties_with_debt_coverage: 3,
+        mortgage_amount_count: 4, latest_recording: '2024-08-21',
+      },
+      rents: { rent_snapshot_count: 10, properties_with_rent_snapshots: 10, latest_rent_observed: '2026-03-28' },
+    },
+  },
   lakewoodNj: {
     key: 'lakewood-nj', aliases: ['lakewood', 'lakewood-nj'], label: 'Lakewood', publicLabel: 'Lakewood, NJ',
     city: 'Lakewood', cityUpper: 'LAKEWOOD', county: 'Ocean', state: 'NJ', countyId: 13602,
@@ -11030,6 +11056,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'egg-harbor-city',
   'mahwah',
   'clifton-nj',
+  'runnemede',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
