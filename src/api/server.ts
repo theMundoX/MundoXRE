@@ -10645,6 +10645,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: null },
     },
   },
+  hotSpringsVillage: {
+    key: 'hot-springs-village', aliases: ['hot-springs-village', 'hot-springs-village-ar'], label: 'Hot Springs Village', publicLabel: 'Hot Springs Village, AR',
+    city: 'Hot Springs Village', cityUpper: 'HOT SPRINGS VILLAGE', county: 'Garland / Saline', state: 'AR', countyId: 35,
+    latitude: 34.653227, longitude: -92.935012, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked across Garland county_id 35 and Saline county_id 791793 property rows for Hot Springs Village, including 132 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 326 active listing rows are linked with no remaining unlinked rows across 326 active properties; 194 active properties carry parcel identity and ownership support while 132 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, year built, square footage, multifamily classification, creative-finance signals, and rent support are absent and must not be guessed; valuation, classification, and brokerage cover all 326 properties, coordinates cover 121, and public debt rows cover 27 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 326, parcel_identity_count: 194, classified_count: 326, ownership_count: 194, valuation_count: 326, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 326, active_property_count: 326, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 326, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:42:01.49+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 115, properties_with_mortgage_records: 27, properties_with_debt_coverage: 27,
+        mortgage_amount_count: 56, latest_recording: '2026-03-10',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   clementonNj: {
     key: 'clementon-nj', aliases: ['clementon', 'clementon-nj'], label: 'Clementon', publicLabel: 'Clementon, NJ',
     city: 'Clementon', cityUpper: 'CLEMENTON', county: 'Camden', state: 'NJ', countyId: 13690,
