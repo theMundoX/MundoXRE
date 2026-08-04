@@ -10432,6 +10432,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 13, properties_with_rent_snapshots: 13, latest_rent_observed: '2026-03-26' },
     },
   },
+  manasquan: {
+    key: 'manasquan', aliases: ['manasquan', 'manasquan-nj'], label: 'Manasquan', publicLabel: 'Manasquan, NJ',
+    city: 'Manasquan', cityUpper: 'MANASQUAN', county: 'Monmouth', state: 'NJ', countyId: 13586,
+    latitude: 40.1262, longitude: -74.0493, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, contact, size, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Monmouth county_id 13586 property rows for Manasquan, including 7 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 19 active listings are linked with no remaining unlinked rows; 12 active properties carry parcel identity and ownership support while 7 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields and square footage are absent and must not be guessed; classification, valuation, and brokerage span all 19 properties, coordinates and year built cover 11, rent snapshots cover 12, and only one property has an amount-bearing debt record.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 19, parcel_identity_count: 12, classified_count: 19, ownership_count: 12, valuation_count: 19, multifamily_count: 4 },
+      listings: {
+        active_listing_count: 19, active_property_count: 19, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 19, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:46.322+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 12, properties_with_rent_snapshots: 12, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
