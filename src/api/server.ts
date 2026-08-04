@@ -10510,6 +10510,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 37, properties_with_rent_snapshots: 37, latest_rent_observed: '2026-05-28' },
     },
   },
+  sevenHills: {
+    key: 'seven-hills', aliases: ['seven-hills', 'seven-hills-oh'], label: 'Seven Hills', publicLabel: 'Seven Hills, OH',
+    city: 'Seven Hills', cityUpper: 'SEVEN HILLS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.3953, longitude: -81.6762, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga county_id 1698988 property rows for Seven Hills, including 12 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 44 active listing rows are linked with no remaining unlinked rows across 44 active properties; 32 active properties carry parcel identity and ownership support while 12 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, year built, mortgage amount fields, creative-finance signals, and rent support are absent and must not be guessed; classification and valuation cover all 44 properties, square footage covers 32, coordinates cover 22, brokerage covers 7 listing rows, and one property has public debt-row coverage.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 44, parcel_identity_count: 32, classified_count: 44, ownership_count: 32, valuation_count: 44, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 44, active_property_count: 44, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 7, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-02T14:59:04.478+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 0, latest_recording: '2025-12-23',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
