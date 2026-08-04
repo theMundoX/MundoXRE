@@ -10458,6 +10458,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 12, properties_with_rent_snapshots: 12, latest_rent_observed: '2026-03-28' },
     },
   },
+  cary: {
+    key: 'cary', aliases: ['cary', 'cary-nc'], label: 'Cary', publicLabel: 'Cary, NC',
+    city: 'Cary', cityUpper: 'CARY', county: 'Wake', state: 'NC', countyId: 1018480,
+    latitude: 35.7915, longitude: -78.7811, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Wake county_id 1018480 property rows for Cary, including 56 clearly labeled listing-backed shells retained only for active listings that did not resolve to NC OneMap parcel identity.',
+      'All 199 active listing rows are linked with no remaining unlinked rows across 198 active properties; 142 active properties carry NC OneMap parcel identity and ownership support while 56 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, square footage, recorder/debt coverage, and rent support are absent and must not be guessed; valuation covers all 198 properties, brokerage covers all 199 listing rows, coordinates cover 111 properties, year built covers 128, and classification covers 56 listing-backed shells.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 198, parcel_identity_count: 142, classified_count: 56, ownership_count: 142, valuation_count: 198, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 199, active_property_count: 198, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 199, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:28:51.294+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
