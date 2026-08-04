@@ -10562,6 +10562,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 59, properties_with_rent_snapshots: 59, latest_rent_observed: '2026-03-28' },
     },
   },
+  englewoodNj: {
+    key: 'englewood-nj', aliases: ['englewood', 'englewood-nj'], label: 'Englewood', publicLabel: 'Englewood, NJ',
+    city: 'Englewood', cityUpper: 'ENGLEWOOD', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.8957, longitude: -73.9730, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, and broader debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Bergen county_id 13672 property rows for Englewood, including 29 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 55 active listing rows are linked with no remaining unlinked rows across 55 active properties; 26 active properties carry parcel identity and ownership support while 29 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, square footage, and creative-finance signals are absent and must not be guessed; classification, valuation, and brokerage cover all 55 rows, coordinates cover 22 properties, year built covers 26, amount-bearing debt rows cover 6 properties, and rent snapshots cover 26.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 55, parcel_identity_count: 26, classified_count: 55, ownership_count: 26, valuation_count: 55, multifamily_count: 2 },
+      listings: {
+        active_listing_count: 55, active_property_count: 55, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 55, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:21.03+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 6, properties_with_mortgage_records: 6, properties_with_debt_coverage: 6,
+        mortgage_amount_count: 6, latest_recording: '2025-08-04',
+      },
+      rents: { rent_snapshot_count: 26, properties_with_rent_snapshots: 26, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
