@@ -10302,6 +10302,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 29, properties_with_rent_snapshots: 29, latest_rent_observed: '2026-03-28' },
     },
   },
+  reynoldsburg: {
+    key: 'reynoldsburg', aliases: ['reynoldsburg', 'reynoldsburg-oh'], label: 'Reynoldsburg', publicLabel: 'Reynoldsburg, OH',
+    city: 'Reynoldsburg', cityUpper: 'REYNOLDSBURG', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 39.9548, longitude: -82.8121, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, contact, physical, debt amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked primarily into Franklin county_id 1698985 property rows for Reynoldsburg, including 51 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 149 active listings are linked with no remaining unlinked rows; 98 active properties carry parcel identity and ownership support while 51 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields are absent and must not be guessed; classification spans all 149 properties, valuation covers 135, brokerage 94, coordinates 70, year built 80, square footage 4, debt records 18 with only one amount-bearing row, and rent snapshots 65.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 149, parcel_identity_count: 98, classified_count: 149, ownership_count: 98, valuation_count: 135, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 149, active_property_count: 149, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 94, creative_finance_count: 0,
+        latest_listing_seen: '2026-05-12T03:29:41.666+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 31, properties_with_mortgage_records: 18, properties_with_debt_coverage: 18,
+        mortgage_amount_count: 1, latest_recording: '2026-02-19',
+      },
+      rents: { rent_snapshot_count: 65, properties_with_rent_snapshots: 65, latest_rent_observed: '2026-05-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
