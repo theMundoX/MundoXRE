@@ -10744,6 +10744,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 22, properties_with_rent_snapshots: 22, latest_rent_observed: '2026-03-28' },
     },
   },
+  cliftonNj: {
+    key: 'clifton-nj', aliases: ['clifton', 'clifton-nj'], label: 'Clifton', publicLabel: 'Clifton, NJ',
+    city: 'Clifton', cityUpper: 'CLIFTON', county: 'Passaic', state: 'NJ', countyId: 13611,
+    latitude: 40.8584, longitude: -74.1638, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, size, and broader debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Passaic county_id 13611 property rows for Clifton, including 12 address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 25 active listing rows are linked with no remaining unlinked rows across 25 active properties; 13 active properties carry parcel identity while 12 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, and square footage are absent and must not be guessed; valuation and brokerage cover all 25 rows, classification covers 12, year built and rent snapshots cover 13, coordinates cover 11, and two properties have amount-bearing debt records.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 25, parcel_identity_count: 13, classified_count: 12, ownership_count: 0, valuation_count: 25, year_built_count: 13, size_count: 0, coordinate_count: 11, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 25, active_property_count: 25, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 25, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:39:30.93+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: '2024-02-01',
+      },
+      rents: { rent_snapshot_count: 13, properties_with_rent_snapshots: 13, latest_rent_observed: '2026-03-28' },
+    },
+  },
   lakewoodNj: {
     key: 'lakewood-nj', aliases: ['lakewood', 'lakewood-nj'], label: 'Lakewood', publicLabel: 'Lakewood, NJ',
     city: 'Lakewood', cityUpper: 'LAKEWOOD', county: 'Ocean', state: 'NJ', countyId: 13602,
@@ -11003,6 +11029,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'burlington-nj',
   'egg-harbor-city',
   'mahwah',
+  'clifton-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
