@@ -11846,6 +11846,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-28' },
     },
   },
+  tabernacle: {
+    key: 'tabernacle', aliases: ['tabernacle', 'tabernacle-nj'], label: 'Tabernacle', publicLabel: 'Tabernacle, NJ',
+    city: 'Tabernacle', cityUpper: 'TABERNACLE', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 39.8606, longitude: -74.7193, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington County property rows for Tabernacle with no remaining unlinked active listings and no linked properties currently landing outside the primary county.',
+      'The active set is fully linked but remains partially shell-backed: 5 linked properties are source-labeled listing-backed shells, while the other 7 active properties resolve to parcel-identity-backed Burlington rows.',
+      'Verified agent contact fields and recorder/debt coverage remain absent and must not be guessed or implied; brokerage labels span all 12 active listings, ownership and valuation coverage exist across all 12 linked properties, and rent support reaches the 7 parcel-identity-backed rows.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 12, parcel_identity_count: 7, classified_count: 12, ownership_count: 7, valuation_count: 12, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 12, active_property_count: 12, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 12, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:08.468+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -11887,6 +11913,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'gatlinburg',
   'manalapan',
   'southampton',
+  'tabernacle',
   'o-brien',
   'justin',
   'mount_holly',
