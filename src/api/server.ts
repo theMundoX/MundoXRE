@@ -11560,6 +11560,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 18, properties_with_rent_snapshots: 18, latest_rent_observed: '2026-03-28' },
     },
   },
+  lindenwoldNj: {
+    key: 'lindenwold-nj', aliases: ['lindenwold', 'lindenwold-nj'], label: 'Lindenwold', publicLabel: 'Lindenwold, NJ',
+    city: 'Lindenwold', cityUpper: 'LINDENWOLD', county: 'Camden', state: 'NJ', countyId: 13690,
+    latitude: 39.8243, longitude: -74.9977, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Camden county_id 13690 property rows for Lindenwold, including 15 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 23 active listing rows are linked with no remaining unlinked rows across 23 active properties; eight active properties carry parcel identity while 15 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, size facts, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 23 rows, classification covers 15 properties, year built, coordinates, and rent snapshots cover eight, and two amount-bearing debt rows cover two properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 23, parcel_identity_count: 8, classified_count: 15, ownership_count: 0, valuation_count: 23, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 23, active_property_count: 23, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 23, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:36:51.739+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: '2026-03-28' },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
@@ -11718,6 +11744,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'clifton-nj',
   'runnemede',
   'salem-nj',
+  'lindenwold-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
