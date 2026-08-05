@@ -11820,6 +11820,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  belmarNj: {
+    key: 'belmar-nj', aliases: ['belmar', 'belmar-nj'], label: 'Belmar', publicLabel: 'Belmar, NJ',
+    city: 'Belmar', cityUpper: 'BELMAR', county: 'Monmouth', state: 'NJ', countyId: 13586,
+    latitude: 40.178447, longitude: -74.021804, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, ownership, physical characteristic, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Monmouth county_id 13586 property rows for Belmar, including 9 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 12 active listing rows are linked with no remaining unlinked rows across 12 active properties; 3 active properties carry parcel identity and ownership while 9 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, size facts, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 12 properties or listings, 9 listing shells are classified, parcel identity, ownership, year built, and rent snapshots cover 3 properties, coordinates cover 2, and one amount-bearing debt row covers one property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 12, parcel_identity_count: 3, classified_count: 9, ownership_count: 3, valuation_count: 12, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 12, active_property_count: 12, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 12, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:43:40.550+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: '2023-10-25',
+      },
+      rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
