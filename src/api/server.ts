@@ -11534,6 +11534,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  northOlmstedOh: {
+    key: 'north-olmsted-oh', aliases: ['north-olmsted', 'north-olmsted-oh'], label: 'North Olmsted', publicLabel: 'North Olmsted, OH',
+    city: 'North Olmsted', cityUpper: 'NORTH OLMSTED', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.4156, longitude: -81.9235, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, debt amount, rent, and year-built coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga county_id 1698988 property rows for North Olmsted, including 50 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity; 18 of those shells were created in the current linking pass after exact matching found no safe match.',
+      'All 149 active listing rows are linked with no remaining unlinked rows across 149 active properties; 99 active properties carry parcel identity and ownership support while 50 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built facts, rent support, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation covers all 149 properties, size covers 99, coordinates cover 77, brokerage covers 23 listings, and seven recorder rows cover four properties but contain no usable mortgage amounts.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 149, parcel_identity_count: 99, classified_count: 50, ownership_count: 99, valuation_count: 149, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 149, active_property_count: 149, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 23, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-04T14:11:48.631+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 7, properties_with_mortgage_records: 4, properties_with_debt_coverage: 4,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   salemNj: {
     key: 'salem-nj', aliases: ['salem', 'salem-nj'], label: 'Salem', publicLabel: 'Salem, NJ',
     city: 'Salem', cityUpper: 'SALEM', county: 'Salem', state: 'NJ', countyId: 13620,
@@ -11745,6 +11771,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'runnemede',
   'salem-nj',
   'lindenwold-nj',
+  'north-olmsted-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
