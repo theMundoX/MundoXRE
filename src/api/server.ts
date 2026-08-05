@@ -11742,6 +11742,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  hamburgNj: {
+    key: 'hamburg-nj', aliases: ['hamburg', 'hamburg-nj'], label: 'Hamburg', publicLabel: 'Hamburg, NJ',
+    city: 'Hamburg', cityUpper: 'HAMBURG', county: 'Sussex', state: 'NJ', countyId: 13637,
+    latitude: 41.152405, longitude: -74.570532, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, ownership, and physical characteristic coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Sussex county_id 13637 property rows for Hamburg, including 24 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 39 active listing rows are linked with no remaining unlinked rows across 39 active properties; 15 active properties carry parcel identity and ownership while 24 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, size facts, multifamily candidates, and creative-finance signals are absent and must not be guessed; classification, valuation, and brokerage cover all 39 properties or listings, rent snapshots and parcel ownership cover 15 properties, year built covers 11, coordinates cover 10, and three amount-bearing debt rows cover three properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 39, parcel_identity_count: 15, classified_count: 39, ownership_count: 15, valuation_count: 39, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 39, active_property_count: 39, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 39, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:39:59.762+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 3, properties_with_mortgage_records: 3, properties_with_debt_coverage: 3,
+        mortgage_amount_count: 3, latest_recording: '2025-10-01',
+      },
+      rents: { rent_snapshot_count: 15, properties_with_rent_snapshots: 15, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -11853,6 +11879,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'titusville-nj',
   'hilliard-oh',
   'little-rock-ar',
+  'hamburg-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
