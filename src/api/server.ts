@@ -11768,6 +11768,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 15, properties_with_rent_snapshots: 15, latest_rent_observed: '2026-03-28' },
     },
   },
+  southOrangeNj: {
+    key: 'south-orange-nj', aliases: ['south-orange', 'south-orange-nj'], label: 'South Orange', publicLabel: 'South Orange, NJ',
+    city: 'South Orange', cityUpper: 'SOUTH ORANGE', county: 'Essex', state: 'NJ', countyId: 13709,
+    latitude: 40.748927, longitude: -74.260990, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, ownership, physical characteristic, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Essex county_id 13709 property rows for South Orange, including 8 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 13 active listing rows are linked with no remaining unlinked rows across 13 active properties; 5 active properties carry parcel identity and ownership while 8 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, size facts, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 13 properties or listings, 8 properties are classified listing shells, parcel identity, ownership, year built, coordinates, and rent snapshots cover 5 properties, and one amount-bearing debt row covers one property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 13, parcel_identity_count: 5, classified_count: 8, ownership_count: 5, valuation_count: 13, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 13, active_property_count: 13, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 13, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:36:40.259+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: '2025-07-28',
+      },
+      rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
