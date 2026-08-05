@@ -11404,6 +11404,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 9, properties_with_rent_snapshots: 9, latest_rent_observed: '2026-03-28' },
     },
   },
+  manchesterNj: {
+    key: 'manchester-nj', aliases: ['manchester', 'manchester-nj'], label: 'Manchester', publicLabel: 'Manchester, NJ',
+    city: 'Manchester', cityUpper: 'MANCHESTER', county: 'Ocean', state: 'NJ', countyId: 13602,
+    latitude: 39.9523, longitude: -74.3738, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Ocean county_id 13602 property rows for Manchester, including 33 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 77 active listing rows are linked with no remaining unlinked rows across 77 active properties; 44 active properties carry parcel identity while 33 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, square footage, unit counts, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 77 rows, classification covers 33 properties, year built and rent snapshots cover 44, coordinates cover 39, and three amount-bearing debt rows cover three properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 77, parcel_identity_count: 44, classified_count: 33, ownership_count: 0, valuation_count: 77, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 77, active_property_count: 77, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 77, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:31.435+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 3, properties_with_mortgage_records: 3, properties_with_debt_coverage: 3,
+        mortgage_amount_count: 3, latest_recording: '2024-08-01',
+      },
+      rents: { rent_snapshot_count: 44, properties_with_rent_snapshots: 44, latest_rent_observed: '2026-03-28' },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
