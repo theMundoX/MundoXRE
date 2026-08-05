@@ -11898,6 +11898,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 16, properties_with_rent_snapshots: 16, latest_rent_observed: '2026-03-28' },
     },
   },
+  robbinsville: {
+    key: 'robbinsville', aliases: ['robbinsville', 'robbinsville-nj'], label: 'Robbinsville', publicLabel: 'Robbinsville, NJ',
+    city: 'Robbinsville', cityUpper: 'ROBBINSVILLE', county: 'Mercer', state: 'NJ', countyId: 13571,
+    latitude: 40.2142, longitude: -74.6210, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until deeper county contact, parcel, and size reconciliation coverage are expanded',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into property rows for Robbinsville, including 18 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 23 of 41 active properties are parcel-identity-backed; shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'Two active ZIP-matched property rows currently resolve to Monmouth County rather than the primary Mercer County scope and require county reconciliation before county-level conclusions are drawn.',
+      'Verified agent contact fields and building-size coverage are currently absent and must not be guessed or implied; valuation and brokerage span all 41 linked active properties, debt coverage exists on 1 linked property, and rent snapshots currently exist on 22 linked properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 41, parcel_identity_count: 23, classified_count: 41, ownership_count: 23, valuation_count: 41, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 41, active_property_count: 41, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 41, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:30.06+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 22, properties_with_rent_snapshots: 22, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
