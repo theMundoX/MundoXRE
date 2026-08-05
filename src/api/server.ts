@@ -11872,6 +11872,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
     },
   },
+  beverly: {
+    key: 'beverly', aliases: ['beverly', 'beverly-nj'], label: 'Beverly', publicLabel: 'Beverly, NJ',
+    city: 'Beverly', cityUpper: 'BEVERLY', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 40.0595, longitude: -74.9091, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until deeper county contact and parcel reconciliation coverage are expanded',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington County property rows for Beverly, including 19 listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 16 of 35 active properties are parcel-identity-backed; shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'Verified agent contact fields and parcel ownership coverage are currently absent for Beverly active listings and must not be guessed or implied; valuation spans all 35 linked active properties, debt coverage exists on 2 linked properties across 2 mortgage rows, and rent snapshots currently exist on 16 linked properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 35, parcel_identity_count: 16, classified_count: 35, ownership_count: 0, valuation_count: 35, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 35, active_property_count: 35, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 35, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:43:50.793+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: '2024-10-16',
+      },
+      rents: { rent_snapshot_count: 16, properties_with_rent_snapshots: 16, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -11914,6 +11940,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'manalapan',
   'southampton',
   'tabernacle',
+  'beverly',
   'o-brien',
   'justin',
   'mount_holly',
