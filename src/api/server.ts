@@ -11925,6 +11925,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 22, properties_with_rent_snapshots: 22, latest_rent_observed: '2026-03-28' },
     },
   },
+  powell: {
+    key: 'powell', aliases: ['powell', 'powell-oh'], label: 'Powell', publicLabel: 'Powell, OH',
+    city: 'Powell', cityUpper: 'POWELL', county: 'Delaware', state: 'OH', countyId: 1741137,
+    latitude: 40.1578, longitude: -83.0752, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until classification, verified contact, brokerage, year-built, size, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Delaware County property rows for Powell, including 44 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows; 102 of 146 active properties are parcel-identity and ownership backed, while shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, building-size, mortgage/debt, and rent coverage are currently absent and must not be guessed or implied; valuation covers 126 properties, coordinates cover 63, classification covers 44, and brokerage is present on only 1 active listing.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 146, parcel_identity_count: 102, classified_count: 44, ownership_count: 102, valuation_count: 126, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 146, active_property_count: 146, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 1, creative_finance_count: 0,
+        latest_listing_seen: '2026-05-12T04:47:56.903+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   berlin: {
     key: 'berlin', aliases: ['berlin', 'berlin-nj'], label: 'Berlin', publicLabel: 'Berlin, NJ',
     city: 'Berlin', cityUpper: 'BERLIN', county: 'Camden', state: 'NJ', countyId: 13690,
