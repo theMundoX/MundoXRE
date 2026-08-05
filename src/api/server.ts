@@ -12582,6 +12582,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 15, properties_with_rent_snapshots: 15, latest_rent_observed: null },
     },
   },
+  little_ferry: {
+    key: 'little_ferry', aliases: ['little_ferry', 'little-ferry', 'little-ferry-nj'], label: 'Little Ferry', publicLabel: 'Little Ferry, NJ',
+    city: 'Little Ferry', cityUpper: 'LITTLE FERRY', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.8529, longitude: -74.0421, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and ownership, contact, coordinate, and structure coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Bergen County property rows for Little Ferry, including 11 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 14 active listings are linked with zero unlinked rows, but only 3 active properties have parcel identity; the 11 shell rows remain address-level coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, property coordinates, and building-size coverage are absent and must not be guessed or implied; classification, valuation, and brokerage span all 14 linked properties, year-built covers 2, rent snapshots cover 3, and one amount-bearing mortgage row covers one property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 14, parcel_identity_count: 3, classified_count: 14, ownership_count: 0, valuation_count: 14, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 14, active_property_count: 14, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 14, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
