@@ -12072,6 +12072,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  johnstown: {
+    key: 'johnstown', aliases: ['johnstown', 'johnstown-oh'], label: 'Johnstown', publicLabel: 'Johnstown, OH',
+    city: 'Johnstown', cityUpper: 'JOHNSTOWN', county: 'Licking', state: 'OH', countyId: 1741136,
+    latitude: 40.1537, longitude: -82.6852, status: 'live', readinessTarget: 27, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, verified contact, size, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into property rows for Johnstown, including 22 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 24 of 46 active properties are parcel-identity-backed; shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'The primary market scope is Licking County, where 44 active linked properties resolve; 2 active linked properties resolve to Delaware County and must be treated as disclosed cross-county inventory rather than Licking County parcel coverage.',
+      'Verified agent contacts, building-size, debt, and rent coverage are currently absent and must not be guessed or implied; valuation and brokerage span all 46 linked properties, ownership covers the 24 parcel-backed properties, coordinates cover 22, and year-built covers 19.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 46, parcel_identity_count: 24, classified_count: 22, ownership_count: 24, valuation_count: 46, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 46, active_property_count: 46, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 46, creative_finance_count: 0,
+        latest_listing_seen: '2026-06-05T19:41:13.614846+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   etna: {
     key: 'etna', aliases: ['etna', 'etna-oh'], label: 'Etna', publicLabel: 'Etna, OH',
     city: 'Etna', cityUpper: 'ETNA', county: 'Licking', state: 'OH', countyId: 1741136,
