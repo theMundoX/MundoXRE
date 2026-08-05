@@ -10723,6 +10723,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: null },
     },
   },
+  castlePines: {
+    key: 'castle-pines', aliases: ['castle-pines', 'castle-pines-co', 'castle pines'], label: 'Castle Pines', publicLabel: 'Castle Pines, CO',
+    city: 'Castle Pines', cityUpper: 'CASTLE PINES', county: 'Douglas', state: 'CO', countyId: 62241,
+    latitude: 39.4583, longitude: -104.8972, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Douglas county_id 62241 property rows for Castle Pines, including 34 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 48 active listing rows are linked with no remaining unlinked rows across 48 active properties; 14 active properties carry parcel identity and ownership support while 34 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, year built, square footage, coordinates, and debt coverage are absent and must not be guessed; valuation and brokerage cover all 48 properties, classification covers 34 listing-backed shells, and rent snapshots cover 5 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 48, parcel_identity_count: 14, classified_count: 34, ownership_count: 14, valuation_count: 48, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 48, active_property_count: 48, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 48, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:54:45.917+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
+    },
+  },
   clementonNj: {
     key: 'clementon-nj', aliases: ['clementon', 'clementon-nj'], label: 'Clementon', publicLabel: 'Clementon, NJ',
     city: 'Clementon', cityUpper: 'CLEMENTON', county: 'Camden', state: 'NJ', countyId: 13690,
