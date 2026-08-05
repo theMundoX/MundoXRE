@@ -11300,6 +11300,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 28, properties_with_rent_snapshots: 28, latest_rent_observed: '2026-03-28' },
     },
   },
+  ewingNj: {
+    key: 'ewing', aliases: ['ewing', 'ewing-nj'], label: 'Ewing', publicLabel: 'Ewing, NJ',
+    city: 'Ewing', cityUpper: 'EWING', county: 'Mercer', state: 'NJ', countyId: 13571,
+    latitude: 40.2598, longitude: -74.7909, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Mercer county_id 13571 property rows for Ewing, including 28 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 56 active listing rows are linked with no remaining unlinked rows across 56 active properties; 28 active properties carry parcel identity while 28 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, square footage, unit counts, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 56 rows, while classification, coordinates, year built, and rent snapshots each cover 28 properties, and six amount-bearing debt rows cover four properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 56, parcel_identity_count: 28, classified_count: 28, ownership_count: 0, valuation_count: 56, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 56, active_property_count: 56, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 56, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:25.093+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 6, properties_with_mortgage_records: 4, properties_with_debt_coverage: 4,
+        mortgage_amount_count: 6, latest_recording: '2023-09-05',
+      },
+      rents: { rent_snapshot_count: 28, properties_with_rent_snapshots: 28, latest_rent_observed: '2026-03-28' },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
