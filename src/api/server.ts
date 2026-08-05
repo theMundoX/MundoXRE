@@ -11925,6 +11925,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 22, properties_with_rent_snapshots: 22, latest_rent_observed: '2026-03-28' },
     },
   },
+  berlin: {
+    key: 'berlin', aliases: ['berlin', 'berlin-nj'], label: 'Berlin', publicLabel: 'Berlin, NJ',
+    city: 'Berlin', cityUpper: 'BERLIN', county: 'Camden', state: 'NJ', countyId: 13690,
+    latitude: 39.7912, longitude: -74.9291, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel identity, ownership, verified contact, classification, size, and coordinate coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Camden County property rows for Berlin, including 27 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 17 of 44 active properties are parcel-identity-backed; shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, and building-size coverage are currently absent and must not be guessed or implied; valuation and brokerage span all 44 linked properties, year built covers 14, coordinates cover 13, and classification covers 27.',
+      'Two amount-bearing mortgage rows cover 2 active properties and rent snapshots cover 17; absent debt or rent rows must be treated as unknown rather than zero.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 44, parcel_identity_count: 17, classified_count: 27, ownership_count: 0, valuation_count: 44, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 44, active_property_count: 44, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 44, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:37:12.958+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 17, properties_with_rent_snapshots: 17, latest_rent_observed: '2026-03-28' },
+    },
+  },
   'gates-mills': {
     key: 'gates-mills', aliases: ['gates-mills', 'gates-mills-oh'], label: 'Gates Mills', publicLabel: 'Gates Mills, OH',
     city: 'Gates Mills', cityUpper: 'GATES MILLS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
