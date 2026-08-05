@@ -11352,6 +11352,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 9, properties_with_rent_snapshots: 9, latest_rent_observed: '2026-03-28' },
     },
   },
+  durhamNc: {
+    key: 'durham-nc', aliases: ['durham', 'durham-nc'], label: 'Durham', publicLabel: 'Durham, NC',
+    city: 'Durham', cityUpper: 'DURHAM', county: 'Durham', state: 'NC', countyId: 376654,
+    latitude: 35.994, longitude: -78.8986, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into property rows for Durham, including 165 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 897 active listing rows are linked with no remaining unlinked rows across 897 active properties; 896 properties link within Durham county_id 376654 and one links within Wake county_id 1018480, so coverage must not be described as strictly Durham County-bounded.',
+      'Verified agent contacts, square footage, unit counts, debt, rent, and creative-finance signals are absent and must not be guessed; parcel identity and ownership cover 732 properties, valuation covers 741, coordinates cover 417, classification covers the 165 listing-backed shells, and year built covers one property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 897, parcel_identity_count: 732, classified_count: 165, ownership_count: 732, valuation_count: 741, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 897, active_property_count: 897, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 897, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:28:57.853+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
