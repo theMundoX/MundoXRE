@@ -11664,6 +11664,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 11, properties_with_rent_snapshots: 11, latest_rent_observed: '2026-03-28' },
     },
   },
+  titusvilleNj: {
+    key: 'titusville-nj', aliases: ['titusville', 'titusville-nj'], label: 'Titusville', publicLabel: 'Titusville, NJ',
+    city: 'Titusville', cityUpper: 'TITUSVILLE', county: 'Mercer', state: 'NJ', countyId: 13571,
+    latitude: 40.3096, longitude: -74.8799, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Mercer county_id 13571 property rows for Titusville, including 21 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 26 active listing rows are linked with no remaining unlinked rows across 26 active properties; five active properties carry parcel identity while 21 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, size facts, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 26 rows, classification covers 21 properties, year built and rent snapshots cover five, coordinates cover four, and two amount-bearing debt rows cover two properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 26, parcel_identity_count: 5, classified_count: 21, ownership_count: 0, valuation_count: 26, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 26, active_property_count: 26, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 26, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:20.347+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -11772,6 +11798,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'salem-nj',
   'lindenwold-nj',
   'north-olmsted-oh',
+  'titusville-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
