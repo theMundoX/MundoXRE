@@ -12145,6 +12145,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  new_albany: {
+    key: 'new_albany', aliases: ['new_albany', 'new-albany', 'new-albany-oh'], label: 'New Albany', publicLabel: 'New Albany, OH',
+    city: 'New Albany', cityUpper: 'NEW ALBANY', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 40.0812, longitude: -82.8088, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and verified contact, structure, debt-amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Franklin County property rows for New Albany, including 122 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 225 active listings are linked with zero unlinked rows after exact matching resolved 32 rows and 39 address-and-ZIP-qualified shells were added; 103 active properties have parcel identity and ownership coverage, while all 122 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts and building-size coverage are absent and must not be guessed or implied; valuation covers 224 properties, year-built covers 98, coordinates cover 77, classification covers 126, and brokerage covers 66 listings.',
+      'Forty-two public mortgage or lien rows cover 22 properties, but none currently contains a usable loan, balance, or payment amount; 78 rent snapshots cover 78 properties, and absent debt or rent fields must be treated as unknown rather than zero.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 225, parcel_identity_count: 103, classified_count: 126, ownership_count: 103, valuation_count: 224, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 225, active_property_count: 225, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 66, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T13:28:48.31+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 42, properties_with_mortgage_records: 22, properties_with_debt_coverage: 22,
+        mortgage_amount_count: 0, latest_recording: '2026-03-30',
+      },
+      rents: { rent_snapshot_count: 78, properties_with_rent_snapshots: 78, latest_rent_observed: '2026-05-28' },
+    },
+  },
   powell: {
     key: 'powell', aliases: ['powell', 'powell-oh'], label: 'Powell', publicLabel: 'Powell, OH',
     city: 'Powell', cityUpper: 'POWELL', county: 'Delaware', state: 'OH', countyId: 1741137,
