@@ -11925,6 +11925,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 22, properties_with_rent_snapshots: 22, latest_rent_observed: '2026-03-28' },
     },
   },
+  beachwood: {
+    key: 'beachwood', aliases: ['beachwood', 'beachwood-oh'], label: 'Beachwood', publicLabel: 'Beachwood, OH',
+    city: 'Beachwood', cityUpper: 'BEACHWOOD', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.4645, longitude: -81.5087, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, verified contact, brokerage, year-built, debt-amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Beachwood, including 24 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows; 57 of 81 active properties are parcel-identity and ownership backed, while shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, and rent coverage are currently absent and must not be guessed or implied; valuation spans all 81 properties, size covers 57, coordinates cover 41, classification covers 24, and brokerage is present on 18 active listings.',
+      'Three public mortgage/debt rows cover 2 active properties but contain no loan, balance, or payment amounts; absent debt rows and all amount fields must be treated as unknown rather than zero.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 81, parcel_identity_count: 57, classified_count: 24, ownership_count: 57, valuation_count: 81, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 81, active_property_count: 81, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 18, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T14:31:37.08+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 3, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 0, latest_recording: '2026-03-30',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   powell: {
     key: 'powell', aliases: ['powell', 'powell-oh'], label: 'Powell', publicLabel: 'Powell, OH',
     city: 'Powell', cityUpper: 'POWELL', county: 'Delaware', state: 'OH', countyId: 1741137,
