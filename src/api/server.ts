@@ -11456,6 +11456,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 18, properties_with_rent_snapshots: 18, latest_rent_observed: '2026-03-28' },
     },
   },
+  oaklandNj: {
+    key: 'oakland-nj', aliases: ['oakland', 'oakland-nj'], label: 'Oakland', publicLabel: 'Oakland, NJ',
+    city: 'Oakland', cityUpper: 'OAKLAND', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 41.0132, longitude: -74.2643, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Bergen county_id 13672 property rows for Oakland, including nine clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 19 active listing rows are linked with no remaining unlinked rows across 19 active properties; ten active properties carry parcel identity while nine remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, square footage, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 19 rows, classification covers nine properties, unit counts and year built cover ten, coordinates cover nine, one amount-bearing debt row covers one property, and rent snapshots cover ten properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 19, parcel_identity_count: 10, classified_count: 9, ownership_count: 0, valuation_count: 19, multifamily_count: 1 },
+      listings: {
+        active_listing_count: 19, active_property_count: 19, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 19, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:00.028+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 10, properties_with_rent_snapshots: 10, latest_rent_observed: '2026-03-28' },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
