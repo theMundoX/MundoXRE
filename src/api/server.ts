@@ -11508,6 +11508,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  lakewoodOh: {
+    key: 'lakewood-oh', aliases: ['lakewood', 'lakewood-oh'], label: 'Lakewood', publicLabel: 'Lakewood, OH',
+    city: 'Lakewood', cityUpper: 'LAKEWOOD', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.4820, longitude: -81.7982, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, debt amount, rent, and broader physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga county_id 1698988 property rows for Lakewood, including 104 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity; 45 of those shells were created in the current linking pass after exact matching found no safe match.',
+      'All 266 active listing rows are linked with no remaining unlinked rows across 266 active properties; 162 active properties carry parcel identity and ownership support while 104 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, rent support, year-built facts, multifamily candidates, and creative-finance signals are absent and must not be guessed; classification and valuation cover all 266 properties, coordinates cover 138, brokerage covers 77 listings, and ten recorder rows cover six properties but currently contain no usable mortgage amounts.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 266, parcel_identity_count: 162, classified_count: 266, ownership_count: 162, valuation_count: 266, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 266, active_property_count: 266, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 77, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-04T14:12:03.023+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 10, properties_with_mortgage_records: 6, properties_with_debt_coverage: 6,
+        mortgage_amount_count: 0, latest_recording: '2025-12-31',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
