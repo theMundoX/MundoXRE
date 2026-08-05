@@ -12029,6 +12029,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 6, properties_with_rent_snapshots: 6, latest_rent_observed: '2026-03-28' },
     },
   },
+  bartonville: {
+    key: 'bartonville', aliases: ['bartonville', 'bartonville-il'], label: 'Bartonville', publicLabel: 'Bartonville, IL',
+    city: 'Bartonville', cityUpper: 'BARTONVILLE', county: 'Peoria', state: 'IL', countyId: 2338837,
+    latitude: 40.6397, longitude: -89.6607, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, coordinate, brokerage, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Peoria County property rows for Bartonville, including 9 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 32 active listings are linked with zero unlinked rows, but only 23 active properties are parcel-identity and ownership-backed; shell rows remain address-level coverage pending assessor reconciliation.',
+      'Verified agent contacts, property coordinates, brokerage, and mortgage/debt coverage are absent and must not be guessed or implied; classification and valuation span all 32 linked properties, year-built covers 23, building or land size covers 22, and rent snapshots cover 24.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 32, parcel_identity_count: 23, classified_count: 32, ownership_count: 23, valuation_count: 32, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 32, active_property_count: 32, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-04T15:09:52.155+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 24, properties_with_rent_snapshots: 24, latest_rent_observed: '2026-05-27' },
+    },
+  },
   loganville: {
     key: 'loganville', aliases: ['loganville', 'loganville-ga'], label: 'Loganville', publicLabel: 'Loganville, GA',
     city: 'Loganville', cityUpper: 'LOGANVILLE', county: 'Gwinnett', state: 'GA', countyId: 1741143,
