@@ -12003,6 +12003,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  delanco: {
+    key: 'delanco', aliases: ['delanco', 'delanco-nj'], label: 'Delanco', publicLabel: 'Delanco, NJ',
+    city: 'Delanco', cityUpper: 'DELANCO', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 40.0546, longitude: -74.9436, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington County property rows for Delanco, including 9 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 6 of 15 active properties are parcel-identity and ownership-backed; shell rows remain address-level coverage pending assessor reconciliation.',
+      'Verified agent contact fields and building-size coverage are absent and must not be guessed or implied; classification, valuation, and brokerage span all 15 linked properties, debt coverage exists on 1 property across 4 amount-bearing rows, and rent snapshots cover the 6 parcel-backed properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 15, parcel_identity_count: 6, classified_count: 15, ownership_count: 6, valuation_count: 15, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 15, active_property_count: 15, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 15, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:07.234+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 4, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 4, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 6, properties_with_rent_snapshots: 6, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
