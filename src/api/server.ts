@@ -11977,6 +11977,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 9, properties_with_rent_snapshots: 9, latest_rent_observed: '2026-03-28' },
     },
   },
+  etna: {
+    key: 'etna', aliases: ['etna', 'etna-oh'], label: 'Etna', publicLabel: 'Etna, OH',
+    city: 'Etna', cityUpper: 'ETNA', county: 'Licking', state: 'OH', countyId: 1741136,
+    latitude: 39.9568, longitude: -82.6932, status: 'live', readinessTarget: 27, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Licking County property rows for Etna with no remaining unlinked active listings and no linked properties landing outside the primary county.',
+      'The active set is fully linked but remains partially shell-backed: 6 linked properties are source-labeled listing-backed shells, while the other 9 active properties resolve to parcel-identity-backed Licking rows.',
+      'Verified agent contact fields and recorder/debt coverage remain absent and must not be guessed or implied; ownership is present on the 9 parcel-identity-backed properties, valuation spans all 15 linked active properties, and rent support is currently absent.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 15, parcel_identity_count: 9, classified_count: 15, ownership_count: 9, valuation_count: 15, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 15, active_property_count: 15, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 15, creative_finance_count: 0,
+        latest_listing_seen: '2026-05-12T03:29:41.666+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
