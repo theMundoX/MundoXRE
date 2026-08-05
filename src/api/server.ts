@@ -12556,6 +12556,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  eatontown: {
+    key: 'eatontown', aliases: ['eatontown', 'eatontown-nj'], label: 'Eatontown', publicLabel: 'Eatontown, NJ',
+    city: 'Eatontown', cityUpper: 'EATONTOWN', county: 'Monmouth', state: 'NJ', countyId: 13586,
+    latitude: 40.2962, longitude: -74.0510, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and ownership, contact, coordinate, and structure coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Monmouth County property rows for Eatontown, including 28 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 43 active listings are linked with zero unlinked rows, but only 15 active properties have parcel identity; the 28 shell rows remain address-level coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, property coordinates, and building-size coverage are absent and must not be guessed or implied; classification, valuation, and brokerage span all 43 linked properties, year-built and rent snapshots cover 15, and four amount-bearing mortgage rows cover three properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 43, parcel_identity_count: 15, classified_count: 43, ownership_count: 0, valuation_count: 43, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 43, active_property_count: 43, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 43, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 4, properties_with_mortgage_records: 3, properties_with_debt_coverage: 3,
+        mortgage_amount_count: 4, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 15, properties_with_rent_snapshots: 15, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
