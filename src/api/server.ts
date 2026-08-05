@@ -12029,6 +12029,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 6, properties_with_rent_snapshots: 6, latest_rent_observed: '2026-03-28' },
     },
   },
+  little_falls: {
+    key: 'little_falls', aliases: ['little_falls', 'little-falls', 'little-falls-nj'], label: 'Little Falls', publicLabel: 'Little Falls, NJ',
+    city: 'Little Falls', cityUpper: 'LITTLE FALLS', county: 'Passaic', state: 'NJ', countyId: 13611,
+    latitude: 40.8690, longitude: -74.2082, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, debt, and structure coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Passaic County property rows for Little Falls, including 6 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 13 active listings are linked with zero unlinked rows, but only 7 active properties are parcel-identity and ownership-backed; shell rows remain address-level coverage pending assessor reconciliation.',
+      'Verified agent contacts and mortgage/debt coverage are absent and must not be guessed or implied; classification, valuation, and brokerage span all 13 linked properties, coordinates and year-built cover 7, building or land size covers 5, and rent snapshots cover 7.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 13, parcel_identity_count: 7, classified_count: 13, ownership_count: 7, valuation_count: 13, multifamily_count: 1 },
+      listings: {
+        active_listing_count: 13, active_property_count: 13, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 13, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:36:41.87+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
+    },
+  },
   bartonville: {
     key: 'bartonville', aliases: ['bartonville', 'bartonville-il'], label: 'Bartonville', publicLabel: 'Bartonville, IL',
     city: 'Bartonville', cityUpper: 'BARTONVILLE', county: 'Peoria', state: 'IL', countyId: 2338837,
