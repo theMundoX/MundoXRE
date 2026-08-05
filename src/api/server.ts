@@ -11482,6 +11482,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 10, properties_with_rent_snapshots: 10, latest_rent_observed: '2026-03-28' },
     },
   },
+  delawareOh: {
+    key: 'delaware-oh', aliases: ['delaware', 'delaware-oh'], label: 'Delaware', publicLabel: 'Delaware, OH',
+    city: 'Delaware', cityUpper: 'DELAWARE', county: 'Delaware', state: 'OH', countyId: 1741137,
+    latitude: 40.2987, longitude: -83.0680, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, debt, rent, and broader physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Delaware county_id 1741137 property rows for Delaware, including 73 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 356 active listing rows are linked with no remaining unlinked rows across 356 active properties; 283 active properties carry parcel identity and ownership support while 73 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, debt records, rent support, year-built facts, multifamily candidates, and creative-finance signals are absent and must not be guessed; classification covers all 356 properties, valuation covers 307, coordinates cover 167, and brokerage covers 213 active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 356, parcel_identity_count: 283, classified_count: 356, ownership_count: 283, valuation_count: 307, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 356, active_property_count: 356, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 213, creative_finance_count: 0,
+        latest_listing_seen: '2026-05-18T07:21:58.979+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
