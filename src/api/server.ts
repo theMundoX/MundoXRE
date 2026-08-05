@@ -12634,6 +12634,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  shaker_heights: {
+    key: 'shaker_heights', aliases: ['shaker_heights', 'shaker-heights', 'shaker-heights-oh'], label: 'Shaker Heights', publicLabel: 'Shaker Heights, OH',
+    city: 'Shaker Heights', cityUpper: 'SHAKER HEIGHTS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.4739, longitude: -81.5371, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, structure, debt-amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Shaker Heights, including 44 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 95 active listings are linked with zero unlinked rows after exact matching resolved 16 rows and 19 address-and-ZIP-qualified shells were added; 51 active properties have parcel identity and ownership coverage, while all 44 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, and rent coverage are absent and must not be guessed or implied; classification and valuation span all 95 linked properties, building size covers 51, coordinates cover 44, and brokerage covers 8 listings.',
+      'Thirty-one public mortgage or lien rows cover six properties, but none currently contains a usable loan, balance, or payment amount; this proves document linkage only and must not be represented as amount-level debt coverage.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 95, parcel_identity_count: 51, classified_count: 95, ownership_count: 51, valuation_count: 95, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 95, active_property_count: 95, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 8, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T14:31:37.08+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 31, properties_with_mortgage_records: 6, properties_with_debt_coverage: 6,
+        mortgage_amount_count: 0, latest_recording: '2026-04-02',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
