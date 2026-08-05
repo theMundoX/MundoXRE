@@ -11977,6 +11977,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 9, properties_with_rent_snapshots: 9, latest_rent_observed: '2026-03-28' },
     },
   },
+  'north-royalton': {
+    key: 'north-royalton', aliases: ['north-royalton', 'north-royalton-oh'], label: 'North Royalton', publicLabel: 'North Royalton, OH',
+    city: 'North Royalton', cityUpper: 'NORTH ROYALTON', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.3137, longitude: -81.7246, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, verified contact, year-built, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows, including 61 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows after two exact-address matches and 22 address-and-ZIP-qualified shells were added in the current pass; 94 of 155 active properties are parcel-identity-backed.',
+      'Verified agent contacts, year-built, and rent coverage are currently absent and must not be guessed or implied; classification and valuation span all 155 linked properties, ownership and size cover the 94 parcel-backed properties, coordinates cover 62, and brokerage is present on 34 active listings.',
+      'One public recorder row covers one active property, but loan, balance, and payment amounts are absent; debt amounts must be treated as unknown rather than zero.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 155, parcel_identity_count: 94, classified_count: 155, ownership_count: 94, valuation_count: 155, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 155, active_property_count: 155, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 34, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T14:31:57.737+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 0, latest_recording: '2022-07-26',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   'rocky-river': {
     key: 'rocky-river', aliases: ['rocky-river', 'rocky-river-oh'], label: 'Rocky River', publicLabel: 'Rocky River, OH',
     city: 'Rocky River', cityUpper: 'ROCKY RIVER', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
