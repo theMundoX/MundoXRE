@@ -5737,6 +5737,36 @@ const MARKET_CONFIGS: Record<string, {
       mortgagePropertyCount: 170,
     }),
   },
+  nashville: {
+    key: 'nashville', aliases: ['nashville', 'nashville-tn'], label: 'Nashville', publicLabel: 'Nashville, TN',
+    city: 'Nashville', cityUpper: 'NASHVILLE', county: 'Davidson', state: 'TN', countyId: 1741138,
+    latitude: 36.1627, longitude: -86.7816, status: 'live', readinessTarget: 60, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first with ongoing parcel-shell reconciliation and source diversification',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; active listings remain single-source Redfin-derived inventory and are not guaranteed to represent the full MLS market.',
+      'All 3,644 active listing rows are linked to 3,450 Davidson county_id 1741138 properties with zero unlinked rows; 675 properties remain clearly labeled listing-backed shells pending assessor parcel reconciliation.',
+      'Parcel identity covers 2,775 active properties, ownership covers 3,062, valuation covers 3,365, coordinates cover 2,997, year built covers 2,499, and building size covers 2,603; absent fields must remain unknown and must not be guessed.',
+      'Verified agent email covers 2,653 active listing rows, phone covers 3,061, name covers 3,071, and brokerage covers 3,092; contact fields without source support must not be implied.',
+      'Mortgage records cover 2,293 active properties with 6,349 amount-bearing rows, while rent snapshots cover all 3,450 active properties; coverage flags still apply at the individual property level.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 3450, parcel_identity_count: 2775, classified_count: 675, ownership_count: 3062,
+        valuation_count: 3365, year_built_count: 2499, size_count: 2603, coordinate_count: 2997, multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 3644, active_property_count: 3450, agent_name_count: 3071, agent_email_count: 2653,
+        agent_phone_count: 3061, brokerage_count: 3092, creative_finance_count: 10,
+        latest_listing_seen: '2026-06-08T12:40:35.157+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 6368, properties_with_mortgage_records: 2293, properties_with_debt_coverage: 2293,
+        mortgage_amount_count: 6349, latest_recording: '2026-05-21',
+      },
+      rents: { rent_snapshot_count: 3450, properties_with_rent_snapshots: 3450, latest_rent_observed: '2026-06-08' },
+    },
+  },
   junoBeach: {
     key: 'juno-beach',
     aliases: ['juno-beach', 'juno beach', 'juno-beach-fl'],
@@ -12777,6 +12807,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'cincinnati',
   'birmingham',
   'memphis',
+  'nashville',
   'detroit',
   'pigeon-forge',
   'sevierville',
