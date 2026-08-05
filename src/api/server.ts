@@ -11534,6 +11534,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  salemNj: {
+    key: 'salem-nj', aliases: ['salem', 'salem-nj'], label: 'Salem', publicLabel: 'Salem, NJ',
+    city: 'Salem', cityUpper: 'SALEM', county: 'Salem', state: 'NJ', countyId: 13620,
+    latitude: 39.5718, longitude: -75.4671, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, and broader physical and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Salem county_id 13620 property rows for Salem, including 38 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 56 active listing rows are linked with no remaining unlinked rows across 56 active properties; 18 active properties carry parcel identity while 38 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, size facts, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 56 rows, classification covers 38 properties, year built and rent snapshots cover 18, coordinates cover 11, and five amount-bearing debt rows cover five properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 56, parcel_identity_count: 18, classified_count: 38, ownership_count: 0, valuation_count: 56, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 56, active_property_count: 56, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 56, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:37:09.348+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 5, properties_with_mortgage_records: 5, properties_with_debt_coverage: 5,
+        mortgage_amount_count: 5, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 18, properties_with_rent_snapshots: 18, latest_rent_observed: '2026-03-28' },
+    },
+  },
   oldBridgeNj: {
     key: 'old-bridge-nj', aliases: ['old-bridge', 'old-bridge-nj'], label: 'Old Bridge', publicLabel: 'Old Bridge, NJ',
     city: 'Old Bridge', cityUpper: 'OLD BRIDGE', county: 'Middlesex', state: 'NJ', countyId: 13578,
@@ -11691,6 +11717,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'mahwah',
   'clifton-nj',
   'runnemede',
+  'salem-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
