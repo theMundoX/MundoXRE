@@ -11925,6 +11925,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 22, properties_with_rent_snapshots: 22, latest_rent_observed: '2026-03-28' },
     },
   },
+  englishtown: {
+    key: 'englishtown', aliases: ['englishtown', 'englishtown-nj'], label: 'Englishtown', publicLabel: 'Englishtown, NJ',
+    city: 'Englishtown', cityUpper: 'ENGLISHTOWN', county: 'Monmouth', state: 'NJ', countyId: 13586,
+    latitude: 40.2973, longitude: -74.3582, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel identity, ownership, verified contact, size, and coordinate coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Monmouth County property rows for Englishtown, including 20 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 6 of 26 active properties are parcel-identity-backed; shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, and building-size coverage are currently absent and must not be guessed or implied; valuation and brokerage span all 26 linked properties, classification covers 20, year built and rent snapshots cover 6, and coordinates cover 4.',
+      'Two amount-bearing mortgage rows cover 2 active properties; absent debt or rent rows must be treated as unknown rather than zero.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 26, parcel_identity_count: 6, classified_count: 20, ownership_count: 0, valuation_count: 26, multifamily_count: 1 },
+      listings: {
+        active_listing_count: 26, active_property_count: 26, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 26, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:37.305+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: '2023-11-16',
+      },
+      rents: { rent_snapshot_count: 6, properties_with_rent_snapshots: 6, latest_rent_observed: '2026-03-28' },
+    },
+  },
   beachwood: {
     key: 'beachwood', aliases: ['beachwood', 'beachwood-oh'], label: 'Beachwood', publicLabel: 'Beachwood, OH',
     city: 'Beachwood', cityUpper: 'BEACHWOOD', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
