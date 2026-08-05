@@ -6731,6 +6731,31 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  bryantAr: {
+    key: 'bryant-ar', aliases: ['bryant', 'bryant-ar'], label: 'Bryant', publicLabel: 'Bryant, AR',
+    city: 'Bryant', cityUpper: 'BRYANT', county: 'Saline', state: 'AR', countyId: 35,
+    latitude: 34.5959, longitude: -92.4890, status: 'live', readinessTarget: 30,
+    scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until shell reconciliation and contact/debt/rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Saline county_id 35 property rows, including 73 clearly labeled listing-backed shells retained only for active Bryant listings that did not resolve to parcel identity.',
+      'All 95 active listings are linked, classified, valued, and brokerage-covered, but only 22 properties have parcel identity and ownership support and 21 have coordinates; verified agent contacts and year-built support remain absent and must not be guessed.',
+      'Seventeen mortgage rows cover 7 properties but only 6 rows carry usable amounts; rent coverage is absent and the 73 shell-backed rows remain address-level coverage pending assessor reconciliation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 95, parcel_identity_count: 22, classified_count: 95, ownership_count: 22, valuation_count: 95, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 95, active_property_count: 95, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0,
+        brokerage_count: 95, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:42:07.453+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 17, properties_with_mortgage_records: 7, properties_with_debt_coverage: 7,
+        mortgage_amount_count: 6, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   beechGrove: {
     key: 'beech-grove',
     aliases: ['beech-grove', 'beech-grove-in', 'beech grove'],
