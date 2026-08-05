@@ -11794,6 +11794,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
     },
   },
+  hamiltonOh: {
+    key: 'hamilton-oh', aliases: ['hamilton', 'hamilton-oh'], label: 'Hamilton', publicLabel: 'Hamilton, OH',
+    city: 'Hamilton', cityUpper: 'HAMILTON', county: 'Butler', state: 'OH', countyId: 1741128,
+    latitude: 39.399500, longitude: -84.561300, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, brokerage, physical characteristic, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Butler county_id 1741128 property rows for Hamilton, including 19 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 53 active listing rows are linked with no remaining unlinked rows across 53 active properties; 34 active properties carry parcel identity and ownership while 19 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, brokerage, year-built, size, rent snapshots, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation covers 52 properties, classification covers 19 listing shells, coordinates cover 31 properties, and 12 recorder rows across 7 properties contain no usable loan amounts.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 53, parcel_identity_count: 34, classified_count: 19, ownership_count: 34, valuation_count: 52, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 53, active_property_count: 53, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0,
+        latest_listing_seen: '2026-05-18T07:22:33.722+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 12, properties_with_mortgage_records: 7, properties_with_debt_coverage: 7,
+        mortgage_amount_count: 0, latest_recording: '2026-01-22',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
