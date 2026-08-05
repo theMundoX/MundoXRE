@@ -11690,6 +11690,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
     },
   },
+  hilliardOh: {
+    key: 'hilliard-oh', aliases: ['hilliard', 'hilliard-oh'], label: 'Hilliard', publicLabel: 'Hilliard, OH',
+    city: 'Hilliard', cityUpper: 'HILLIARD', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 40.021134, longitude: -83.156406, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical characteristic, and amount-bearing debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Franklin county_id 1698985 property rows for Hilliard, including 101 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 213 active listing rows are linked with no remaining unlinked rows across 213 active properties; 112 active properties carry parcel identity and ownership while 101 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, size facts, multifamily candidates, creative-finance signals, and amount-bearing debt are absent and must not be guessed; classification covers all 213 properties, valuations cover 200, rent snapshots cover 182, year built covers 80, coordinates cover 62, brokerage covers 97 listings, and 49 amount-less recorder rows cover 27 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 213, parcel_identity_count: 112, classified_count: 213, ownership_count: 112, valuation_count: 200, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 213, active_property_count: 213, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 97, creative_finance_count: 0,
+        latest_listing_seen: '2026-05-16T13:26:02.724+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 49, properties_with_mortgage_records: 27, properties_with_debt_coverage: 27,
+        mortgage_amount_count: 0, latest_recording: '2026-03-02',
+      },
+      rents: { rent_snapshot_count: 182, properties_with_rent_snapshots: 182, latest_rent_observed: '2026-05-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -11799,6 +11825,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lindenwold-nj',
   'north-olmsted-oh',
   'titusville-nj',
+  'hilliard-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
