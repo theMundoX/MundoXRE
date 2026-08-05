@@ -6644,6 +6644,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 52, properties_with_rent_snapshots: 52, latest_rent_observed: '2026-03-28' },
     },
   },
+  littletonCo: {
+    key: 'littleton-co', aliases: ['littleton', 'littleton-co'], label: 'Littleton', publicLabel: 'Littleton, CO',
+    city: 'Littleton', cityUpper: 'LITTLETON', county: 'Jefferson', state: 'CO', countyId: 53660,
+    latitude: 39.6133, longitude: -105.0166, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and verified contact, structure, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked primarily into Jefferson County property rows, including 26 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 36 active listings are linked with zero unlinked rows; 33 resolve to Jefferson county_id 53660 and three existing linked properties resolve to neighboring Arapahoe county_id 34750, so county-edge searches must retain that disclosed cross-county scope.',
+      'Verified agent contacts, year-built, building-size, and recorder/debt coverage are absent and must not be guessed or implied; 10 properties have parcel identity, 9 have ownership, valuation covers all 36, classification covers the 26 shell-backed rows, coordinates cover 8, and brokerage covers all 36 listings.',
+      'Three rent snapshots cover three properties; absent rent fields must be treated as unknown rather than zero, and shell-backed rows remain address-level coverage pending assessor reconciliation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 36, parcel_identity_count: 10, classified_count: 26, ownership_count: 9, valuation_count: 36, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 36, active_property_count: 36, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 36, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:38:25.363+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-28' },
+    },
+  },
   lakewoodCo: {
     key: 'lakewood-co',
     aliases: ['lakewood-co'],
@@ -12767,6 +12794,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'severance',
   'commerce-city',
   'louisville-co',
+  'littleton-co',
   'xenia',
   'springboro',
   'sugar-grove',
