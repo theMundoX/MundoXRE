@@ -12825,6 +12825,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 4, properties_with_rent_snapshots: 4, latest_rent_observed: '2026-03-28' },
     },
   },
+  newarkNj: {
+    key: 'newark-nj', aliases: ['newark-nj'], label: 'Newark', publicLabel: 'Newark, NJ',
+    city: 'Newark', cityUpper: 'NEWARK', county: 'Essex', state: 'NJ', countyId: 13709,
+    latitude: 40.7357, longitude: -74.1724, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, ownership, verified contact, structure, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Essex County property rows for Newark, including 119 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 175 active listings are linked with zero unlinked rows; 56 active properties have parcel identity while the 119 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Ownership and verified agent contacts are absent and must not be guessed or implied; valuation and brokerage span all 175 linked properties, classification covers 119, year-built covers 54, size and rent snapshots each cover 56, and coordinates cover 52.',
+      'Nineteen mortgage or lien rows cover 18 active properties and 18 rows carry an amount, but this remains partial debt coverage and must not be generalized to the remaining inventory.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 175, parcel_identity_count: 56, classified_count: 119, ownership_count: 0, valuation_count: 175, year_built_count: 54, size_count: 56, coordinate_count: 52, multifamily_count: 39 },
+      listings: {
+        active_listing_count: 175, active_property_count: 175, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 175, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T00:00:00.000+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 19, properties_with_mortgage_records: 18, properties_with_debt_coverage: 18,
+        mortgage_amount_count: 18, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 56, properties_with_rent_snapshots: 56, latest_rent_observed: '2026-03-28' },
+    },
+  },
   brecksville: {
     key: 'brecksville', aliases: ['brecksville', 'brecksville-oh'], label: 'Brecksville', publicLabel: 'Brecksville, OH',
     city: 'Brecksville', cityUpper: 'BRECKSVILLE', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
@@ -12984,6 +13011,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'marmora',
   'west-peoria',
   'florence-nj',
+  'newark-nj',
   'burlington-nj',
   'egg-harbor-city',
   'mahwah',
