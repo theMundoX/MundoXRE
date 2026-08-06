@@ -12745,6 +12745,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  bordentown: {
+    key: 'bordentown', aliases: ['bordentown', 'bordentown-nj'], label: 'Bordentown', publicLabel: 'Bordentown, NJ',
+    city: 'Bordentown', cityUpper: 'BORDENTOWN', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 40.1462, longitude: -74.7118, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, ownership, verified contact, structure, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington County property rows for Bordentown, including 15 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 24 active listings are linked with zero unlinked rows; nine active properties have parcel identity while the 15 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Ownership and verified agent contacts are absent and must not be guessed or implied; classification and valuation span all 24 linked properties, year-built covers nine, size covers six, coordinates cover seven, and brokerage covers all 24 listings.',
+      'Three amount-bearing mortgage or lien rows cover one active property, and rent snapshots cover eight properties; neither domain should be generalized to the remaining inventory.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 24, parcel_identity_count: 9, classified_count: 24, ownership_count: 0, valuation_count: 24, year_built_count: 9, size_count: 6, coordinate_count: 7, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 24, active_property_count: 24, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 24, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:14.194+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 3, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 3, latest_recording: '2025-05-30',
+      },
+      rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: '2026-03-28' },
+    },
+  },
   brecksville: {
     key: 'brecksville', aliases: ['brecksville', 'brecksville-oh'], label: 'Brecksville', publicLabel: 'Brecksville, OH',
     city: 'Brecksville', cityUpper: 'BRECKSVILLE', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
