@@ -13803,6 +13803,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  westlakeOh: {
+    key: 'westlake-oh', aliases: ['westlake-oh', 'westlake'], label: 'Westlake', publicLabel: 'Westlake, OH',
+    city: 'Westlake', cityUpper: 'WESTLAKE', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.4553, longitude: -81.9179, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, rent, debt-amount, and year-built coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Westlake, including 61 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 132 active listings are linked with no remaining unlinked rows after 23 exact-address links and 24 new listing-backed shells; 71 active properties carry parcel identity and ownership support while 61 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, rent support, and year-built coverage are absent and must not be guessed; valuation spans all 132 properties, square-footage support covers 71, coordinates cover 55, brokerage covers 16 listings, and 5 public debt rows cover 2 properties but contain no loan or balance amounts.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 132, parcel_identity_count: 71, classified_count: 61, ownership_count: 71, valuation_count: 132, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 132, active_property_count: 132, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 16, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T14:32:21.461+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 5, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 0, latest_recording: '2022-12-08',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   whiting: {
     key: 'whiting', aliases: ['whiting', 'whiting-nj'], label: 'Whiting', publicLabel: 'Whiting, NJ',
     city: 'Whiting', cityUpper: 'WHITING', county: 'Ocean', state: 'NJ', countyId: 13602,
