@@ -12960,6 +12960,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  'middleburg-heights': {
+    key: 'middleburg-heights', aliases: ['middleburg-heights', 'middleburg-heights-oh'], label: 'Middleburg Heights', publicLabel: 'Middleburg Heights, OH',
+    city: 'Middleburg Heights', cityUpper: 'MIDDLEBURG HEIGHTS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.3614, longitude: -81.8129, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Cuyahoga contact, structure, debt, rent, and shell reconciliation coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Middleburg Heights, including seven clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 13 active listings are linked with zero unlinked rows; six active properties have parcel identity while the seven shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, debt, and rent coverage are absent and must not be guessed or implied; valuation spans all 13 properties, ownership and building size cover six, coordinates cover five, classification covers the seven shell rows, and brokerage covers two listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 13, parcel_identity_count: 6, classified_count: 7, ownership_count: 6, valuation_count: 13, year_built_count: 0, size_count: 6, coordinate_count: 5, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 13, active_property_count: 13, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 2, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T14:31:48.631+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   'east-windsor': {
     key: 'east-windsor', aliases: ['east-windsor', 'east-windsor-nj'], label: 'East Windsor', publicLabel: 'East Windsor, NJ',
     city: 'East Windsor', cityUpper: 'EAST WINDSOR', county: 'Mercer', state: 'NJ', countyId: 13571,
