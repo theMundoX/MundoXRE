@@ -12745,6 +12745,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  galena: {
+    key: 'galena', aliases: ['galena', 'galena-oh'], label: 'Galena', publicLabel: 'Galena, OH',
+    city: 'Galena', cityUpper: 'GALENA', county: 'Delaware', state: 'OH', countyId: 1741137,
+    latitude: 40.2151, longitude: -82.8799, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, structure, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Delaware County property rows for Galena, including five clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 42 active listings are linked with zero unlinked rows; 37 active properties have parcel identity and ownership coverage, while five shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, building-size, debt, and rent coverage are absent and must not be guessed or implied; classification spans all 42 linked properties, valuation covers 26, coordinates cover 11, and brokerage covers all 42 listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 42, parcel_identity_count: 37, classified_count: 42, ownership_count: 37, valuation_count: 26, year_built_count: 0, size_count: 0, coordinate_count: 11, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 42, active_property_count: 42, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 42, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-30T00:13:11.18+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   bordentown: {
     key: 'bordentown', aliases: ['bordentown', 'bordentown-nj'], label: 'Bordentown', publicLabel: 'Bordentown, NJ',
     city: 'Bordentown', cityUpper: 'BORDENTOWN', county: 'Burlington', state: 'NJ', countyId: 13680,
