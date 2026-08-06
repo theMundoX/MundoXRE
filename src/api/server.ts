@@ -12906,6 +12906,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  euclid: {
+    key: 'euclid', aliases: ['euclid', 'euclid-oh'], label: 'Euclid', publicLabel: 'Euclid, OH',
+    city: 'Euclid', cityUpper: 'EUCLID', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.5931, longitude: -81.5268, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, structure, coordinate, debt-amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Euclid, including 125 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 251 active listings are linked with zero unlinked rows after exact matching resolved 31 rows and 52 address-and-ZIP-qualified shells were added in the current pass; 126 active properties have parcel identity and ownership coverage, while shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, coordinate, and rent coverage are absent and must not be guessed or implied; valuation spans all 251 linked properties, building size covers 126, classification covers 125 shell rows, and brokerage covers 53 listings.',
+      'Twenty-three public mortgage or lien rows cover eight active properties, but none currently contains a usable loan, balance, or payment amount; this proves document linkage only and must not be represented as amount-level debt coverage.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 251, parcel_identity_count: 126, classified_count: 125, ownership_count: 126, valuation_count: 251, year_built_count: 0, size_count: 126, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 251, active_property_count: 251, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 53, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T14:31:57.123+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 23, properties_with_mortgage_records: 8, properties_with_debt_coverage: 8,
+        mortgage_amount_count: 0, latest_recording: '2026-02-02',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
