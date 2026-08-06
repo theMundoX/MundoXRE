@@ -12745,6 +12745,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  brecksville: {
+    key: 'brecksville', aliases: ['brecksville', 'brecksville-oh'], label: 'Brecksville', publicLabel: 'Brecksville, OH',
+    city: 'Brecksville', cityUpper: 'BRECKSVILLE', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.3198, longitude: -81.6268, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, structure, debt-amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Brecksville, including 32 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 81 active listings are linked with zero unlinked rows after nine address-and-ZIP-qualified shells were added in the current pass; 49 active properties have parcel identity and ownership coverage, while shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts and rent coverage are absent and must not be guessed or implied; classification and valuation span all 81 linked properties, building size covers 49, coordinates cover 36, year-built covers one, and brokerage covers 10 listings.',
+      'One public mortgage or lien row covers one active property, but it has no usable loan, balance, or payment amount; this proves document linkage only and must not be represented as amount-level debt coverage.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 81, parcel_identity_count: 49, classified_count: 81, ownership_count: 49, valuation_count: 81, year_built_count: 1, size_count: 49, coordinate_count: 36, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 81, active_property_count: 81, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 10, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T14:32:14.664+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 0, latest_recording: '2023-11-21',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   shaker_heights: {
     key: 'shaker_heights', aliases: ['shaker_heights', 'shaker-heights', 'shaker-heights-oh'], label: 'Shaker Heights', publicLabel: 'Shaker Heights, OH',
     city: 'Shaker Heights', cityUpper: 'SHAKER HEIGHTS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
