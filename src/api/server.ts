@@ -12933,6 +12933,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  independence: {
+    key: 'independence', aliases: ['independence', 'independence-oh'], label: 'Independence', publicLabel: 'Independence, OH',
+    city: 'Independence', cityUpper: 'INDEPENDENCE', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.3687, longitude: -81.6379, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, structure, coordinate, debt-amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Independence, including 23 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 46 active listings are linked with zero unlinked rows after exact matching resolved two rows and 12 address-and-ZIP-qualified shells were added in the current pass; 23 active properties have parcel identity and ownership coverage, while shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, coordinate, and rent coverage are absent and must not be guessed or implied; valuation spans all 46 linked properties, building size covers 23, classification covers 23 shell rows, and brokerage covers seven listings.',
+      'Five public mortgage or lien rows cover one active property, but none currently contains a usable loan, balance, or payment amount; this proves document linkage only and must not be represented as amount-level debt coverage.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 46, parcel_identity_count: 23, classified_count: 23, ownership_count: 23, valuation_count: 46, year_built_count: 0, size_count: 23, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 46, active_property_count: 46, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 7, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T14:31:49.033+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 5, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 0, latest_recording: '2025-11-06',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
