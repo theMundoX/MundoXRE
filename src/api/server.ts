@@ -12960,6 +12960,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  'east-windsor': {
+    key: 'east-windsor', aliases: ['east-windsor', 'east-windsor-nj'], label: 'East Windsor', publicLabel: 'East Windsor, NJ',
+    city: 'East Windsor', cityUpper: 'EAST WINDSOR', county: 'Mercer', state: 'NJ', countyId: 13571,
+    latitude: 40.2678, longitude: -74.5403, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Mercer owner/contact, structure, debt, and shell reconciliation coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Mercer County property rows for East Windsor, including six clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 10 active listings are linked with zero unlinked rows; four active properties have parcel identity while the six shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, building size, and debt coverage are absent and must not be guessed or implied; valuation and brokerage span all 10 properties, classification covers the six shell rows, and year-built, coordinates, and rent snapshots cover four parcel-backed properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 10, parcel_identity_count: 4, classified_count: 6, ownership_count: 0, valuation_count: 10, year_built_count: 4, size_count: 0, coordinate_count: 4, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 10, active_property_count: 10, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 10, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:18.157+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 4, properties_with_rent_snapshots: 4, latest_rent_observed: '2026-03-28' },
+    },
+  },
   trenton: {
     key: 'trenton', aliases: ['trenton', 'trenton-nj'], label: 'Trenton', publicLabel: 'Trenton, NJ',
     city: 'Trenton', cityUpper: 'TRENTON', county: 'Mercer', state: 'NJ', countyId: 13571,
