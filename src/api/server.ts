@@ -13653,6 +13653,32 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  hackensack: {
+    key: 'hackensack', aliases: ['hackensack', 'hackensack-nj'], label: 'Hackensack', publicLabel: 'Hackensack, NJ',
+    city: 'Hackensack', cityUpper: 'HACKENSACK', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.8859, longitude: -74.0435, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, and broader parcel and physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Bergen county_id 13672 property rows for Hackensack, including 39 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 47 active listing rows are linked with no remaining unlinked rows across 47 active properties; 8 active properties carry parcel identity and ownership support while 39 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 47 rows, classification covers 39 properties, year built, size, and rent snapshots cover 8, coordinates cover 7, and one amount-bearing debt row covers one property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 47, parcel_identity_count: 8, classified_count: 39, ownership_count: 8, valuation_count: 47, multifamily_count: 1 },
+      listings: {
+        active_listing_count: 47, active_property_count: 47, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 47, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:10.268+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: null },
+    },
+  },
   monmouthJunction: {
     key: 'monmouth-junction',
     aliases: ['monmouth-junction', 'monmouth-junction-nj', 'monmouth junction'],
