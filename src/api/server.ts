@@ -13699,6 +13699,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-03-28' },
     },
   },
+  galloway: {
+    key: 'galloway', aliases: ['galloway', 'galloway-oh'], label: 'Galloway', publicLabel: 'Galloway, OH',
+    city: 'Galloway', cityUpper: 'GALLOWAY', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 39.9438, longitude: -83.1725, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, debt-amount, and physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Franklin County property rows for Galloway, including 81 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 195 active listings are linked with no remaining unlinked rows; 114 active properties carry parcel identity and ownership support while 81 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, brokerage, and square-footage support are absent and must not be guessed; valuation covers 194 properties, coordinates cover 108, year built covers 107, rent snapshots cover 101, classification covers 85, and 49 debt rows cover 33 properties but contain no loan or balance amounts.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 195, parcel_identity_count: 114, classified_count: 85, ownership_count: 114, valuation_count: 194, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 195, active_property_count: 195, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-05T11:36:31.758+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 49, properties_with_mortgage_records: 33, properties_with_debt_coverage: 33,
+        mortgage_amount_count: 0, latest_recording: '2026-03-11',
+      },
+      rents: { rent_snapshot_count: 101, properties_with_rent_snapshots: 101, latest_rent_observed: '2026-05-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
