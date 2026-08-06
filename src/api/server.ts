@@ -12960,6 +12960,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  trenton: {
+    key: 'trenton', aliases: ['trenton', 'trenton-nj'], label: 'Trenton', publicLabel: 'Trenton, NJ',
+    city: 'Trenton', cityUpper: 'TRENTON', county: 'Mercer', state: 'NJ', countyId: 13571,
+    latitude: 40.2171, longitude: -74.7429, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Mercer owner/contact, structure, coordinate, and shell reconciliation coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Mercer County property rows for Trenton, including 102 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 153 active listings are linked with zero unlinked rows; 51 active properties have parcel identity while the 102 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, building size, and coordinate coverage are absent and must not be guessed or implied; valuation and brokerage span all 153 properties, classification covers the 102 shell rows, year-built covers 50 parcel-backed properties, and rent snapshots cover 51.',
+      'Twelve amount-bearing public mortgage or lien rows cover 11 active properties; debt coverage remains partial and must not be generalized to the remaining inventory.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 153, parcel_identity_count: 51, classified_count: 102, ownership_count: 0, valuation_count: 153, year_built_count: 50, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 153, active_property_count: 153, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 153, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:30.060+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 12, properties_with_mortgage_records: 11, properties_with_debt_coverage: 11,
+        mortgage_amount_count: 12, latest_recording: '2025-09-16',
+      },
+      rents: { rent_snapshot_count: 51, properties_with_rent_snapshots: 51, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
