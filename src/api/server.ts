@@ -30259,6 +30259,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'sugar-grove',
   'cedar-hill',
   'southampton',
+  'browns-mills',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
