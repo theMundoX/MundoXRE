@@ -13725,6 +13725,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 101, properties_with_rent_snapshots: 101, latest_rent_observed: '2026-05-28' },
     },
   },
+  whiting: {
+    key: 'whiting', aliases: ['whiting', 'whiting-nj'], label: 'Whiting', publicLabel: 'Whiting, NJ',
+    city: 'Whiting', cityUpper: 'WHITING', county: 'Ocean', state: 'NJ', countyId: 13602,
+    latitude: 39.9463, longitude: -74.3510, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and ownership, contact, and physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Ocean County property rows for Whiting, including 31 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 36 active listings are linked with no remaining unlinked rows; 5 active properties carry parcel identity support while 31 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contact fields, and square-footage support are absent and must not be guessed; valuation and brokerage span all 36 properties, classification covers 31, coordinates and rent snapshots cover 5, year built covers 4, and one amount-bearing debt row covers one property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 36, parcel_identity_count: 5, classified_count: 31, ownership_count: 0, valuation_count: 36, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 36, active_property_count: 36, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 36, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:31.435+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: '2025-04-15',
+      },
+      rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
