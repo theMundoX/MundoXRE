@@ -13725,6 +13725,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 101, properties_with_rent_snapshots: 101, latest_rent_observed: '2026-05-28' },
     },
   },
+  blacklick: {
+    key: 'blacklick', aliases: ['blacklick', 'blacklick-oh'], label: 'Blacklick', publicLabel: 'Blacklick, OH',
+    city: 'Blacklick', cityUpper: 'BLACKLICK', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 40.0212, longitude: -82.8077, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, debt-amount, and physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Franklin County property rows for Blacklick, including 34 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 78 active listings are linked with no remaining unlinked rows; 44 active properties carry parcel identity and ownership support while 34 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contact fields, brokerage, and square-footage support are absent and must not be guessed; valuation spans all 78 properties, classification and rent snapshots cover 36, year built covers 43, coordinates cover 33, and 21 public debt rows cover 11 properties but contain no loan or balance amounts.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 78, parcel_identity_count: 44, classified_count: 36, ownership_count: 44, valuation_count: 78, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 78, active_property_count: 78, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0,
+        latest_listing_seen: '2026-05-26T06:45:23.483+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 21, properties_with_mortgage_records: 11, properties_with_debt_coverage: 11,
+        mortgage_amount_count: 0, latest_recording: '2025-10-28',
+      },
+      rents: { rent_snapshot_count: 36, properties_with_rent_snapshots: 36, latest_rent_observed: '2026-05-28' },
+    },
+  },
   whiting: {
     key: 'whiting', aliases: ['whiting', 'whiting-nj'], label: 'Whiting', publicLabel: 'Whiting, NJ',
     city: 'Whiting', cityUpper: 'WHITING', county: 'Ocean', state: 'NJ', countyId: 13602,
