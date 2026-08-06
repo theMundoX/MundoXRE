@@ -12798,6 +12798,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: '2026-03-28' },
     },
   },
+  florenceNj: {
+    key: 'florence-nj', aliases: ['florence-nj'], label: 'Florence', publicLabel: 'Florence, NJ',
+    city: 'Florence', cityUpper: 'FLORENCE', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 40.1196, longitude: -74.8052, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, ownership, verified contact, structure, debt-amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington County property rows for Florence, including 18 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 22 active listings are linked with zero unlinked rows; four active properties have parcel identity while the 18 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Ownership and verified agent contacts are absent and must not be guessed or implied; classification covers 18 linked properties, valuation covers all 22, year-built and size each cover three, coordinates cover two, and brokerage covers all 22 listings.',
+      'One mortgage or lien row covers one active property but has no usable amount or balance; rent snapshots cover four properties, and neither domain should be generalized to the remaining inventory.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 22, parcel_identity_count: 4, classified_count: 18, ownership_count: 0, valuation_count: 22, year_built_count: 3, size_count: 3, coordinate_count: 2, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 22, active_property_count: 22, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 22, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T00:00:00.000+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 4, properties_with_rent_snapshots: 4, latest_rent_observed: '2026-03-28' },
+    },
+  },
   brecksville: {
     key: 'brecksville', aliases: ['brecksville', 'brecksville-oh'], label: 'Brecksville', publicLabel: 'Brecksville, OH',
     city: 'Brecksville', cityUpper: 'BRECKSVILLE', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
@@ -12956,6 +12983,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'plainfield',
   'marmora',
   'west-peoria',
+  'florence-nj',
   'burlington-nj',
   'egg-harbor-city',
   'mahwah',
