@@ -13751,6 +13751,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 36, properties_with_rent_snapshots: 36, latest_rent_observed: '2026-05-28' },
     },
   },
+  hainesport: {
+    key: 'hainesport', aliases: ['hainesport', 'hainesport-nj'], label: 'Hainesport', publicLabel: 'Hainesport, NJ',
+    city: 'Hainesport', cityUpper: 'HAINESPORT', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 39.9815, longitude: -74.8235, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and ownership, contact, debt, and physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington County property rows for Hainesport, including 10 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 15 active listings are linked with no remaining unlinked rows; 5 active properties carry parcel identity support while 10 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Ownership, verified agent contact fields, square-footage support, and debt records are absent and must not be guessed; valuation and brokerage span all 15 properties, classification covers 10, and year built, coordinates, and rent snapshots each cover 5 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 15, parcel_identity_count: 5, classified_count: 10, ownership_count: 0, valuation_count: 15, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 15, active_property_count: 15, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 15, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:36:58.516+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
+    },
+  },
   whiting: {
     key: 'whiting', aliases: ['whiting', 'whiting-nj'], label: 'Whiting', publicLabel: 'Whiting, NJ',
     city: 'Whiting', cityUpper: 'WHITING', county: 'Ocean', state: 'NJ', countyId: 13602,
