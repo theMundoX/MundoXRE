@@ -32121,6 +32121,36 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  ostranderOh: {
+    key: 'ostrander-oh',
+    aliases: ['ostrander-oh', 'ostrander oh', 'ostrander'],
+    label: 'Ostrander',
+    publicLabel: 'Ostrander, OH',
+    city: 'Ostrander',
+    cityUpper: 'OSTRANDER',
+    county: 'Delaware',
+    state: 'OH',
+    countyId: 1741137,
+    latitude: 40.271866,
+    longitude: -83.225988,
+    status: 'live',
+    readinessTarget: 19,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Delaware County parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Delaware County property rows for Ostrander, including 13 clearly labeled listing-backed shells for active listings that do not yet resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows; 3 of 16 active properties carry parcel identity and ownership support while 13 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Asset classification, verified agent contacts, physical facts, recorder/debt coverage, and multifamily rent support are absent and must not be guessed or implied; valuation and brokerage cover all 16 listings and coordinates cover 2 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 16, parcel_identity_count: 3, classified_count: 0, ownership_count: 3, valuation_count: 16, multifamily_count: 0 },
+      listings: { active_listing_count: 16, active_property_count: 16, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 16, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:35:27.574+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32217,6 +32247,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'harrison-nj',
   'olmsted-township',
   'hermitage-tn',
+  'ostrander-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
