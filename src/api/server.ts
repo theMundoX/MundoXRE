@@ -11789,6 +11789,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  stowOh: {
+    key: 'stow-oh', aliases: ['stow', 'stow-oh'], label: 'Stow', publicLabel: 'Stow, OH',
+    city: 'Stow', cityUpper: 'STOW', county: 'Summit', state: 'OH', countyId: 1698989,
+    latitude: 41.1595, longitude: -81.4404, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, coordinate, brokerage, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Summit county_id 1698989 property rows for Stow, including 16 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 17 active listing rows are linked with no remaining unlinked rows across 17 active properties; one active property carries parcel identity and ownership support while 16 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, property coordinates, brokerage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and classification cover all 17 rows, while year built and square footage exist only for the single parcel-identity-backed property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 17, parcel_identity_count: 1, classified_count: 17, ownership_count: 1, valuation_count: 17, year_built_count: 1, size_count: 1, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 17, active_property_count: 17, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0,
+        latest_listing_seen: '2026-05-09T19:11:25.093+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   riverVale: {
     key: 'river-vale', aliases: ['river-vale', 'river-vale-nj', 'river vale'], label: 'River Vale', publicLabel: 'River Vale, NJ',
     city: 'River Vale', cityUpper: 'RIVER VALE', county: 'Bergen', state: 'NJ', countyId: 13672,
