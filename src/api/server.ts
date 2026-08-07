@@ -32031,6 +32031,36 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  westDeptfordNj: {
+    key: 'west-deptford-nj',
+    aliases: ['west-deptford-nj', 'west deptford nj', 'west deptford'],
+    label: 'West Deptford',
+    publicLabel: 'West Deptford, NJ',
+    city: 'West Deptford',
+    cityUpper: 'WEST DEPTFORD',
+    county: 'Gloucester',
+    state: 'NJ',
+    countyId: 13717,
+    latitude: 39.8268,
+    longitude: -75.1852,
+    status: 'live',
+    readinessTarget: 19,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Gloucester County parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Gloucester County property rows for West Deptford, including 7 clearly labeled listing-backed shells for active listings that do not yet resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows; 4 of 11 active properties carry parcel identity while 7 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Ownership, asset classification, verified agent contacts, and recorder/debt coverage are absent and must not be guessed or implied; valuation and brokerage cover all 11 listings, while year-built, size, coordinates, and rent support cover 4 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 11, parcel_identity_count: 4, classified_count: 0, ownership_count: 0, valuation_count: 11, multifamily_count: 0 },
+      listings: { active_listing_count: 11, active_property_count: 11, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 11, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:37:18.397+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 4, properties_with_rent_snapshots: 4, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32123,6 +32153,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'circleville',
   'east-windsor-nj',
   'middleburg-heights-oh',
+  'west-deptford-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
