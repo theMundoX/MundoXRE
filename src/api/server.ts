@@ -32134,7 +32134,7 @@ const MARKET_CONFIGS: Record<string, {
     latitude: 36.190641,
     longitude: -86.637314,
     status: 'live',
-    readinessTarget: 22,
+    readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Davidson County physical, contact, and debt coverage improve',
