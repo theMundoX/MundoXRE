@@ -13725,6 +13725,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  'garfield-heights': {
+    key: 'garfield-heights', aliases: ['garfield-heights', 'garfield-heights-oh'], label: 'Garfield Heights', publicLabel: 'Garfield Heights, OH',
+    city: 'Garfield Heights', cityUpper: 'GARFIELD HEIGHTS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.4169, longitude: -81.6051, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Cuyahoga shell reconciliation, verified contact, physical, debt, rent, and brokerage coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga county_id 1698988 property rows for Garfield Heights, including 13 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 26 active listing rows are linked with no remaining unlinked rows across 26 active properties; 13 active properties carry parcel identity and ownership support while 13 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, year built, square footage, rent, and creative-finance signals are absent and must not be guessed; valuation covers all 26 properties, classification and coordinates cover 13, brokerage covers six listings, and one property has an amount-less mortgage record.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 26, parcel_identity_count: 13, classified_count: 13, ownership_count: 13, valuation_count: 26, year_built_count: 0, size_count: 0, coordinate_count: 13, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 26, active_property_count: 26, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 6, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-06T14:52:16.19+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 0, latest_recording: '2025-10-09',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   'east-windsor': {
     key: 'east-windsor', aliases: ['east-windsor', 'east-windsor-nj'], label: 'East Windsor', publicLabel: 'East Windsor, NJ',
     city: 'East Windsor', cityUpper: 'EAST WINDSOR', county: 'Mercer', state: 'NJ', countyId: 13571,
