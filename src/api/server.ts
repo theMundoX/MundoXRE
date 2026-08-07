@@ -11841,6 +11841,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-05-28' },
     },
   },
+  chesterfieldNj: {
+    key: 'chesterfield-nj', aliases: ['chesterfield', 'chesterfield-nj'], label: 'Chesterfield', publicLabel: 'Chesterfield, NJ',
+    city: 'Chesterfield', cityUpper: 'CHESTERFIELD', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 40.135063, longitude: -74.661992, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington county_id 13680 property rows for Chesterfield, including nine clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 16 active listing rows are linked with no remaining unlinked rows across 16 active properties; seven active properties carry parcel identity and ownership support while nine remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, square footage, debt, and creative-finance signals are absent and must not be guessed; valuation, classification, and brokerage cover all 16 rows, while year built and rent snapshots cover seven properties and coordinates cover six.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 16, parcel_identity_count: 7, classified_count: 16, ownership_count: 7, valuation_count: 16, year_built_count: 7, size_count: 0, coordinate_count: 6, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 16, active_property_count: 16, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 16, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:18.241+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
+    },
+  },
   brownsMills: {
     key: 'browns-mills', aliases: ['browns-mills', 'browns-mills-nj', 'browns mills'], label: 'Browns Mills', publicLabel: 'Browns Mills, NJ',
     city: 'Browns Mills', cityUpper: 'BROWNS MILLS', county: 'Burlington', state: 'NJ', countyId: 13680,
