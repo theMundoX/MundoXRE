@@ -11841,6 +11841,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-05-28' },
     },
   },
+  brownsMills: {
+    key: 'browns-mills', aliases: ['browns-mills', 'browns-mills-nj', 'browns mills'], label: 'Browns Mills', publicLabel: 'Browns Mills, NJ',
+    city: 'Browns Mills', cityUpper: 'BROWNS MILLS', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 39.965403, longitude: -74.560511, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Burlington county_id 13680 property rows for Browns Mills, including 33 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 51 active listing rows are linked with no remaining unlinked rows across 51 active properties; 18 active properties carry parcel identity and ownership support while 33 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, square footage, and creative-finance signals are absent and must not be guessed; valuation, classification, and brokerage cover all 51 rows, year built covers 18 properties, coordinates cover 12, debt records cover five, and rent snapshots cover 17.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 51, parcel_identity_count: 18, classified_count: 51, ownership_count: 18, valuation_count: 51, year_built_count: 18, size_count: 0, coordinate_count: 12, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 51, active_property_count: 51, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 51, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:43:49.875+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 6, properties_with_mortgage_records: 5, properties_with_debt_coverage: 5,
+        mortgage_amount_count: 6, latest_recording: '2025-10-21',
+      },
+      rents: { rent_snapshot_count: 17, properties_with_rent_snapshots: 17, latest_rent_observed: '2026-03-28' },
+    },
+  },
   riverVale: {
     key: 'river-vale', aliases: ['river-vale', 'river-vale-nj', 'river vale'], label: 'River Vale', publicLabel: 'River Vale, NJ',
     city: 'River Vale', cityUpper: 'RIVER VALE', county: 'Bergen', state: 'NJ', countyId: 13672,
