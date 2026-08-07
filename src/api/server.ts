@@ -32091,6 +32091,36 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 4, properties_with_rent_snapshots: 4, latest_rent_observed: null },
     },
   },
+  hermitageTn: {
+    key: 'hermitage-tn',
+    aliases: ['hermitage-tn', 'hermitage tn', 'hermitage'],
+    label: 'Hermitage',
+    publicLabel: 'Hermitage, TN',
+    city: 'Hermitage',
+    cityUpper: 'HERMITAGE',
+    county: 'Davidson',
+    state: 'TN',
+    countyId: 1741138,
+    latitude: 36.190641,
+    longitude: -86.637314,
+    status: 'live',
+    readinessTarget: 30,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Davidson County physical, contact, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Davidson County property rows for Hermitage, including 1 clearly labeled listing-backed shell among 11 active properties.',
+      'Active inventory is fully linked with no remaining unlinked rows; 10 of 11 active properties carry parcel identity and ownership support while the shell row remains address-level fallback coverage pending assessor reconciliation.',
+      'Asset classification, verified agent contacts, physical facts, recorder/debt coverage, and multifamily rent support are absent and must not be guessed or implied; valuation covers 4 properties, coordinates cover 1, and brokerage covers all 11 listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 11, parcel_identity_count: 10, classified_count: 0, ownership_count: 10, valuation_count: 4, multifamily_count: 0 },
+      listings: { active_listing_count: 11, active_property_count: 11, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 11, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:40:20.496+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32186,6 +32216,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'west-deptford-nj',
   'harrison-nj',
   'olmsted-township',
+  'hermitage-tn',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
