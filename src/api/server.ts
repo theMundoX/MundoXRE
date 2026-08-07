@@ -31854,6 +31854,36 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  broomallPa: {
+    key: 'broomall-pa',
+    aliases: ['broomall-pa', 'broomall pa', 'broomall'],
+    label: 'Broomall',
+    publicLabel: 'Broomall, PA',
+    city: 'Broomall',
+    cityUpper: 'BROOMALL',
+    county: 'Delaware',
+    state: 'PA',
+    countyId: 1429664,
+    latitude: 39.978172,
+    longitude: -75.361486,
+    status: 'live',
+    readinessTarget: 20,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Delaware County parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Delaware County property rows for Broomall, including 6 clearly labeled listing-backed shells created only for active listings that did not resolve to unique parcel identity after exact address and ZIP linking.',
+      'Active inventory is fully linked with no remaining unlinked rows; 5 of 11 active properties carry parcel identity and ownership support while 6 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts, recorder/debt coverage, rent support, asset classification, year-built, and size support are absent and must not be guessed or implied; valuation covers the 6 shells, coordinates cover 2 properties, and brokerage covers all 11 listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 11, parcel_identity_count: 5, classified_count: 0, ownership_count: 5, valuation_count: 6, multifamily_count: 0 },
+      listings: { active_listing_count: 11, active_property_count: 11, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 11, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:37:32.644+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -31940,6 +31970,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'verona-pa',
   'new-lebanon-oh',
   'rolling-hills-ca',
+  'broomall-pa',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
