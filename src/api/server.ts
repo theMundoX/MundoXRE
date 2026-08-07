@@ -11763,6 +11763,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  antiochTn: {
+    key: 'antioch-tn', aliases: ['antioch', 'antioch-tn'], label: 'Antioch', publicLabel: 'Antioch, TN',
+    city: 'Antioch', cityUpper: 'ANTIOCH', county: 'Davidson', state: 'TN', countyId: 1741138,
+    latitude: 36.0597, longitude: -86.6716, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Davidson county_id 1741138 property rows for Antioch, including 15 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 16 active listing rows are linked with no remaining unlinked rows across 16 active properties; one active property carries parcel identity and ownership support while 15 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, year built, square footage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation, classification, and brokerage cover all 16 rows, while coordinates exist only for the single parcel-identity-backed property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 16, parcel_identity_count: 1, classified_count: 16, ownership_count: 1, valuation_count: 16, year_built_count: 0, size_count: 0, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 16, active_property_count: 16, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 16, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:40:21.645+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   riverVale: {
     key: 'river-vale', aliases: ['river-vale', 'river-vale-nj', 'river vale'], label: 'River Vale', publicLabel: 'River Vale, NJ',
     city: 'River Vale', cityUpper: 'RIVER VALE', county: 'Bergen', state: 'NJ', countyId: 13672,
