@@ -4632,21 +4632,21 @@ const MARKET_CONFIGS: Record<string, {
     latitude: 39.5608,
     longitude: -82.83,
     status: 'live',
-    readinessTarget: 29,
+    readinessTarget: 15,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until paid detail caps are approved',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'Coverage is currently single-source Redfin inventory linked into Fairfield County property rows, including 53 listing-backed shells for active Circleville listings that still do not reconcile to assessor parcel identity.',
-      'Only 1 of 54 active properties is parcel-backed today; verified agent contact fields remain absent and must not be guessed, and ownership should be treated as listing-led rather than owner-led underwriting support.',
-      'Mortgage and rent support exists only on that small parcel-backed subset, while the shell-backed/public-first inventory remains address-level coverage pending later assessor reconciliation.',
+      'Coverage is currently single-source Redfin inventory linked into county_id 31 property rows, including 53 listing-backed shells for active Circleville listings that do not reconcile to assessor parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows, but only 1 of 54 active properties is parcel-backed; the other rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts and classification are absent and must not be guessed or implied; year-built, size, coordinates, mortgage, and rent support each cover only the single parcel-backed property, while valuation and brokerage cover all active inventory.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 54,
         parcel_identity_count: 1,
-        classified_count: 54,
+        classified_count: 0,
         ownership_count: 1,
         valuation_count: 54,
         multifamily_count: 0,
@@ -4659,7 +4659,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 54,
         creative_finance_count: 0,
-        latest_listing_seen: '2026-05-28T03:05:47.246581+00:00',
+        latest_listing_seen: '2026-03-30T00:13:38.485+00:00',
         listing_sources: ['redfin'],
       },
       debt: {
@@ -32060,6 +32060,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'broomall-pa',
   'miamisburg-oh',
   'peachtree-corners',
+  'circleville',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
