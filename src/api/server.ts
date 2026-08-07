@@ -11737,6 +11737,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
     },
   },
+  obrienFl: {
+    key: 'obrien-fl', aliases: ['obrien-fl', "o'brien", "o'brien-fl", 'obrien'], label: "O'Brien", publicLabel: "O'Brien, FL",
+    city: "O'Brien", cityUpper: "O'BRIEN", county: 'Columbia', state: 'FL', countyId: 12,
+    latitude: 29.9908, longitude: -82.9350, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, parcel, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      "Coverage is currently single-source Redfin inventory linked into the stored Columbia county_id 12 property set for O'Brien, including 15 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.",
+      'All 16 active listing rows are linked with no remaining unlinked rows across 16 active properties; one active property carries parcel identity and ownership support while 15 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, debt, rent, and creative-finance signals are absent and must not be guessed; valuation, classification, and brokerage cover all 16 rows, while coordinates, year built, and square footage exist only for the single parcel-identity-backed property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 16, parcel_identity_count: 1, classified_count: 16, ownership_count: 1, valuation_count: 16, year_built_count: 1, size_count: 1, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 16, active_property_count: 16, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 16, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:42:44.158+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   riverVale: {
     key: 'river-vale', aliases: ['river-vale', 'river-vale-nj', 'river vale'], label: 'River Vale', publicLabel: 'River Vale, NJ',
     city: 'River Vale', cityUpper: 'RIVER VALE', county: 'Bergen', state: 'NJ', countyId: 13672,
