@@ -15546,6 +15546,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  berkeleyLakeGa: {
+    key: 'berkeley-lake-ga', aliases: ['berkeley-lake', 'berkeley-lake-ga'], label: 'Berkeley Lake', publicLabel: 'Berkeley Lake, GA',
+    city: 'Berkeley Lake', cityUpper: 'BERKELEY LAKE', county: 'Gwinnett', state: 'GA', countyId: 1741143,
+    latitude: 33.9837, longitude: -84.1866, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Gwinnett classification, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the BERKELEY LAKE listing city linked into Gwinnett county_id 1741143 property rows; it is city inventory, not countywide Gwinnett coverage.',
+      'All 5 active listings are linked to parcel-backed properties with no remaining unlinked rows or listing-backed shells; parcel identity, ownership, valuation, coordinates, and brokerage cover all 5 properties.',
+      'Asset classification, verified agent contacts, year built, square footage, debt, rent, and creative-finance signals are absent and must not be guessed.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 5, parcel_identity_count: 5, classified_count: 0, ownership_count: 5, valuation_count: 5, year_built_count: 0, size_count: 0, coordinate_count: 5, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 5, active_property_count: 5, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 5, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   wheatRidgeCo: {
     key: 'wheat-ridge-co', aliases: ['wheat-ridge', 'wheat-ridge-co'], label: 'Wheat Ridge', publicLabel: 'Wheat Ridge, CO',
     city: 'Wheat Ridge', cityUpper: 'WHEAT RIDGE', county: 'Jefferson', state: 'CO', countyId: 53660,
