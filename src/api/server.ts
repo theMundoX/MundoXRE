@@ -15364,6 +15364,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  olmstedTownshipOh: {
+    key: 'olmsted-township-oh', aliases: ['olmsted-township', 'olmsted-township-oh'], label: 'Olmsted Township', publicLabel: 'Olmsted Township, OH',
+    city: 'Olmsted Township', cityUpper: 'OLMSTED TOWNSHIP', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.383971, longitude: -81.919469, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Cuyahoga parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the OLMSTED TOWNSHIP listing city linked into Cuyahoga county_id 1698988 property rows; it is city inventory, not countywide Cuyahoga coverage.',
+      'All 57 active listings are linked with no remaining unlinked rows; 40 linked properties retain listing-shell source labels, 29 properties still lack parcel identity, and only 17 carry ownership support.',
+      'Verified agent contacts, year built, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and classification cover all 57 active properties, coordinates cover 13, square footage covers two, and brokerage covers six listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 57, parcel_identity_count: 28, classified_count: 57, ownership_count: 17, valuation_count: 57, year_built_count: 0, size_count: 2, coordinate_count: 13, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 57, active_property_count: 57, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 6, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-06T14:52:47.093+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
