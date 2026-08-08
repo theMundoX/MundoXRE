@@ -13777,6 +13777,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 20, properties_with_rent_snapshots: 20, latest_rent_observed: '2026-03-28' },
     },
   },
+  'fair-lawn-nj': {
+    key: 'fair-lawn-nj', aliases: ['fair-lawn-nj', 'fair-lawn'], label: 'Fair Lawn', publicLabel: 'Fair Lawn, NJ',
+    city: 'Fair Lawn', cityUpper: 'FAIR LAWN', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.9404, longitude: -74.1318, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Bergen shell reconciliation, verified contact, structure, coordinate, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Bergen county_id 13672 property rows for Fair Lawn, including 22 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 30 active listing rows are linked with no remaining unlinked rows across 30 active properties; eight active properties carry parcel identity and ownership support while 22 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, square footage, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 30 properties, classification covers 22, year built and coordinates cover seven, rent covers eight, and one property has limited mortgage support.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 30, parcel_identity_count: 8, classified_count: 22, ownership_count: 8, valuation_count: 30, year_built_count: 7, size_count: 0, coordinate_count: 7, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 30, active_property_count: 30, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 30, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:39:53.769+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: '2026-03-28' },
+    },
+  },
   'east-windsor': {
     key: 'east-windsor', aliases: ['east-windsor', 'east-windsor-nj'], label: 'East Windsor', publicLabel: 'East Windsor, NJ',
     city: 'East Windsor', cityUpper: 'EAST WINDSOR', county: 'Mercer', state: 'NJ', countyId: 13571,
