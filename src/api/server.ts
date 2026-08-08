@@ -27620,7 +27620,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 7,
         creative_finance_count: 0,
-        latest_listing_seen: null,
+        latest_listing_seen: '2026-03-28T17:40:16.435+00:00',
         listing_sources: ['redfin'],
       },
       debt: {
@@ -27633,7 +27633,7 @@ const MARKET_CONFIGS: Record<string, {
       rents: {
         rent_snapshot_count: 3,
         properties_with_rent_snapshots: 3,
-        latest_rent_observed: null,
+        latest_rent_observed: '2026-03-28',
       },
     },
   },
@@ -27677,7 +27677,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 8,
         creative_finance_count: 0,
-        latest_listing_seen: '2026-03-28T17:40:16.435+00:00',
+        latest_listing_seen: null,
         listing_sources: ['redfin'],
       },
       debt: {
@@ -27690,7 +27690,7 @@ const MARKET_CONFIGS: Record<string, {
       rents: {
         rent_snapshot_count: 4,
         properties_with_rent_snapshots: 4,
-        latest_rent_observed: '2026-03-28',
+        latest_rent_observed: null,
       },
     },
   },
