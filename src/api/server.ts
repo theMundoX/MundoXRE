@@ -15312,6 +15312,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-26' },
     },
   },
+  manchesterTownshipNj: {
+    key: 'manchester-township-nj', aliases: ['manchester-township', 'manchester-township-nj'], label: 'Manchester Township', publicLabel: 'Manchester Township, NJ',
+    city: 'Manchester Township', cityUpper: 'MANCHESTER TOWNSHIP', county: 'Ocean', state: 'NJ', countyId: 13602,
+    latitude: 40.029968, longitude: -74.278912, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Ocean parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the MANCHESTER TOWNSHIP listing city linked into Ocean county_id 13602 property rows; it is city inventory, not countywide Ocean coverage.',
+      'All 162 active listings are linked with no remaining unlinked rows, but 153 properties are clearly labeled listing-backed shells and only nine carry parcel identity and ownership support.',
+      'Verified agent contacts, square footage, and creative-finance signals are absent and must not be guessed; valuation, classification, and brokerage cover all 162 active properties, year built, coordinates, and rent cover nine, and debt records cover only two.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 162, parcel_identity_count: 9, classified_count: 162, ownership_count: 9, valuation_count: 162, year_built_count: 9, size_count: 0, coordinate_count: 9, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 162, active_property_count: 162, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 162, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:31.435+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: '2025-05-01',
+      },
+      rents: { rent_snapshot_count: 9, properties_with_rent_snapshots: 9, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
