@@ -7020,6 +7020,31 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  alexanderAr: {
+    key: 'alexander-ar', aliases: ['alexander', 'alexander-ar'], label: 'Alexander', publicLabel: 'Alexander, AR',
+    city: 'Alexander', cityUpper: 'ALEXANDER', county: 'Saline', state: 'AR', countyId: 35,
+    latitude: 34.6295, longitude: -92.4413, status: 'live', readinessTarget: 28,
+    scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until shell reconciliation and contact/rent/structure coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory anchored to Saline county_id 35, with 91 of 94 linked active listings in Saline County and three disclosed rows linked to Pulaski county_id 585449.',
+      'All 94 active listings are linked, valued, and brokerage-covered, including 85 clearly labeled listing-backed shells; only 9 active properties have parcel identity and ownership support, 6 have coordinates, and 5 have size support.',
+      'Verified agent contacts, year-built facts, and rent support are absent and must not be guessed or implied; 12 mortgage rows cover 2 properties, with usable amounts on 10 rows, while classification covers the 85 shell-backed properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 94, parcel_identity_count: 9, classified_count: 85, ownership_count: 9, valuation_count: 94, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 94, active_property_count: 94, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0,
+        brokerage_count: 94, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:42:07.453+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 12, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 10, latest_recording: '2026-02-27',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   oceanCityNj: {
     key: 'ocean-city-nj', aliases: ['ocean-city-nj', 'ocean city nj'], label: 'Ocean City', publicLabel: 'Ocean City, NJ',
     city: 'Ocean City', cityUpper: 'OCEAN CITY', county: 'Cape May', state: 'NJ', countyId: 13700,
@@ -15182,6 +15207,7 @@ validateMarketConfigs();
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
   'benton-ar',
+  'alexander-ar',
   'ocean-city-nj',
   'indianapolis',
   'dallas',
