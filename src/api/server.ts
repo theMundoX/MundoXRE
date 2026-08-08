@@ -15468,6 +15468,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-03-28' },
     },
   },
+  florhamParkNj: {
+    key: 'florham-park-nj', aliases: ['florham-park', 'florham-park-nj'], label: 'Florham Park', publicLabel: 'Florham Park, NJ',
+    city: 'Florham Park', cityUpper: 'FLORHAM PARK', county: 'Morris', state: 'NJ', countyId: 13595,
+    latitude: 40.779354, longitude: -74.394279, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Morris parcel reconciliation and verified contact, ownership, physical, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the FLORHAM PARK listing city linked into Morris county_id 13595 property rows; it is city inventory, not countywide Morris coverage.',
+      'All 9 active listings are linked with no remaining unlinked rows; 6 properties carry NJGIN parcel identities and 3 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Ownership, verified agent contacts, square footage, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 9 active properties, while classification covers the 3 listing-backed shells.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 9, parcel_identity_count: 6, classified_count: 3, ownership_count: 0, valuation_count: 9, year_built_count: 6, size_count: 0, coordinate_count: 5, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 9, active_property_count: 9, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 9, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:41.495+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 7, properties_with_mortgage_records: 5, properties_with_debt_coverage: 5,
+        mortgage_amount_count: 7, latest_recording: '2024-09-24',
+      },
+      rents: { rent_snapshot_count: 6, properties_with_rent_snapshots: 6, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
