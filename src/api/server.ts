@@ -6995,6 +6995,31 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  bentonAr: {
+    key: 'benton-ar', aliases: ['benton', 'benton-ar'], label: 'Benton', publicLabel: 'Benton, AR',
+    city: 'Benton', cityUpper: 'BENTON', county: 'Saline', state: 'AR', countyId: 35,
+    latitude: 34.5645, longitude: -92.5868, status: 'live', readinessTarget: 30,
+    scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until shell reconciliation and contact/rent/structure coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory anchored to Saline county_id 35, with 288 of 289 linked active listings in Saline County and one disclosed ZIP 72015 listing linked to Grant county_id 796228.',
+      'All 289 active listings are linked, valued, and brokerage-covered, including 248 clearly labeled listing-backed shells; only 41 active properties have parcel identity and ownership support, 33 have coordinates, and 16 have size support.',
+      'Verified agent contacts, year-built facts, and rent support are absent and must not be guessed or implied; 49 mortgage rows cover 8 properties, with usable amounts on 22 rows, while classification covers 248 shell-backed properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 289, parcel_identity_count: 41, classified_count: 248, ownership_count: 41, valuation_count: 289, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 289, active_property_count: 289, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0,
+        brokerage_count: 289, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:42:07.453+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 49, properties_with_mortgage_records: 8, properties_with_debt_coverage: 8,
+        mortgage_amount_count: 22, latest_recording: '2026-03-17',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   bryantAr: {
     key: 'bryant-ar', aliases: ['bryant', 'bryant-ar'], label: 'Bryant', publicLabel: 'Bryant, AR',
     city: 'Bryant', cityUpper: 'BRYANT', county: 'Saline', state: 'AR', countyId: 35,
@@ -15131,6 +15156,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'benton-ar',
   'indianapolis',
   'dallas',
   'columbus',
