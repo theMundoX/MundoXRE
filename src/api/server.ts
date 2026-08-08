@@ -15338,6 +15338,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-26' },
     },
   },
+  savannahTx: {
+    key: 'savannah-tx', aliases: ['savannah', 'savannah-tx'], label: 'Savannah', publicLabel: 'Savannah, TX',
+    city: 'Savannah', cityUpper: 'SAVANNAH', county: 'Denton', state: 'TX', countyId: 10,
+    latitude: 33.225717, longitude: -96.903566, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Denton classification and verified contact and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; this is a small nine-listing snapshot and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the SAVANNAH listing city linked into Denton county_id 10 property rows; it is city inventory, not countywide Denton coverage.',
+      'All nine active listings are linked with no remaining unlinked rows; one property is a clearly labeled listing-backed shell and eight carry parcel identity, ownership, year-built, and square-footage support.',
+      'Verified agent contacts, debt, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all nine active properties, coordinates and rent snapshots cover seven, and classification currently covers only the listing-backed shell.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 9, parcel_identity_count: 8, classified_count: 1, ownership_count: 8, valuation_count: 9, year_built_count: 8, size_count: 8, coordinate_count: 7, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 9, active_property_count: 9, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 9, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T15:32:06.532+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-26' },
+    },
+  },
   manchesterTownshipNj: {
     key: 'manchester-township-nj', aliases: ['manchester-township', 'manchester-township-nj'], label: 'Manchester Township', publicLabel: 'Manchester Township, NJ',
     city: 'Manchester Township', cityUpper: 'MANCHESTER TOWNSHIP', county: 'Ocean', state: 'NJ', countyId: 13602,
