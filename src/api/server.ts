@@ -15598,6 +15598,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  lithopolisOh: {
+    key: 'lithopolis-oh', aliases: ['lithopolis', 'lithopolis-oh'], label: 'Lithopolis', publicLabel: 'Lithopolis, OH',
+    city: 'Lithopolis', cityUpper: 'LITHOPOLIS', county: 'Fairfield', state: 'OH', countyId: 31,
+    latitude: 39.8028, longitude: -82.8063, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Fairfield parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the LITHOPOLIS listing city linked into Fairfield county_id 31 property rows; it is city inventory, not countywide Fairfield coverage.',
+      'All 6 active listings are linked with no remaining unlinked rows; 2 properties carry parcel identity and ownership support while 4 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 6 active properties, classification covers 4, year built, square footage, and rent cover 2, coordinates cover 1, and debt records cover 1 property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 6, parcel_identity_count: 2, classified_count: 4, ownership_count: 2, valuation_count: 6, year_built_count: 2, size_count: 2, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 6, active_property_count: 6, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 6, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-30T00:13:33.623+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 1, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 2, properties_with_rent_snapshots: 2, latest_rent_observed: null },
+    },
+  },
   evergreenCo: {
     key: 'evergreen-co', aliases: ['evergreen', 'evergreen-co'], label: 'Evergreen', publicLabel: 'Evergreen, CO',
     city: 'Evergreen', cityUpper: 'EVERGREEN', county: 'Jefferson', state: 'CO', countyId: 53660,
