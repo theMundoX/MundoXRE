@@ -15546,6 +15546,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  evergreenCo: {
+    key: 'evergreen-co', aliases: ['evergreen', 'evergreen-co'], label: 'Evergreen', publicLabel: 'Evergreen, CO',
+    city: 'Evergreen', cityUpper: 'EVERGREEN', county: 'Jefferson', state: 'CO', countyId: 53660,
+    latitude: 39.623223, longitude: -105.343737, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Jefferson and Clear Creek parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the EVERGREEN listing city, anchored to Jefferson county_id 53660; 7 linked properties are in Jefferson and 1 is in Clear Creek county_id 45004, so this is city inventory rather than countywide coverage.',
+      'All 8 active listings are linked with no remaining unlinked rows; 4 properties carry parcel identities and ownership while 4 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts, year built, square footage, debt, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 8 properties, classification covers the 4 shells, and rent covers 2 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 8, parcel_identity_count: 4, classified_count: 4, ownership_count: 4, valuation_count: 8, year_built_count: 0, size_count: 0, coordinate_count: 3, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 8, active_property_count: 8, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 8, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:38:36.854+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 2, properties_with_rent_snapshots: 2, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
