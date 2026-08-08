@@ -13751,6 +13751,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  'edgewater-nj': {
+    key: 'edgewater-nj', aliases: ['edgewater-nj', 'edgewater'], label: 'Edgewater', publicLabel: 'Edgewater, NJ',
+    city: 'Edgewater', cityUpper: 'EDGEWATER', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.8270, longitude: -73.9738, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Bergen shell reconciliation, verified contact, structure, coordinate, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Bergen county_id 13672 property rows for Edgewater, including 47 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 67 active listing rows are linked with no remaining unlinked rows across 67 active properties; 20 active properties carry parcel identity and ownership support while 47 remain address-level listing shell coverage pending assessor reconciliation.',
+      'Verified agent contacts, square footage, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 67 properties, classification covers 47, year built covers 19, coordinates cover nine, and debt and rent coverage remain partial.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 67, parcel_identity_count: 20, classified_count: 47, ownership_count: 20, valuation_count: 67, year_built_count: 19, size_count: 0, coordinate_count: 9, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 67, active_property_count: 67, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 67, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:39:32.624+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 2, latest_recording: '2025-06-13',
+      },
+      rents: { rent_snapshot_count: 20, properties_with_rent_snapshots: 20, latest_rent_observed: '2026-03-28' },
+    },
+  },
   'east-windsor': {
     key: 'east-windsor', aliases: ['east-windsor', 'east-windsor-nj'], label: 'East Windsor', publicLabel: 'East Windsor, NJ',
     city: 'East Windsor', cityUpper: 'EAST WINDSOR', county: 'Mercer', state: 'NJ', countyId: 13571,
