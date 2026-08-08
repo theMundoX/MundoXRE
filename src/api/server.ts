@@ -7020,6 +7020,31 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  oceanCityNj: {
+    key: 'ocean-city-nj', aliases: ['ocean-city-nj', 'ocean city nj'], label: 'Ocean City', publicLabel: 'Ocean City, NJ',
+    city: 'Ocean City', cityUpper: 'OCEAN CITY', county: 'Cape May', state: 'NJ', countyId: 13700,
+    latitude: 39.2776, longitude: -74.5746, status: 'live', readinessTarget: 28,
+    scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until shell reconciliation and ownership/contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cape May county_id 13700 property rows, including 240 clearly labeled listing-backed shells retained only for active Ocean City listings that did not resolve to parcel identity.',
+      'All 264 active listings are linked, valued, and brokerage-covered, but only 24 properties have parcel identity, 23 have size support, 22 have year-built support, and 20 have coordinates; ownership and verified agent contacts remain absent and must not be guessed.',
+      'Fourteen mortgage rows cover 12 properties, with usable amounts on 13 rows; rent snapshots cover 24 parcel-backed properties while the 240 shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 264, parcel_identity_count: 24, classified_count: 240, ownership_count: 0, valuation_count: 264, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 264, active_property_count: 264, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0,
+        brokerage_count: 264, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:44:13.681+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 14, properties_with_mortgage_records: 12, properties_with_debt_coverage: 12,
+        mortgage_amount_count: 13, latest_recording: '2026-01-16',
+      },
+      rents: { rent_snapshot_count: 24, properties_with_rent_snapshots: 24, latest_rent_observed: '2026-03-28' },
+    },
+  },
   bryantAr: {
     key: 'bryant-ar', aliases: ['bryant', 'bryant-ar'], label: 'Bryant', publicLabel: 'Bryant, AR',
     city: 'Bryant', cityUpper: 'BRYANT', county: 'Saline', state: 'AR', countyId: 35,
@@ -15157,6 +15182,7 @@ validateMarketConfigs();
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
   'benton-ar',
+  'ocean-city-nj',
   'indianapolis',
   'dallas',
   'columbus',
