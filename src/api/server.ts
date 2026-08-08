@@ -15286,6 +15286,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  hasletTx: {
+    key: 'haslet-tx', aliases: ['haslet', 'haslet-tx'], label: 'Haslet', publicLabel: 'Haslet, TX',
+    city: 'Haslet', cityUpper: 'HASLET', county: 'Tarrant', state: 'TX', countyId: 8,
+    latitude: 32.9748, longitude: -97.3478, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Tarrant and Denton parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the HASLET listing city anchored to Tarrant county_id 8; 386 linked properties are listing-backed Tarrant shells and 31 parcel-backed properties are in adjacent Denton county_id 10, so this is city inventory rather than countywide coverage.',
+      'All 417 active listings are linked with no remaining unlinked rows, but 386 properties are clearly labeled listing-backed shells and only 31 carry parcel identity and ownership support.',
+      'Verified agent contacts, debt, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 417 active properties, classification covers 386, year built and square footage cover 27, coordinates cover 30, and rent snapshots cover only three.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 417, parcel_identity_count: 31, classified_count: 386, ownership_count: 31, valuation_count: 417, year_built_count: 27, size_count: 27, coordinate_count: 30, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 417, active_property_count: 417, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 417, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-14T08:53:24.413+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-26' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
