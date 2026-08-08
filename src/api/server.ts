@@ -15312,6 +15312,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-26' },
     },
   },
+  southlakeTx: {
+    key: 'southlake-tx', aliases: ['southlake', 'southlake-tx'], label: 'Southlake', publicLabel: 'Southlake, TX',
+    city: 'Southlake', cityUpper: 'SOUTHLAKE', county: 'Tarrant', state: 'TX', countyId: 8,
+    latitude: 32.997458, longitude: -97.161563, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Tarrant and Denton parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the SOUTHLAKE listing city anchored to Tarrant county_id 8; 190 linked properties are listing-backed Tarrant shells and nine parcel-backed properties are in adjacent Denton county_id 10, so this is city inventory rather than countywide coverage.',
+      'All 199 active listings are linked with no remaining unlinked rows, but 190 properties are clearly labeled listing-backed shells and only nine carry parcel identity and ownership support.',
+      'Verified agent contacts, debt, and creative-finance signals are absent and must not be guessed; brokerage covers all 199 active listings, valuation covers 198 properties, classification covers the 190 shell rows, year built and square footage cover seven, coordinates cover four, and rent snapshots cover only three.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 199, parcel_identity_count: 9, classified_count: 190, ownership_count: 9, valuation_count: 198, year_built_count: 7, size_count: 7, coordinate_count: 4, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 199, active_property_count: 199, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 199, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-14T08:52:20.010+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-26' },
+    },
+  },
   manchesterTownshipNj: {
     key: 'manchester-township-nj', aliases: ['manchester-township', 'manchester-township-nj'], label: 'Manchester Township', publicLabel: 'Manchester Township, NJ',
     city: 'Manchester Township', cityUpper: 'MANCHESTER TOWNSHIP', county: 'Ocean', state: 'NJ', countyId: 13602,
