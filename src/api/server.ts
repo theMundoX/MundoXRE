@@ -15520,6 +15520,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-28' },
     },
   },
+  krugervilleTx: {
+    key: 'krugerville-tx', aliases: ['krugerville', 'krugerville-tx'], label: 'Krugerville', publicLabel: 'Krugerville, TX',
+    city: 'Krugerville', cityUpper: 'KRUGERVILLE', county: 'Denton', state: 'TX', countyId: 10,
+    latitude: 33.282516, longitude: -96.990243, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Denton classification, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the KRUGERVILLE listing city linked into Denton county_id 10 property rows; it is city inventory, not countywide Denton coverage.',
+      'All 9 active listings are linked to parcel-backed properties with no remaining unlinked rows or listing-backed shells; ownership, valuation, and brokerage cover all 9 properties.',
+      'Asset classification, verified agent contacts, debt, rent, and creative-finance signals are absent and must not be guessed; year built covers 1 property, size covers 3, and coordinates cover 1.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 9, parcel_identity_count: 9, classified_count: 0, ownership_count: 9, valuation_count: 9, year_built_count: 1, size_count: 3, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 9, active_property_count: 9, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 9, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T15:32:06.532+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
