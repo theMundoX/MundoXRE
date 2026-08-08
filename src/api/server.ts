@@ -15624,6 +15624,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 2, properties_with_rent_snapshots: 2, latest_rent_observed: null },
     },
   },
+  bremenOh: {
+    key: 'bremen-oh', aliases: ['bremen', 'bremen-oh'], label: 'Bremen', publicLabel: 'Bremen, OH',
+    city: 'Bremen', cityUpper: 'BREMEN', county: 'Fairfield', state: 'OH', countyId: 31,
+    latitude: 39.7048, longitude: -82.4268, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Fairfield parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the BREMEN listing city linked into Fairfield county_id 31 property rows; it is city inventory, not countywide Fairfield coverage.',
+      'All 5 active listings are linked with no remaining unlinked rows; 3 properties carry parcel identity and ownership support while 2 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts, debt, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 5 active properties, classification covers 2, rent covers 3, and year built, square footage, and coordinates cover 1 property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 5, parcel_identity_count: 3, classified_count: 2, ownership_count: 3, valuation_count: 5, year_built_count: 1, size_count: 1, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 5, active_property_count: 5, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 5, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T15:28:18.197+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
+    },
+  },
   evergreenCo: {
     key: 'evergreen-co', aliases: ['evergreen', 'evergreen-co'], label: 'Evergreen', publicLabel: 'Evergreen, CO',
     city: 'Evergreen', cityUpper: 'EVERGREEN', county: 'Jefferson', state: 'CO', countyId: 53660,
