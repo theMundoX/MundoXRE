@@ -15260,6 +15260,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  madisonTn: {
+    key: 'madison-tn', aliases: ['madison-tn'], label: 'Madison', publicLabel: 'Madison, TN',
+    city: 'Madison', cityUpper: 'MADISON', county: 'Davidson', state: 'TN', countyId: 1741138,
+    latitude: 36.2562, longitude: -86.7144, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Davidson parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the MADISON listing city linked into Davidson county_id 1741138 property rows; it is city inventory, not countywide Davidson coverage.',
+      'All 24 active listings are linked with no remaining unlinked rows, but 22 properties are clearly labeled listing-backed shells and only two carry parcel identity, ownership, and coordinate support.',
+      'Verified agent contacts, year built, square footage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 24 active properties while classification covers the 22 shell rows.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 24, parcel_identity_count: 2, classified_count: 22, ownership_count: 2, valuation_count: 24, year_built_count: 0, size_count: 0, coordinate_count: 2, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 24, active_property_count: 24, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 24, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:40:22.182+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
