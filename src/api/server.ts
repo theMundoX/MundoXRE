@@ -15055,6 +15055,32 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  oakParkMi: {
+    key: 'oak-park-mi', aliases: ['oak-park', 'oak-park-mi'], label: 'Oak Park', publicLabel: 'Oak Park, MI',
+    city: 'Oak Park', cityUpper: 'OAK PARK', county: 'Oakland', state: 'MI', countyId: 32,
+    latitude: 42.468215, longitude: -83.184332, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Oakland parcel reconciliation and verified contact, physical, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the OAK PARK listing city linked into Oakland county_id 32 property rows; it is city inventory, not countywide Oakland coverage.',
+      'All 46 active listings are linked with no remaining unlinked rows, but 38 properties are clearly labeled listing-backed shells and only eight carry parcel identity support; ownership covers six properties.',
+      'Verified agent contacts, year built, debt, and creative-finance signals are absent and must not be guessed; valuation, classification, and brokerage cover all 46 active properties, square footage and rent cover eight, and coordinates cover seven.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 46, parcel_identity_count: 8, classified_count: 46, ownership_count: 6, valuation_count: 46, year_built_count: 0, size_count: 8, coordinate_count: 7, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 46, active_property_count: 46, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 46, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:42:55.943+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 8, properties_with_rent_snapshots: 8, latest_rent_observed: '2026-03-27' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
