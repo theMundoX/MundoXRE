@@ -15650,6 +15650,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
     },
   },
+  miamiFl: {
+    key: 'miami-fl', aliases: ['miami', 'miami-fl'], label: 'Miami', publicLabel: 'Miami, FL',
+    city: 'Miami', cityUpper: 'MIAMI', county: 'Miami-Dade', state: 'FL', countyId: 715725,
+    latitude: 25.7347, longitude: -80.2441, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first while Miami-Dade parcel reconciliation and verified contact, debt, physical, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is city-scoped Redfin inventory anchored to Miami-Dade county_id 715725; 218 parcel-backed properties retain legacy Florida county_id 12 and require county-identifier reconciliation despite Miami-area ZIP evidence.',
+      'All 793 active listings are linked to 790 active properties with no remaining unlinked rows; 218 properties carry parcel identity and ownership support while 572 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts and debt records are absent and must not be guessed; valuation covers 785 properties, classification covers all 790, year built and size each cover 188, coordinates cover 189, brokerage covers all 793 listings, and rent snapshots cover 62 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 790, parcel_identity_count: 218, listing_backed_shell_count: 572, classified_count: 790, ownership_count: 218, valuation_count: 785, year_built_count: 188, coordinate_count: 189, multifamily_count: 6 },
+      listings: {
+        active_listing_count: 793, active_property_count: 790, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 793,
+        creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:42:49.418+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 62, properties_with_rent_snapshots: 62, latest_rent_observed: '2026-03-26' },
+    },
+  },
   dublinOh: {
     key: 'dublin-oh', aliases: ['dublin', 'dublin-oh'], label: 'Dublin', publicLabel: 'Dublin, OH',
     city: 'Dublin', cityUpper: 'DUBLIN', county: 'Franklin', state: 'OH', countyId: 1698985,
