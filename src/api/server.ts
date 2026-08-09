@@ -13976,15 +13976,15 @@ const MARKET_CONFIGS: Record<string, {
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact/debt coverage improve',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'Coverage is currently single-source Redfin inventory centered on Fulton County property rows, with 6,997 listing-backed shells retained for active Atlanta listings and 87 linked properties currently landing outside the primary county.',
+      'Coverage is currently single-source Redfin inventory centered on Fulton County property rows, with 6,997 listing-backed shells retained for active Atlanta listings and 88 linked listing rows currently landing outside the primary county.',
       'All 7,979 active listing rows are linked, but only 981 linked properties currently carry parcel identity; ownership is present on 980 linked properties and valuation is present on 7,975.',
-      'Verified agent name, phone, and email coverage is absent and must not be guessed; brokerage is present on 2,599 listings, while debt and rent coverage are currently empty across the linked active inventory.',
+      'Verified agent name, phone, and email coverage is absent and must not be guessed; brokerage is present on 2,599 listings and 839 linked properties have coordinates, while debt and rent coverage are currently empty across the linked active inventory.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 7978,
         parcel_identity_count: 981,
-        classified_count: 7978,
+        classified_count: 6997,
         ownership_count: 980,
         valuation_count: 7975,
         multifamily_count: 0,
@@ -32180,6 +32180,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'benton-ar',
   'loveland',
   'ocean-city',
+  'atlanta',
   'southampton',
   'mt-arlington',
   'oradell',
