@@ -32357,6 +32357,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'mt-laurel-township',
   'elizabeth-nj',
   'brentwood-tn',
+  'aurora-oh',
   'southampton',
   'mt-arlington',
   'oradell',
