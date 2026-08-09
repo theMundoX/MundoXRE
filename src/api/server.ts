@@ -15650,6 +15650,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
     },
   },
+  friendswoodTx: {
+    key: 'friendswood-tx', aliases: ['friendswood', 'friendswood-tx'], label: 'Friendswood', publicLabel: 'Friendswood, TX',
+    city: 'Friendswood', cityUpper: 'FRIENDSWOOD', county: 'Galveston', state: 'TX', countyId: 715725,
+    latitude: 29.5294, longitude: -95.2010, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Galveston and Harris parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the FRIENDSWOOD listing city, anchored to Galveston county_id 715725; 46 parcel-backed rows resolve to Harris county_id 11, so city-scoped routing must retain this disclosed two-county scope.',
+      'All 197 active listings are linked with no remaining unlinked rows; 46 properties carry parcel identity and ownership support while 151 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts are absent and must not be guessed; valuation covers 196 of 197 active properties, brokerage covers all 197, classification covers 151, year built covers 44, coordinates cover 42, one non-amount-bearing mortgage row covers one property, and rent snapshots cover 46 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 197, parcel_identity_count: 46, listing_backed_shell_count: 151, classified_count: 151, ownership_count: 46, valuation_count: 196, year_built_count: 44, coordinate_count: 42, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 197, active_property_count: 197, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 197,
+        creative_finance_count: 0, latest_listing_seen: '2026-04-14T08:47:45.656+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 46, properties_with_rent_snapshots: 46, latest_rent_observed: '2026-03-26' },
+    },
+  },
   fortLauderdaleFl: {
     key: 'fort-lauderdale-fl', aliases: ['fort-lauderdale', 'fort-lauderdale-fl'], label: 'Fort Lauderdale', publicLabel: 'Fort Lauderdale, FL',
     city: 'Fort Lauderdale', cityUpper: 'FORT LAUDERDALE', county: 'Broward', state: 'FL', countyId: 1973354,
