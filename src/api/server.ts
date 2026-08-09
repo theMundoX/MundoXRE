@@ -32535,6 +32535,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'howell-township-nj',
   'antioch-tn',
   'stow-oh',
+  'southlake',
   'southampton',
   'mt-arlington',
   'oradell',
