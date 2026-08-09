@@ -15650,6 +15650,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
     },
   },
+  westervilleOh: {
+    key: 'westerville-oh', aliases: ['westerville', 'westerville-oh'], label: 'Westerville', publicLabel: 'Westerville, OH',
+    city: 'Westerville', cityUpper: 'WESTERVILLE', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 40.1221, longitude: -82.9135, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first while Franklin and Delaware parcel reconciliation and verified contact, physical, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is city-scoped Redfin inventory anchored to Franklin county_id 1698985; 183 active properties resolve to Delaware county_id 1741137, and ZIP-routed shells use Franklin for 43081 and Delaware for 43082.',
+      'All 640 active listings are linked with no remaining unlinked rows; 375 properties carry parcel identity and ownership support while 265 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts are absent and must not be guessed; valuation covers 631 properties, classification covers all 640, year built covers 207, coordinates cover 233, brokerage covers 100 listings, debt records cover 58 properties without amount support, and rent snapshots cover 261 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 640, parcel_identity_count: 375, listing_backed_shell_count: 265, classified_count: 640, ownership_count: 375, valuation_count: 631, year_built_count: 207, coordinate_count: 233, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 640, active_property_count: 640, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 100,
+        creative_finance_count: 0, latest_listing_seen: '2026-08-08T13:13:49.937+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 100, properties_with_mortgage_records: 58, properties_with_debt_coverage: 58,
+        mortgage_amount_count: 0, latest_recording: '2026-03-24',
+      },
+      rents: { rent_snapshot_count: 261, properties_with_rent_snapshots: 261, latest_rent_observed: '2026-05-28' },
+    },
+  },
   friendswoodTx: {
     key: 'friendswood-tx', aliases: ['friendswood', 'friendswood-tx'], label: 'Friendswood', publicLabel: 'Friendswood, TX',
     city: 'Friendswood', cityUpper: 'FRIENDSWOOD', county: 'Galveston', state: 'TX', countyId: 715725,
