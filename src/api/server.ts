@@ -9660,7 +9660,7 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Cape May County property rows with no remaining unlinked active listings.',
       'The active set is heavily shell-backed: 240 of 264 linked Ocean City properties are source-labeled listing-backed shells, while only 24 active properties currently resolve to non-shell parcel-backed rows.',
-      'Verified agent contact fields and owner names remain absent and must not be guessed or implied; valuation spans all 264 linked properties, debt coverage currently reaches 12 linked properties across 14 mortgage rows, and rent snapshot support reaches 24 linked properties.',
+      'Verified agent contact fields and owner names remain absent and must not be guessed or implied; valuation spans all 264 linked properties, 20 have coordinates, debt coverage reaches 12 linked properties across 14 mortgage rows, and rent snapshot support reaches 24 linked properties.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
@@ -9669,7 +9669,7 @@ const MARKET_CONFIGS: Record<string, {
         classified_count: 240,
         ownership_count: 0,
         valuation_count: 264,
-        multifamily_count: 24,
+        multifamily_count: 4,
       },
       listings: {
         active_listing_count: 264,
@@ -9679,14 +9679,14 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 264,
         creative_finance_count: 0,
-        latest_listing_seen: '2026-03-28T17:44:13.681+00:00',
+        latest_listing_seen: '2026-05-25T10:30:32.668261+00:00',
         listing_sources: ['redfin'],
       },
       debt: {
         mortgage_record_count: 14,
         properties_with_mortgage_records: 12,
         properties_with_debt_coverage: 12,
-        mortgage_amount_count: 12,
+        mortgage_amount_count: 13,
         latest_recording: '2026-01-16',
       },
       rents: {
@@ -32179,6 +32179,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'north-brunswick',
   'benton-ar',
   'loveland',
+  'ocean-city',
   'southampton',
   'mt-arlington',
   'oradell',
