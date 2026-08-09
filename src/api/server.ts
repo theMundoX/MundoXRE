@@ -15650,6 +15650,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
     },
   },
+  fortLauderdaleFl: {
+    key: 'fort-lauderdale-fl', aliases: ['fort-lauderdale', 'fort-lauderdale-fl'], label: 'Fort Lauderdale', publicLabel: 'Fort Lauderdale, FL',
+    city: 'Fort Lauderdale', cityUpper: 'FORT LAUDERDALE', county: 'Broward', state: 'FL', countyId: 1973354,
+    latitude: 26.1224, longitude: -80.1373, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Broward parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the FORT LAUDERDALE listing city, anchored to Broward county_id 1973354; 166 existing linked shell rows carry legacy Florida county_id 12, so city-scoped routing must retain this disclosed cross-county identifier mix.',
+      'All 379 active listings are linked with no remaining unlinked rows; 166 properties carry parcel identity and ownership support while 213 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts and recorder/debt coverage are absent and must not be guessed; valuation and brokerage cover all 379 active properties, classification covers 213, year built covers 146, coordinates cover 141, and rent snapshots cover 48 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 379, parcel_identity_count: 166, listing_backed_shell_count: 213, classified_count: 213, ownership_count: 166, valuation_count: 379, year_built_count: 146, coordinate_count: 141, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 379, active_property_count: 379, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 379,
+        creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:42:50.780+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 48, properties_with_rent_snapshots: 48, latest_rent_observed: '2026-03-26' },
+    },
+  },
   evergreenCo: {
     key: 'evergreen-co', aliases: ['evergreen', 'evergreen-co'], label: 'Evergreen', publicLabel: 'Evergreen, CO',
     city: 'Evergreen', cityUpper: 'EVERGREEN', county: 'Jefferson', state: 'CO', countyId: 53660,
