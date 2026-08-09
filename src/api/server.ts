@@ -31995,6 +31995,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lakeville',
   'harrison-nj',
   'olmsted-twp',
+  'kingwood',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
