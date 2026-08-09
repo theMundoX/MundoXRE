@@ -32359,6 +32359,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'brentwood-tn',
   'aurora-oh',
   'mabelvale-ar',
+  'madison-tn',
   'southampton',
   'mt-arlington',
   'oradell',
