@@ -6407,13 +6407,13 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Bergen County property rows for Fort Lee, including 125 listing-backed shells created only for active listings that did not resolve to parcel identity.',
       'Active inventory is fully linked with no remaining unlinked rows, but only 25 of 150 active properties are parcel-identity-backed, ownership remains absent across the active set, and verified agent contact fields must not be guessed or implied.',
-      'Brokerage labels span the active inventory, valuation support currently reaches all 150 linked properties, debt coverage reaches only 5 properties across 7 mortgage rows, and rent support is limited to 25 rent-backed properties.',
+      'Brokerage labels, classification, and valuation span all 150 linked properties; debt coverage reaches only 5 properties across 7 mortgage rows, rent support is limited to 25 properties, and year-built support reaches 24 properties.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 150,
         parcel_identity_count: 25,
-        classified_count: 125,
+        classified_count: 150,
         ownership_count: 0,
         valuation_count: 150,
         multifamily_count: 4,
@@ -28901,7 +28901,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 8,
         creative_finance_count: 0,
-        latest_listing_seen: null,
+        latest_listing_seen: '2026-04-14 08:50:54.557+00',
         listing_sources: ['redfin'],
       },
       debt: {
@@ -28909,7 +28909,7 @@ const MARKET_CONFIGS: Record<string, {
         properties_with_mortgage_records: 1,
         properties_with_debt_coverage: 1,
         mortgage_amount_count: 1,
-        latest_recording: null,
+        latest_recording: '2025-05-13',
       },
       rents: {
         rent_snapshot_count: 4,
@@ -32054,6 +32054,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'cedar-hill',
   'south-bend',
   'hermitage-tn',
+  'fort-lee',
   'southampton',
   'mt-arlington',
   'oradell',
