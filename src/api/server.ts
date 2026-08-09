@@ -32055,6 +32055,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'south-bend',
   'hermitage-tn',
   'fort-lee',
+  'union-city',
   'southampton',
   'mt-arlington',
   'oradell',
