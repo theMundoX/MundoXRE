@@ -11583,13 +11583,13 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Benton active properties, including 248 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
       'All 289 active Benton listing rows are linked after public Redfin ZIP backfill plus shell creation, but only 288 linked properties currently resolve to Saline County while 1 linked property lands outside the primary county and only 41 linked properties are parcel-identity-backed; use marketId/city/state for routing instead of assuming a strict county-only slice.',
-      'Verified agent contact fields remain absent and must not be guessed; brokerage labels appear on all 289 active listings, classification currently covers 248 linked properties, ownership spans 41 linked properties, valuation spans all 289 linked properties, debt coverage reaches 8 linked properties across 49 mortgage rows, and rent support is currently absent.',
+      'Verified agent contact fields remain absent and must not be guessed; brokerage labels appear on all 289 active listings, classification and valuation span all 289 linked properties, ownership spans 41 linked properties, coordinates cover 33, debt coverage reaches 8 linked properties across 49 mortgage rows, and structure facts and rent support are currently absent.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 289,
         parcel_identity_count: 41,
-        classified_count: 248,
+        classified_count: 289,
         ownership_count: 41,
         valuation_count: 289,
         multifamily_count: 0,
@@ -32177,6 +32177,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'waldwick',
   'edgewater-park',
   'north-brunswick',
+  'benton-ar',
   'southampton',
   'mt-arlington',
   'oradell',
