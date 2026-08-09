@@ -15650,6 +15650,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
     },
   },
+  dublinOh: {
+    key: 'dublin-oh', aliases: ['dublin', 'dublin-oh'], label: 'Dublin', publicLabel: 'Dublin, OH',
+    city: 'Dublin', cityUpper: 'DUBLIN', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 40.1041, longitude: -83.1371, status: 'live', readinessTarget: 30, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first while Franklin and Delaware parcel reconciliation and verified contact, physical, and debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is city-scoped Redfin inventory anchored to Franklin county_id 1698985; 33 active parcel-backed properties resolve to Delaware county_id 1741137, so city routing must retain this disclosed cross-county scope.',
+      'All 444 active listings are linked with no remaining unlinked rows; 189 properties carry parcel identity and ownership support while 255 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts are absent and must not be guessed; valuation covers 437 properties, classification covers all 444, year built covers 146, coordinates cover 143, brokerage covers 134 listings, debt records cover 38 properties without amount support, and rent snapshots cover 229 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 444, parcel_identity_count: 189, listing_backed_shell_count: 255, classified_count: 444, ownership_count: 189, valuation_count: 437, year_built_count: 146, coordinate_count: 143, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 444, active_property_count: 444, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 134,
+        creative_finance_count: 0, latest_listing_seen: '2026-08-08T11:37:42.484+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 69, properties_with_mortgage_records: 38, properties_with_debt_coverage: 38,
+        mortgage_amount_count: 0, latest_recording: '2026-02-17',
+      },
+      rents: { rent_snapshot_count: 229, properties_with_rent_snapshots: 229, latest_rent_observed: '2026-05-28' },
+    },
+  },
   westervilleOh: {
     key: 'westerville-oh', aliases: ['westerville', 'westerville-oh'], label: 'Westerville', publicLabel: 'Westerville, OH',
     city: 'Westerville', cityUpper: 'WESTERVILLE', county: 'Franklin', state: 'OH', countyId: 1698985,
