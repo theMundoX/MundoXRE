@@ -27115,13 +27115,13 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Middlesex County property rows for North Brunswick, including 22 listing-backed shells retained only for active listings that did not resolve to parcel identity.',
       'Active inventory is fully linked with no remaining unlinked rows, but only 28 of 50 active properties are parcel-identity-backed; shell-backed rows remain address-level coverage pending assessor reconciliation.',
-      'Verified agent contact fields and parcel ownership coverage are currently absent for North Brunswick active listings and must not be guessed or implied; valuation spans all 50 linked active properties, debt coverage exists on 4 linked properties across 4 amount-bearing mortgage rows, and rent snapshots currently exist on 28 linked properties.',
+      'Verified agent contact fields and parcel ownership coverage are currently absent for North Brunswick active listings and must not be guessed or implied; valuation and classification span all 50 linked active properties, 27 have year-built support, 28 have coordinates and rent snapshots, and debt coverage exists on 4 linked properties across 4 amount-bearing mortgage rows.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 50,
         parcel_identity_count: 28,
-        classified_count: 22,
+        classified_count: 50,
         ownership_count: 0,
         valuation_count: 50,
         multifamily_count: 0,
@@ -32176,6 +32176,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lavallette',
   'waldwick',
   'edgewater-park',
+  'north-brunswick',
   'southampton',
   'mt-arlington',
   'oradell',
