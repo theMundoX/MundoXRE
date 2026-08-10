@@ -12070,6 +12070,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  redOak: {
+    key: 'red-oak', aliases: ['red-oak', 'red-oak-tx', 'red oak', 'red oak tx'], label: 'Red Oak', publicLabel: 'Red Oak, TX',
+    city: 'Red Oak', cityUpper: 'RED OAK', county: 'Ellis', state: 'TX', countyId: 2338867,
+    latitude: 32.559025, longitude: -96.876519, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Ellis/Dallas parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for Red Oak with a mixed active footprint of 196 Ellis-linked listing-backed shells and 5 Dallas-linked parcel-identity-backed properties in the current market set.',
+      'Active inventory is fully linked with no remaining unlinked rows, but the shell-backed subset should be treated as address-level fallback coverage pending parcel reconciliation rather than parcel-confirmed identity.',
+      'Verified agent contact fields and recorder/debt coverage are absent for Red Oak active listings and must not be guessed or implied; ownership, year-built, size, and rent snapshot support currently exist only on the 5 parcel-identity-backed rows, while valuation spans all 201 linked active properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 201, parcel_identity_count: 5, classified_count: 196, ownership_count: 5, valuation_count: 201, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 201, active_property_count: 201, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 201, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 10, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-26' },
+    },
+  },
   hudsonOh: {
     key: 'hudson-oh', aliases: ['hudson-oh', 'hudson'], label: 'Hudson', publicLabel: 'Hudson, OH',
     city: 'Hudson', cityUpper: 'HUDSON', county: 'Summit', state: 'OH', countyId: 1698989,
@@ -16752,6 +16778,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'atlanta-ga',
   'wylie-tx',
   'hudson-oh',
+  'red-oak',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
