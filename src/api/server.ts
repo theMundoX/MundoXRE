@@ -15810,6 +15810,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  olmstedTwpOh: {
+    key: 'olmsted-twp-oh', aliases: ['olmsted-twp', 'olmsted-twp-oh'], label: 'Olmsted Twp', publicLabel: 'Olmsted Twp, OH',
+    city: 'Olmsted Twp', cityUpper: 'OLMSTED TWP', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.383971, longitude: -81.919469, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-city normalization, classification, verified contact, physical, debt amount, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the distinct OLMSTED TWP listing-city label linked into Cuyahoga county_id 1698988 property rows; it overlaps the broader Olmsted Township locality and must not be summed with that market as unique geographic inventory.',
+      'All 44 active listings are linked with no remaining unlinked rows; 43 properties carry parcel identity, 39 carry ownership support, and five retain clearly labeled listing-shell source history, with one property still lacking parcel identity.',
+      'Verified agent contacts, year-built facts, rent support, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation covers all 44 properties, size covers 39, coordinates cover 29, classification covers five, brokerage covers four listings, and four recorder rows across two properties contain no usable mortgage amounts.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 44, parcel_identity_count: 43, classified_count: 5, ownership_count: 39, valuation_count: 44, year_built_count: 0, size_count: 39, coordinate_count: 29, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 44, active_property_count: 44, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 4, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-10T14:24:33.255+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 4, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 0, latest_recording: '2026-01-21',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   howellTownshipNj: {
     key: 'howell-township-nj', aliases: ['howell-township', 'howell-township-nj'], label: 'Howell Township', publicLabel: 'Howell Township, NJ',
     city: 'Howell Township', cityUpper: 'HOWELL TOWNSHIP', county: 'Monmouth', state: 'NJ', countyId: 13586,
