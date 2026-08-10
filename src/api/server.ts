@@ -16382,6 +16382,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  lovelandOh: {
+    key: 'loveland-oh', aliases: ['loveland', 'loveland-oh'], label: 'Loveland', publicLabel: 'Loveland, OH',
+    city: 'Loveland', cityUpper: 'LOVELAND', county: 'Warren', state: 'OH', countyId: 1741129,
+    latitude: 39.2689, longitude: -84.2638, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first across the Loveland mailing-city boundary',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the LOVELAND listing city, anchored to Warren county_id 1741129; 51 linked parcel-backed properties retain Hamilton county_id 1698987, so results must not be interpreted as Warren County-wide coverage.',
+      'All 275 active listings are linked to 275 active properties with no remaining unlinked rows; 224 properties are clearly sourced listing-backed shells and 51 carry parcel identity.',
+      'Valuation covers all 275 active properties, ownership covers the 51 parcel-backed properties, classification covers 224, and coordinates cover 43; verified agent contacts, brokerage attribution, year built, size, recorder/debt coverage, and rent support are absent and must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 275, parcel_identity_count: 51, listing_backed_shell_count: 224, classified_count: 224, ownership_count: 51, valuation_count: 275, year_built_count: 0, size_count: 0, coordinate_count: 43, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 275, active_property_count: 275, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0,
+        creative_finance_count: 0, latest_listing_seen: '2026-08-04T13:10:16.242+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -16514,6 +16540,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'signal-hill-ca',
   'redondo-beach-ca',
   'camby-in',
+  'loveland-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
