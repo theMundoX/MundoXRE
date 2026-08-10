@@ -16252,6 +16252,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  oakwoodOh: {
+    key: 'oakwood-oh', aliases: ['oakwood', 'oakwood-oh'], label: 'Oakwood', publicLabel: 'Oakwood, OH',
+    city: 'Oakwood', cityUpper: 'OAKWOOD', county: 'Montgomery', state: 'OH', countyId: 1698991,
+    latitude: 39.7253, longitude: -84.1741, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Montgomery County valuation, structure, verified contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the OAKWOOD listing city, anchored to Montgomery county_id 1698991; one linked parcel-backed property retains adjacent county_id 1698988 and must not be interpreted as Montgomery County-wide coverage.',
+      'All 116 active listings are linked to 116 active properties with no remaining unlinked rows; exact address-and-ZIP matching resolved 82 previously unlinked listings and 18 remaining address-qualified listings use clearly sourced listing-backed shells.',
+      'Verified agent contacts, recorder/debt coverage, rent support, and year-built facts are absent and must not be guessed or implied; parcel identity and ownership cover 98 properties, classification covers 106, valuation covers 19, coordinates cover 67, square footage covers 1, and brokerage covers 8 listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 116, parcel_identity_count: 98, listing_backed_shell_count: 18, classified_count: 106, ownership_count: 98, valuation_count: 19, year_built_count: 0, size_count: 1, coordinate_count: 67, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 116, active_property_count: 116, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 8,
+        creative_finance_count: 0, latest_listing_seen: '2026-08-10T14:46:20.546911+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -16379,6 +16405,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lodi',
   'plano-tx',
   'tucker-ga',
+  'oakwood-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
