@@ -2456,6 +2456,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  carsonCa: {
+    key: 'carson-ca', aliases: ['carson-ca', 'carson ca', 'carson'], label: 'Carson', publicLabel: 'Carson, CA',
+    city: 'Carson', cityUpper: 'CARSON', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 33.8317, longitude: -118.2820, status: 'live', readinessTarget: 22, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles County property rows; 20 of 29 active properties are clearly labeled listing-backed shells created only after unique exact address-and-ZIP linking left them unresolved.',
+      'Active inventory is fully linked with no remaining unlinked rows; 9 active properties carry parcel identity, year-built, size, and coordinate support, and the 20 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Ownership, verified agent contacts, recorder/debt coverage, and rent support are absent and must not be guessed or implied; valuation spans all 29 active properties, classification is limited to the 20 shell-backed properties, and brokerage spans all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 29, parcel_identity_count: 9, classified_count: 20, ownership_count: 0, valuation_count: 29, multifamily_count: 0 },
+      listings: { active_listing_count: 29, active_property_count: 29, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 29, creative_finance_count: 0, latest_listing_seen: '2026-04-15T02:09:48.154+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   highlandParkMi: {
     key: 'highland-park-mi',
     aliases: ['highland-park', 'highland-park-mi', 'highland park'],
@@ -33170,6 +33188,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'el-monte-ca',
   'la-mirada-ca',
   'bellflower-ca',
+  'carson-ca',
   'highland-park-mi',
   'stow',
   'antioch-tn',
