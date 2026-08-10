@@ -16278,6 +16278,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  santaMonicaCa: {
+    key: 'santa-monica-ca', aliases: ['santa-monica', 'santa-monica-ca'], label: 'Santa Monica', publicLabel: 'Santa Monica, CA',
+    city: 'Santa Monica', cityUpper: 'SANTA MONICA', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 34.0195, longitude: -118.4912, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County parcel reconciliation and verified ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the SANTA MONICA listing city in Los Angeles county_id 401712; 38 active properties are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'All 52 active listings are linked to 52 active properties with no remaining unlinked rows; 14 properties carry parcel identity while ownership support is absent across the active inventory.',
+      'Verified agent contacts, ownership, recorder/debt coverage, and rent support are absent and must not be guessed or implied; valuation and brokerage cover all 52 active properties/listings, classification covers 38 properties, year built covers 12, and size and coordinates cover 14.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 52, parcel_identity_count: 14, listing_backed_shell_count: 38, classified_count: 38, ownership_count: 0, valuation_count: 52, year_built_count: 12, size_count: 14, coordinate_count: 14, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 52, active_property_count: 52, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 52,
+        creative_finance_count: 0, latest_listing_seen: '2026-08-10T14:52:09.695176+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -16406,6 +16432,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'plano-tx',
   'tucker-ga',
   'oakwood-oh',
+  'santa-monica-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
