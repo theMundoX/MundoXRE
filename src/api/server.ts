@@ -16356,6 +16356,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  cambyIn: {
+    key: 'camby-in', aliases: ['camby', 'camby-in'], label: 'Camby', publicLabel: 'Camby, IN',
+    city: 'Camby', cityUpper: 'CAMBY', county: 'Morgan', state: 'IN', countyId: 797557,
+    latitude: 39.6283, longitude: -86.3161, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first across the Camby mailing-city boundary',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the CAMBY listing city, anchored to Morgan county_id 797557; 6 linked properties retain Marion county_id 797583 and 5 retain Hendricks county_id 797531, so results must not be interpreted as Morgan County-wide coverage.',
+      'All 103 active listings are linked to 103 active properties with no remaining unlinked rows; 69 properties are clearly sourced listing-backed shells and 34 carry parcel identity.',
+      'Ownership covers 11 properties, valuation 75, year built 5, size 11, coordinates 25, classification all 103, brokerage 6 listings, and verified agent email one listing; debt support is limited to two amount-bearing rows on one property, while rents are absent.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 103, parcel_identity_count: 34, listing_backed_shell_count: 69, classified_count: 103, ownership_count: 11, valuation_count: 75, year_built_count: 5, size_count: 11, coordinate_count: 25, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 103, active_property_count: 103, unlinked_listing_count: 0,
+        agent_name_count: 6, agent_email_count: 1, agent_phone_count: 6, brokerage_count: 6,
+        creative_finance_count: 0, latest_listing_seen: '2026-06-06T12:16:15.587Z', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 2, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
+        mortgage_amount_count: 2, latest_recording: '2023-07-31',
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -16487,6 +16513,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'santa-monica-ca',
   'signal-hill-ca',
   'redondo-beach-ca',
+  'camby-in',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
