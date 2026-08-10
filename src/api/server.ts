@@ -16174,6 +16174,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 2, properties_with_rent_snapshots: 2, latest_rent_observed: '2026-03-28' },
     },
   },
+  kirklandWa: {
+    key: 'kirkland-wa', aliases: ['kirkland', 'kirkland-wa'], label: 'Kirkland', publicLabel: 'Kirkland, WA',
+    city: 'Kirkland', cityUpper: 'KIRKLAND', county: 'King', state: 'WA', countyId: 748414,
+    latitude: 47.6769, longitude: -122.2060, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until King County parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the KIRKLAND listing city, anchored to King county_id 748414; 7 active properties are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'All 10 active listings are linked to 9 active properties with no remaining unlinked rows; 2 properties carry parcel identity and ownership support while the listing-backed shells remain address-level fallback coverage.',
+      'Verified agent contacts, structure facts, recorder/debt coverage, and rent support are absent and must not be guessed or implied; valuation and classification cover all 9 active properties, brokerage covers all 10 listings, and coordinates cover 1 property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 9, parcel_identity_count: 2, listing_backed_shell_count: 7, classified_count: 9, ownership_count: 2, valuation_count: 9, year_built_count: 0, size_count: 0, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 10, active_property_count: 9, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 10,
+        creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:33:16.448+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
