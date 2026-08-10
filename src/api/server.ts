@@ -16174,6 +16174,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 2, properties_with_rent_snapshots: 2, latest_rent_observed: '2026-03-28' },
     },
   },
+  brooklynMd: {
+    key: 'brooklyn-md', aliases: ['brooklyn', 'brooklyn-md'], label: 'Brooklyn', publicLabel: 'Brooklyn, MD',
+    city: 'Brooklyn', cityUpper: 'BROOKLYN', county: 'Anne Arundel', state: 'MD', countyId: 1742812,
+    latitude: 39.225670, longitude: -76.614147, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until ZIP 21225 parcel reconciliation and verified contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the BROOKLYN listing city and ZIP 21225, anchored to the linked-property Anne Arundel county_id 1742812; city labels near the Baltimore boundary must not be interpreted as countywide coverage.',
+      'All 89 active listings are linked to 89 active properties with no remaining unlinked rows; 26 properties carry parcel identity and ownership support while 63 are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'Verified agent contacts, recorder/debt coverage, and rent support are absent and must not be guessed or implied; valuation, classification, and brokerage cover all 89 active properties/listings, year built and size cover 24 properties, and coordinates cover 9 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 89, parcel_identity_count: 26, listing_backed_shell_count: 63, classified_count: 89, ownership_count: 26, valuation_count: 89, year_built_count: 24, size_count: 24, coordinate_count: 9, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 89, active_property_count: 89, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 89,
+        creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:49:05.280+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   agouraHillsCa: {
     key: 'agoura-hills-ca', aliases: ['agoura-hills', 'agoura-hills-ca'], label: 'Agoura Hills', publicLabel: 'Agoura Hills, CA',
     city: 'Agoura Hills', cityUpper: 'AGOURA HILLS', county: 'Los Angeles', state: 'CA', countyId: 401712,
