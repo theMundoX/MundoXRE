@@ -15383,6 +15383,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  scottsdale: {
+    key: 'scottsdale', aliases: ['scottsdale', 'scottsdale-az'], label: 'Scottsdale', publicLabel: 'Scottsdale, AZ',
+    city: 'Scottsdale', cityUpper: 'SCOTTSDALE', county: 'Maricopa', state: 'AZ', countyId: 1741140,
+    latitude: 33.4942, longitude: -111.9261, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Maricopa parcel reconciliation and broader verified contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Maricopa county_id 1741140 property rows for Scottsdale; all 3,025 active properties remain address-level listing-backed shells pending assessor parcel reconciliation.',
+      'All 3,025 active listings are linked with no remaining unlinked rows, but none currently carry assessor parcel identity; ownership, structure, coordinates, debt, and rent fields are provider/listing-derived enrichment and must not be represented as county-verified parcel facts.',
+      'Valuation, classification, and rent support cover the full active inventory; ownership covers 2,643 properties, year built 2,531, size and coordinates 2,645, brokerage 3,024 listings, and verified agent email 1,234 listings. Missing fields must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 3025, parcel_identity_count: 0, listing_backed_shell_count: 3025, classified_count: 3025, ownership_count: 2643, valuation_count: 3025, year_built_count: 2531, size_count: 2645, coordinate_count: 2645, multifamily_count: 41 },
+      listings: { active_listing_count: 3025, active_property_count: 3025, unlinked_listing_count: 0, agent_name_count: 2963, agent_email_count: 1234, agent_phone_count: 2934, brokerage_count: 3024, creative_finance_count: 0, latest_listing_seen: '2026-08-10T11:04:02.132822+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 7654, properties_with_mortgage_records: 2264, properties_with_debt_coverage: 2264, mortgage_amount_count: 7638, latest_recording: '2026-05-26' },
+      rents: { rent_snapshot_count: 3025, properties_with_rent_snapshots: 3025, latest_rent_observed: '2026-06-08' },
+    },
+  },
   philadelphia: {
     key: 'philadelphia', aliases: ['philadelphia', 'philadelphia-pa'], label: 'Philadelphia', publicLabel: 'Philadelphia, PA',
     city: 'Philadelphia', cityUpper: 'PHILADELPHIA', county: 'Philadelphia', state: 'PA', countyId: 1178802,
