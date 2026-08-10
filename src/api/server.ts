@@ -15311,6 +15311,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: null },
     },
   },
+  springTx: {
+    key: 'spring-tx', aliases: ['spring', 'spring-tx'], label: 'Spring', publicLabel: 'Spring, TX',
+    city: 'Spring', cityUpper: 'SPRING', county: 'Harris', state: 'TX', countyId: 11,
+    latitude: 30.0799, longitude: -95.4172, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Harris parcel reconciliation and verified ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Harris county_id 11 property rows for Spring, including 102 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 103 active listings are linked with no remaining unlinked rows; 1 property carries parcel identity and ownership support while 102 remain address-level listing shells pending assessor reconciliation.',
+      'Verified agent contacts, year built, square footage, coordinates, and recorder/debt coverage are absent and must not be guessed or implied; brokerage covers all 103 listings, valuation and classification cover 102 properties, and one property has rent support.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 103, parcel_identity_count: 1, listing_backed_shell_count: 102, classified_count: 102, ownership_count: 1, valuation_count: 102, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 103, active_property_count: 103, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 103, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:48:52.191+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-03-26' },
+    },
+  },
   harrisonNj: {
     key: 'harrison-nj',
     aliases: ['harrison', 'harrison-nj'],
