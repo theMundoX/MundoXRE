@@ -16434,6 +16434,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  wylieTx: {
+    key: 'wylie-tx', aliases: ['wylie', 'wylie-tx'], label: 'Wylie', publicLabel: 'Wylie, TX',
+    city: 'Wylie', cityUpper: 'WYLIE', county: 'Collin', state: 'TX', countyId: 2338851,
+    latitude: 33.0151, longitude: -96.5389, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first across the Wylie mailing-city boundary',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the WYLIE listing city, anchored to Collin county_id 2338851; 57 linked parcel-backed properties retain Dallas county_id 7, so results must not be interpreted as Collin County-wide coverage.',
+      'All 375 active listings are linked to 375 active properties with no remaining unlinked rows; 318 properties are clearly sourced listing-backed shells and 57 carry parcel identity.',
+      'Brokerage covers all 375 listings, valuation covers 337 properties, classification 318, ownership 57, coordinates 46, year built 18, size 17, and rent snapshots cover 26 properties; verified agent contacts and recorder/debt coverage are absent and must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 375, parcel_identity_count: 57, listing_backed_shell_count: 318, classified_count: 318, ownership_count: 57, valuation_count: 337, year_built_count: 18, size_count: 17, coordinate_count: 46, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 375, active_property_count: 375, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 375,
+        creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:14:49.087+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 52, properties_with_rent_snapshots: 26, latest_rent_observed: '2026-03-26' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -16568,6 +16594,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'camby-in',
   'loveland-oh',
   'atlanta-ga',
+  'wylie-tx',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
