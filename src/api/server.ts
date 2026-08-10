@@ -15888,6 +15888,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  waldwickNj: {
+    key: 'waldwick-nj', aliases: ['waldwick', 'waldwick-nj'], label: 'Waldwick', publicLabel: 'Waldwick, NJ',
+    city: 'Waldwick', cityUpper: 'WALDWICK', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 41.0107, longitude: -74.1179, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, ownership, verified contact, physical, debt, and broader rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the WALDWICK listing city linked into Bergen county_id 13672 property rows; it is city inventory rather than countywide Bergen coverage.',
+      'All 13 active listings are linked with no remaining unlinked rows; 11 properties are clearly labeled listing-backed shells and only two carry parcel identity, year-built, coordinate, and rent support.',
+      'Ownership, verified agent contacts, square footage, debt, multifamily candidates, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 13 active properties/listings, classification covers 11, and two rent snapshots cover two properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 13, parcel_identity_count: 2, classified_count: 11, ownership_count: 0, valuation_count: 13, year_built_count: 2, size_count: 0, coordinate_count: 2, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 13, active_property_count: 13, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 13, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-28T17:40:05.204+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 2, properties_with_rent_snapshots: 2, latest_rent_observed: '2026-03-28' },
+    },
+  },
   howellTownshipNj: {
     key: 'howell-township-nj', aliases: ['howell-township', 'howell-township-nj'], label: 'Howell Township', publicLabel: 'Howell Township, NJ',
     city: 'Howell Township', cityUpper: 'HOWELL TOWNSHIP', county: 'Monmouth', state: 'NJ', countyId: 13586,
