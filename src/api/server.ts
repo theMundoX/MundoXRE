@@ -32562,6 +32562,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'west-deptford-nj',
   'harrison-nj',
   'orient',
+  'lyons',
   'stow',
   'antioch-tn',
   'howell-township',
