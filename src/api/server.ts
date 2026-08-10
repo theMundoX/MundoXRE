@@ -15347,6 +15347,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 10, properties_with_rent_snapshots: 10, latest_rent_observed: '2026-05-28' },
     },
   },
+  pittsburgh: {
+    key: 'pittsburgh', aliases: ['pittsburgh', 'pittsburgh-pa'], label: 'Pittsburgh', publicLabel: 'Pittsburgh, PA',
+    city: 'Pittsburgh', cityUpper: 'PITTSBURGH', county: 'Allegheny', state: 'PA', countyId: 1973350,
+    latitude: 40.4406, longitude: -79.9959, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation and verified contact, physical, debt, rent, classification, and valuation coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the PITTSBURGH listing-city label, primarily linked into Allegheny county_id 1973350; one linked property carries Greene county_id 940806 and should be treated as a mailing-city or boundary exception.',
+      'All 2,026 active listings are linked with no remaining unlinked rows; 1,288 properties carry parcel identity and ownership support while 738 are clearly labeled address-level listing shells pending assessor reconciliation.',
+      'Verified agent contacts, year built, square footage, recorder/debt coverage, and rent support are absent and must not be guessed or implied; brokerage covers all 2,026 listings, coordinates cover 1,221 properties, and valuation and classification cover the 738 listing-backed shells.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 2026, parcel_identity_count: 1288, listing_backed_shell_count: 738, classified_count: 738, ownership_count: 1288, valuation_count: 738, year_built_count: 0, size_count: 0, coordinate_count: 1221, multifamily_count: 0 },
+      listings: { active_listing_count: 2026, active_property_count: 2026, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 2026, creative_finance_count: 0, latest_listing_seen: '2026-04-14T09:15:17.344+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   harrisonNj: {
     key: 'harrison-nj',
     aliases: ['harrison', 'harrison-nj'],
