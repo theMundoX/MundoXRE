@@ -12070,6 +12070,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  hudsonOh: {
+    key: 'hudson-oh', aliases: ['hudson-oh', 'hudson'], label: 'Hudson', publicLabel: 'Hudson, OH',
+    city: 'Hudson', cityUpper: 'HUDSON', county: 'Summit', state: 'OH', countyId: 1698989,
+    latitude: 41.2401, longitude: -81.4407, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first and shell-heavy while Summit parcel reconciliation catches up',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Summit County property rows for Hudson, including 18 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 19 active Hudson listing rows are linked with no remaining unlinked rows, but only 1 linked property carries parcel identity and ownership while the remaining shell-backed rows stay address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts, brokerage attribution, debt coverage, and rent support remain absent and must not be guessed; valuation spans all 19 linked properties, while classification reaches the 18 shell-backed rows and coordinates reach only the parcel-backed property.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 19, parcel_identity_count: 1, classified_count: 18, ownership_count: 1, valuation_count: 19, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 19, active_property_count: 19, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0,
+        latest_listing_seen: '2026-06-10T18:31:50.707942+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   orientOh: {
     key: 'orient-oh', aliases: ['orient', 'orient-oh'], label: 'Orient', publicLabel: 'Orient, OH',
     city: 'Orient', cityUpper: 'ORIENT', county: 'Franklin', state: 'OH', countyId: 1698985,
@@ -16725,6 +16751,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'loveland-oh',
   'atlanta-ga',
   'wylie-tx',
+  'hudson-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
