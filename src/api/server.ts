@@ -11643,6 +11643,28 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 13, properties_with_rent_snapshots: 13, latest_rent_observed: '2026-03-26' },
     },
   },
+  lauderdaleLakes: {
+    key: 'lauderdale-lakes', aliases: ['lauderdale-lakes', 'lauderdale-lakes-fl'], label: 'Lauderdale Lakes', publicLabel: 'Lauderdale Lakes, FL',
+    city: 'Lauderdale Lakes', cityUpper: 'LAUDERDALE LAKES', county: 'Broward', state: 'FL', countyId: 1973354,
+    latitude: 26.1665, longitude: -80.2084, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Broward parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the LAUDERDALE LAKES listing city, anchored to Broward county_id 1973354; all 74 linked properties currently carry the legacy Florida county_id 12 and city-scoped routing must retain this disclosed identifier mismatch.',
+      'All 74 active listings are linked with no remaining unlinked rows; 1 property carries parcel identity, ownership, year-built, and square-footage support while 73 are clearly sourced listing-backed shells pending assessor reconciliation.',
+      'Verified agent contacts, recorder/debt coverage, rent support, and coordinates are absent and must not be guessed or implied; valuation, classification, and brokerage cover all 74 active properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 74, parcel_identity_count: 1, listing_backed_shell_count: 73, classified_count: 74, ownership_count: 1, valuation_count: 74, year_built_count: 1, size_count: 1, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 74, active_property_count: 74, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 74,
+        creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:42:50.780+00:00', listing_sources: ['redfin'],
+      },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   manasquan: {
     key: 'manasquan', aliases: ['manasquan', 'manasquan-nj'], label: 'Manasquan', publicLabel: 'Manasquan, NJ',
     city: 'Manasquan', cityUpper: 'MANASQUAN', county: 'Monmouth', state: 'NJ', countyId: 13586,
@@ -16837,6 +16859,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'sevierville',
   'gatlinburg',
   'manalapan',
+  'lauderdale-lakes',
   'southampton',
   'tabernacle',
   'beverly',
