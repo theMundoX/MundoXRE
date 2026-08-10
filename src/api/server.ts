@@ -15329,6 +15329,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-03-26' },
     },
   },
+  lockbourne: {
+    key: 'lockbourne', aliases: ['lockbourne', 'lockbourne-oh'], label: 'Lockbourne', publicLabel: 'Lockbourne, OH',
+    city: 'Lockbourne', cityUpper: 'LOCKBOURNE', county: 'Franklin', state: 'OH', countyId: 1698985,
+    latitude: 39.8087, longitude: -82.9699, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation and verified contact, physical, debt-amount, rent, and brokerage coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Franklin county_id 1698985 property rows for Lockbourne, including 39 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 53 active listings are linked with no remaining unlinked rows; 14 properties carry parcel identity and ownership support while 39 remain address-level listing shells pending assessor reconciliation.',
+      'Verified agent contacts and mortgage amount fields are absent and must not be guessed or implied; valuation covers 49 properties, classification 42, year built and coordinates 7 each, square footage 14, brokerage 17 listings, debt rows 5 properties, and rent snapshots 10 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 53, parcel_identity_count: 14, listing_backed_shell_count: 39, classified_count: 42, ownership_count: 14, valuation_count: 49, year_built_count: 7, size_count: 14, coordinate_count: 7, multifamily_count: 0 },
+      listings: { active_listing_count: 53, active_property_count: 53, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 17, creative_finance_count: 0, latest_listing_seen: '2026-08-04T11:21:41.487+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 8, properties_with_mortgage_records: 5, properties_with_debt_coverage: 5, mortgage_amount_count: 0, latest_recording: '2026-02-12' },
+      rents: { rent_snapshot_count: 10, properties_with_rent_snapshots: 10, latest_rent_observed: '2026-05-28' },
+    },
+  },
   harrisonNj: {
     key: 'harrison-nj',
     aliases: ['harrison', 'harrison-nj'],
