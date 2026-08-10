@@ -7073,6 +7073,34 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  wilmingtonNc: {
+    key: 'wilmington-nc', aliases: ['wilmington', 'wilmington-nc'], label: 'Wilmington', publicLabel: 'Wilmington, NC',
+    city: 'Wilmington', cityUpper: 'WILMINGTON', county: 'New Hanover', state: 'NC', countyId: 1457243,
+    latitude: 34.2104, longitude: -77.8868, status: 'live', readinessTarget: 28,
+    scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until New Hanover parcel reconciliation and contact, structure, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into New Hanover county_id 1457243 property rows, including 453 clearly labeled listing-backed shells retained only for active Wilmington listings that did not resolve to parcel identity.',
+      'All 463 active listings are linked, valued, and brokerage-covered with no remaining unlinked rows; only 10 active properties carry parcel identity and ownership support, and coordinate support covers 6.',
+      'Verified agent contacts, structure facts, recorder/debt coverage, and rent support are absent and must not be guessed or implied; shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 463, parcel_identity_count: 10, classified_count: 453, ownership_count: 10,
+        valuation_count: 463, year_built_count: 0, size_count: 0, coordinate_count: 6, multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 463, active_property_count: 463, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0,
+        brokerage_count: 463, creative_finance_count: 0, latest_listing_seen: '2026-03-30T00:13:01.453+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, mortgage_payment_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   oceanCityNj: {
     key: 'ocean-city-nj', aliases: ['ocean-city-nj', 'ocean city nj'], label: 'Ocean City', publicLabel: 'Ocean City, NJ',
     city: 'Ocean City', cityUpper: 'OCEAN CITY', county: 'Cape May', state: 'NJ', countyId: 13700,
@@ -16758,6 +16786,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'benton-ar',
   'alexander-ar',
   'hensley-ar',
+  'wilmington-nc',
   'ocean-city-nj',
   'elizabeth-nj',
   'aurora-oh',
