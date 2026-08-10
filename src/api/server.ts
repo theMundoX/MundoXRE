@@ -15836,6 +15836,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  hermitageTn: {
+    key: 'hermitage-tn', aliases: ['hermitage', 'hermitage-tn'], label: 'Hermitage', publicLabel: 'Hermitage, TN',
+    city: 'Hermitage', cityUpper: 'HERMITAGE', county: 'Davidson', state: 'TN', countyId: 1741138,
+    latitude: 36.182, longitude: -86.6, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, valuation, classification, verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the HERMITAGE listing city linked into Davidson county_id 1741138 property rows; it is city inventory rather than countywide Davidson coverage.',
+      'All 11 active listings are linked with no remaining unlinked rows; 10 properties carry parcel identity and ownership support, while one clearly labeled listing-backed shell remains pending assessor reconciliation.',
+      'Verified agent contacts, year-built, square footage, debt, rent, multifamily candidates, and creative-finance signals are absent and must not be guessed; brokerage covers all 11 listings, valuation covers four properties, and classification and coordinates each cover one.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 11, parcel_identity_count: 10, classified_count: 1, ownership_count: 10, valuation_count: 4, year_built_count: 0, size_count: 0, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 11, active_property_count: 11, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 11, creative_finance_count: 0,
+        latest_listing_seen: '2026-04-15T01:40:20.496+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   howellTownshipNj: {
     key: 'howell-township-nj', aliases: ['howell-township', 'howell-township-nj'], label: 'Howell Township', publicLabel: 'Howell Township, NJ',
     city: 'Howell Township', cityUpper: 'HOWELL TOWNSHIP', county: 'Monmouth', state: 'NJ', countyId: 13586,
