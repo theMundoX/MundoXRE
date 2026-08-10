@@ -15293,6 +15293,24 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  hobokenNj: {
+    key: 'hoboken-nj', aliases: ['hoboken', 'hoboken-nj'], label: 'Hoboken', publicLabel: 'Hoboken, NJ',
+    city: 'Hoboken', cityUpper: 'HOBOKEN', county: 'Hudson', state: 'NJ', countyId: 13725,
+    latitude: 40.7357, longitude: -74.0301, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Hudson parcel reconciliation and verified ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Hudson county_id 13725 property rows for Hoboken, including 75 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 76 active listings are linked with no remaining unlinked rows; 1 property carries parcel identity, ownership, year-built, coordinate, and rent support while 75 remain address-level listing shells pending assessor reconciliation.',
+      'Verified agent contacts, recorder/debt coverage, square footage, and broad rent support are absent and must not be guessed or implied; valuation, classification, and brokerage cover all 76 active properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 76, parcel_identity_count: 1, listing_backed_shell_count: 75, classified_count: 76, ownership_count: 1, valuation_count: 76, year_built_count: 1, size_count: 0, coordinate_count: 1, multifamily_count: 0 },
+      listings: { active_listing_count: 76, active_property_count: 76, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 76, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:39:36.479+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: null },
+    },
+  },
   harrisonNj: {
     key: 'harrison-nj',
     aliases: ['harrison', 'harrison-nj'],
@@ -16860,6 +16878,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'gatlinburg',
   'manalapan',
   'lauderdale-lakes',
+  'hoboken-nj',
   'southampton',
   'tabernacle',
   'beverly',
