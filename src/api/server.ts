@@ -16408,6 +16408,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  atlantaGa: {
+    key: 'atlanta-ga', aliases: ['atlanta', 'atlanta-ga'], label: 'Atlanta', publicLabel: 'Atlanta, GA',
+    city: 'Atlanta', cityUpper: 'ATLANTA', county: 'Fulton', state: 'GA', countyId: 1741139,
+    latitude: 33.7490, longitude: -84.3880, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first across the Atlanta mailing-city boundary',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the ATLANTA listing city, anchored to Fulton county_id 1741139; 68 linked properties retain DeKalb county_id 1741141 and 20 retain Gwinnett county_id 1741143, so results must not be interpreted as Fulton County-wide coverage.',
+      'All 7,979 active listings are linked to 7,978 active properties with no remaining unlinked rows; 6,997 properties are clearly sourced listing-backed shells and 981 carry parcel identity.',
+      'Valuation covers 7,975 active properties, classification covers 6,997, ownership covers 980, coordinates cover 839, and brokerage covers 2,599 listings; verified agent contacts, year built, size, recorder/debt coverage, and rent support are absent and must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 7978, parcel_identity_count: 981, listing_backed_shell_count: 6997, classified_count: 6997, ownership_count: 980, valuation_count: 7975, year_built_count: 0, size_count: 0, coordinate_count: 839, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 7979, active_property_count: 7978, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 2599,
+        creative_finance_count: 0, latest_listing_seen: '2026-05-24T21:06:53.548+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -16541,6 +16567,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'redondo-beach-ca',
   'camby-in',
   'loveland-oh',
+  'atlanta-ga',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
