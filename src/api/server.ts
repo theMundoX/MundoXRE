@@ -16174,6 +16174,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 2, properties_with_rent_snapshots: 2, latest_rent_observed: '2026-03-28' },
     },
   },
+  agouraHillsCa: {
+    key: 'agoura-hills-ca', aliases: ['agoura-hills', 'agoura-hills-ca'], label: 'Agoura Hills', publicLabel: 'Agoura Hills, CA',
+    city: 'Agoura Hills', cityUpper: 'AGOURA HILLS', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 34.143709, longitude: -118.756519, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County parcel reconciliation and verified contact, ownership, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the AGOURA HILLS listing city in Los Angeles county_id 401712; 55 active properties are clearly sourced listing-backed shells pending parcel reconciliation.',
+      'All 89 active listings are linked to 89 active properties with no remaining unlinked rows; 34 properties carry parcel identity while ownership support is absent.',
+      'Verified agent contacts, recorder/debt coverage, and rent support are absent and must not be guessed or implied; valuation, classification, and brokerage cover all 89 active properties/listings, year built and size cover 32 properties, and coordinates cover 34 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 89, parcel_identity_count: 34, listing_backed_shell_count: 55, classified_count: 89, ownership_count: 0, valuation_count: 89, year_built_count: 32, size_count: 32, coordinate_count: 34, multifamily_count: 2 },
+      listings: {
+        active_listing_count: 89, active_property_count: 89, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 89,
+        creative_finance_count: 0, latest_listing_seen: '2026-04-14T08:53:53.780+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   kirklandWa: {
     key: 'kirkland-wa', aliases: ['kirkland', 'kirkland-wa'], label: 'Kirkland', publicLabel: 'Kirkland, WA',
     city: 'Kirkland', cityUpper: 'KIRKLAND', county: 'King', state: 'WA', countyId: 748414,
