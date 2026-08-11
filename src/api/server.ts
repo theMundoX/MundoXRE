@@ -15473,6 +15473,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  longBeachCa: {
+    key: 'long-beach-ca', aliases: ['long-beach', 'long-beach-ca'], label: 'Long Beach', publicLabel: 'Long Beach, CA',
+    city: 'Long Beach', cityUpper: 'LONG BEACH', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 33.7701, longitude: -118.1937, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles parcel reconciliation and verified ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Long Beach; 497 of 699 active properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 699 active listings are linked with no remaining unlinked rows; 202 properties carry parcel identity, 201 year built, and 197 coordinates, while verified ownership support is absent.',
+      'Verified agent contacts, ownership, recorder/debt coverage, rent support, creative-finance signals, and reliable square-footage coverage are absent and must not be guessed or implied; valuation, classification, and brokerage cover all 699 active properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 699, parcel_identity_count: 202, listing_backed_shell_count: 497, classified_count: 699, ownership_count: 0, valuation_count: 699, year_built_count: 201, size_count: 0, coordinate_count: 197, multifamily_count: 83 },
+      listings: { active_listing_count: 699, active_property_count: 699, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 699, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:34:00.093+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   philadelphia: {
     key: 'philadelphia', aliases: ['philadelphia', 'philadelphia-pa'], label: 'Philadelphia', publicLabel: 'Philadelphia, PA',
     city: 'Philadelphia', cityUpper: 'PHILADELPHIA', county: 'Philadelphia', state: 'PA', countyId: 1178802,
