@@ -15599,6 +15599,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  woodstockGa: {
+    key: 'woodstock-ga', aliases: ['woodstock', 'woodstock-ga'], label: 'Woodstock', publicLabel: 'Woodstock, GA',
+    city: 'Woodstock', cityUpper: 'WOODSTOCK', county: 'Cherokee', state: 'GA', countyId: 2338843,
+    latitude: 34.1015, longitude: -84.5194, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Cherokee parcel reconciliation and verified ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cherokee county_id 2338843 property rows for Woodstock; all 472 active properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 472 active listings are linked with no remaining unlinked rows, but none currently carry parcel identity or verified ownership support.',
+      'Verified agent contacts, ownership, parcel identity, year built, square footage, coordinates, recorder/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied; valuation, listing-backed classification, and brokerage cover all 472 active properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 472, parcel_identity_count: 0, listing_backed_shell_count: 472, classified_count: 472, ownership_count: 0, valuation_count: 472, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 472, active_property_count: 472, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 472, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:41:58.817+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   philadelphia: {
     key: 'philadelphia', aliases: ['philadelphia', 'philadelphia-pa'], label: 'Philadelphia', publicLabel: 'Philadelphia, PA',
     city: 'Philadelphia', cityUpper: 'PHILADELPHIA', county: 'Philadelphia', state: 'PA', countyId: 1178802,
