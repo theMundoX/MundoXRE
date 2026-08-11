@@ -132,6 +132,24 @@ const DATA_GAP_DICTIONARY: Record<string, { label: string; meaning: string; prim
     meaning: 'Missing crime/transit/location intelligence scoring.',
     primarySource: 'location_intelligence_refresh',
   },
+  surpriseAz: {
+    key: 'surprise-az', aliases: ['surprise', 'surprise-az'], label: 'Surprise', publicLabel: 'Surprise, AZ',
+    city: 'Surprise', cityUpper: 'SURPRISE', county: 'Maricopa', state: 'AZ', countyId: 1741140,
+    latitude: 33.6292, longitude: -112.3679, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Maricopa parcel reconciliation and verified ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Maricopa county_id 1741140 property rows for Surprise; all 341 active properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 341 active listings are linked with no remaining unlinked rows, but none currently carry parcel identity or verified ownership support.',
+      'Verified agent contacts, ownership, parcel identity, year built, square footage, coordinates, recorder/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied; valuation, listing-backed classification, and brokerage cover all 341 active properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 341, parcel_identity_count: 0, listing_backed_shell_count: 341, classified_count: 341, ownership_count: 0, valuation_count: 341, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 341, active_property_count: 341, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 341, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:30:29.054+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function bbcListingReadyFallbackMetrics(input: {
@@ -29948,6 +29966,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'surprise-az',
   'indianapolis',
   'dallas',
   'columbus',
