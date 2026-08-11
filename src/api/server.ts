@@ -15689,6 +15689,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  lovelandCo: {
+    key: 'loveland-co', aliases: ['loveland-co'], label: 'Loveland', publicLabel: 'Loveland, CO',
+    city: 'Loveland', cityUpper: 'LOVELAND', county: 'Larimer', state: 'CO', countyId: 75651,
+    latitude: 40.3978, longitude: -105.0750, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Larimer parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Larimer county_id 75651 property rows for Loveland; 124 active properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 358 active listings are linked with no remaining unlinked rows; 234 active properties carry parcel identity and owner-name support while 124 remain listing-backed shells.',
+      'Verified agent contacts, year built, square footage, recorder/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied; valuation and classification cover 124 active properties, coordinates cover 138, and brokerage covers all 358.',
+      'The plain loveland alias remains assigned to Loveland, Ohio; Colorado callers must use loveland-co.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 358, parcel_identity_count: 234, listing_backed_shell_count: 124, classified_count: 124, ownership_count: 234, valuation_count: 124, year_built_count: 0, size_count: 0, coordinate_count: 138, multifamily_count: 0 },
+      listings: { active_listing_count: 358, active_property_count: 358, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 358, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   aledoTx: {
     key: 'aledo-tx', aliases: ['aledo', 'aledo-tx'], label: 'Aledo', publicLabel: 'Aledo, TX',
     city: 'Aledo', cityUpper: 'ALEDO', county: 'Parker', state: 'TX', countyId: 2338849,
@@ -17403,6 +17422,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'hoboken-nj',
   'southampton',
   'vail-az',
+  'loveland-co',
   'tabernacle',
   'beverly',
   'o-brien',
