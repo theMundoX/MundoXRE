@@ -12263,6 +12263,32 @@ const MARKET_CONFIGS: Record<string, {
         rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
       },
   },
+  walnutCa: {
+      key: 'walnut-ca', aliases: ['walnut', 'walnut-ca'], label: 'Walnut', publicLabel: 'Walnut, CA',
+      city: 'Walnut', cityUpper: 'WALNUT', county: 'Los Angeles', state: 'CA', countyId: 401712,
+      latitude: 34.0203, longitude: -117.8653, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Walnut, including 78 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 105 active listing rows are linked with no remaining unlinked rows across 105 active properties after two exact-address links and 78 new listing-backed shells; 27 active properties carry parcel identity, year-built, and coordinate support.',
+        'Ownership, verified agent contacts, square footage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 105 rows, while asset classification covers the 78 listing-backed shells.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 105, parcel_identity_count: 27, classified_count: 78, ownership_count: 0, valuation_count: 105, year_built_count: 27, size_count: 0, coordinate_count: 27, multifamily_count: 0 },
+        listings: {
+          active_listing_count: 105, active_property_count: 105, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 105, creative_finance_count: 0,
+          latest_listing_seen: null, listing_sources: ['redfin'],
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   antiochTn: {
     key: 'antioch-tn', aliases: ['antioch', 'antioch-tn'], label: 'Antioch', publicLabel: 'Antioch, TN',
     city: 'Antioch', cityUpper: 'ANTIOCH', county: 'Davidson', state: 'TN', countyId: 1741138,
