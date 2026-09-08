@@ -1,12 +1,13 @@
 #!/usr/bin/env tsx
 import "dotenv/config";
-import { firstEnv, hydrateWindowsUserEnv } from "./lib/env.ts";
+import { execFileSync } from "node:child_process";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { hydrateWindowsUserEnv } from "./lib/env.ts";
+import { makeDbClient, type DbClient } from "./lib/db.ts";
 
 hydrateWindowsUserEnv();
 
-const PG_URL = firstEnv("MXRE_PG_URL")
-  ?? `${(firstEnv("SUPABASE_URL") ?? "").replace(/\/$/, "")}/pg/query`;
-const PG_KEY = firstEnv("SUPABASE_SERVICE_KEY") ?? "";
 const arg = (name: string, fallback?: string) =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=") ?? fallback;
 
@@ -14,15 +15,50 @@ const STATE = (arg("state", "OH") ?? "OH").toUpperCase();
 const CITY = (arg("city", "COLUMBUS") ?? "COLUMBUS").toUpperCase();
 const COUNTY_ID = Number(arg("county_id", "1698985"));
 
+let dbClient: DbClient | null = null;
+let forceSshPsql = false;
+
+function parseCsvLine(line: string): string[] {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i += 1; }
+      else inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) { values.push(current); current = ""; }
+    else current += char;
+  }
+  values.push(current);
+  return values;
+}
+
+function pgViaSsh(query: string): Record<string, unknown>[] {
+  const sshHost = process.env.MXRE_PG_HOST ? `root@${process.env.MXRE_PG_HOST}` : "root@207.244.225.239";
+  const keyPath = process.env.MXRE_PG_SSH_KEY ?? join(process.env.USERPROFILE ?? homedir(), ".ssh", "mxre_contabo_ed25519");
+  const output = execFileSync("ssh", ["-i", keyPath, "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", sshHost,
+    "docker exec -i supabase-db psql -U supabase_admin -d postgres --csv -P footer=off"], {
+    input: query.trim().replace(/;+$/, ""), encoding: "utf8", maxBuffer: 10 * 1024 * 1024, windowsHide: true,
+  }).trim();
+  const lines = output.split(/\r?\n/).filter(Boolean);
+  if (lines.length <= 1) return [];
+  const headers = parseCsvLine(lines[0]);
+  return lines.slice(1).map(line => Object.fromEntries(headers.map((header, index) => [header, parseCsvLine(line)[index] ?? null])));
+}
+
 async function pg(query: string): Promise<Record<string, unknown>[]> {
-  const response = await fetch(PG_URL, {
-    method: "POST",
-    headers: { apikey: PG_KEY, Authorization: `Bearer ${PG_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
-    signal: AbortSignal.timeout(120_000),
-  });
-  if (!response.ok) throw new Error(`pg/query ${response.status}: ${await response.text()}`);
-  return response.json();
+  if (forceSshPsql) return pgViaSsh(query);
+  try {
+    dbClient ??= await makeDbClient();
+    return (await dbClient.query(query)).rows;
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes("pg/query 401")) throw error;
+    forceSshPsql = true;
+    await dbClient?.end();
+    dbClient = null;
+    return pgViaSsh(query);
+  }
 }
 
 const pct = (value: unknown, total: unknown) => {
@@ -46,6 +82,13 @@ async function main() {
 
   const [parcels] = await pg(`
     select count(*)::int as parcel_count,
+           count(*) filter (where nullif(parcel_id,'') is not null)::int as parcel_identity_count,
+           count(*) filter (where nullif(owner_name,'') is not null)::int as owner_count,
+           count(*) filter (where coalesce(market_value, assessed_value, 0) > 0)::int as valuation_count,
+           count(*) filter (where year_built is not null)::int as year_built_count,
+           count(*) filter (where coalesce(living_sqft, 0) > 0)::int as size_count,
+           count(*) filter (where coalesce(lat, latitude) is not null and coalesce(lng, longitude) is not null)::int as coordinate_count,
+           count(*) filter (where record_status = 'active_listing_shell' or source like 'listing_signal_shell:%')::int as listing_shell_count,
            count(*) filter (where asset_type is not null)::int as classified_count,
            count(*) filter (where total_units is not null)::int as unit_count_count,
            count(*) filter (where asset_type in ('small_multifamily','apartment','commercial_multifamily','multifamily') or coalesce(total_units,0) >= 2)::int as multifamily_asset_count
@@ -199,6 +242,15 @@ async function main() {
     },
     creative_finance_count: Number(listings.creative_finance_count ?? 0),
     parcel_count: parcelCount,
+    property_field_coverage: {
+      parcel_identity: Number(parcels.parcel_identity_count ?? 0),
+      owner: Number(parcels.owner_count ?? 0),
+      valuation: Number(parcels.valuation_count ?? 0),
+      year_built: Number(parcels.year_built_count ?? 0),
+      size: Number(parcels.size_count ?? 0),
+      coordinates: Number(parcels.coordinate_count ?? 0),
+      listing_backed_shells: Number(parcels.listing_shell_count ?? 0),
+    },
     asset_classification_coverage: {
       classified_count: Number(parcels.classified_count ?? 0),
       unit_count_count: Number(parcels.unit_count_count ?? 0),

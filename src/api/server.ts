@@ -12237,6 +12237,32 @@ const MARKET_CONFIGS: Record<string, {
         rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
       },
   },
+  southElMonteCa: {
+      key: 'south-el-monte-ca', aliases: ['south-el-monte', 'south-el-monte-ca'], label: 'South El Monte', publicLabel: 'South El Monte, CA',
+      city: 'South El Monte', cityUpper: 'SOUTH EL MONTE', county: 'Los Angeles', state: 'CA', countyId: 401712,
+      latitude: 34.0519, longitude: -118.0467, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for South El Monte, including 24 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 32 active listing rows are linked with no remaining unlinked rows across 32 active properties; eight active properties carry parcel identity, year-built, and coordinate support while 24 remain address-level listing shells pending assessor reconciliation.',
+        'Ownership, verified agent contacts, square footage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 32 rows, while asset classification covers the 24 listing-backed shells.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 32, parcel_identity_count: 8, classified_count: 24, ownership_count: 0, valuation_count: 32, year_built_count: 8, size_count: 0, coordinate_count: 8, multifamily_count: 0 },
+        listings: {
+          active_listing_count: 32, active_property_count: 32, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 32, creative_finance_count: 0,
+          latest_listing_seen: null, listing_sources: ['redfin'],
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   antiochTn: {
     key: 'antioch-tn', aliases: ['antioch', 'antioch-tn'], label: 'Antioch', publicLabel: 'Antioch, TN',
     city: 'Antioch', cityUpper: 'ANTIOCH', county: 'Davidson', state: 'TN', countyId: 1741138,
