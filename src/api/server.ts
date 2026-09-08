@@ -12211,6 +12211,32 @@ const MARKET_CONFIGS: Record<string, {
         rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
       },
   },
+  wynnewoodPa: {
+      key: 'wynnewood-pa', aliases: ['wynnewood', 'wynnewood-pa'], label: 'Wynnewood', publicLabel: 'Wynnewood, PA',
+      city: 'Wynnewood', cityUpper: 'WYNNEWOOD', county: 'Montgomery', state: 'PA', countyId: 1973413,
+      latitude: 40.0029, longitude: -75.2707, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked to property rows for Wynnewood, primarily in Montgomery county_id 1973413, including 13 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 18 active listing rows are linked with no remaining unlinked rows across 18 active properties; five active properties carry parcel identity and ownership support while 13 remain address-level listing shells pending assessor reconciliation.',
+        'Verified agent contacts, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and classification cover the 13 listing shells, brokerage covers all 18 rows, and coordinates cover four properties.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 18, parcel_identity_count: 5, classified_count: 13, ownership_count: 5, valuation_count: 13, year_built_count: 0, size_count: 0, coordinate_count: 4, multifamily_count: 0 },
+        listings: {
+          active_listing_count: 18, active_property_count: 18, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 18, creative_finance_count: 0,
+          latest_listing_seen: '2026-03-28T17:44:51.756Z', listing_sources: ['redfin'],
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   antiochTn: {
     key: 'antioch-tn', aliases: ['antioch', 'antioch-tn'], label: 'Antioch', publicLabel: 'Antioch, TN',
     city: 'Antioch', cityUpper: 'ANTIOCH', county: 'Davidson', state: 'TN', countyId: 1741138,
