@@ -12185,6 +12185,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  santaFeSpringsCa: {
+      key: 'santa-fe-springs-ca', aliases: ['santa-fe-springs', 'santa-fe-springs-ca'], label: 'Santa Fe Springs', publicLabel: 'Santa Fe Springs, CA',
+      city: 'Santa Fe Springs', cityUpper: 'SANTA FE SPRINGS', county: 'Los Angeles', state: 'CA', countyId: 401712,
+      latitude: 33.9472, longitude: -118.0853, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, parcel, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Santa Fe Springs, including 10 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 16 active listing rows are linked with no remaining unlinked rows across 16 active properties; six active properties carry parcel identity and physical support while 10 remain address-level listing shell coverage pending assessor reconciliation.',
+        'Ownership, verified agent contacts, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 16 rows, while year built, square footage, and coordinates cover only the six parcel-identity-backed properties.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 16, parcel_identity_count: 6, classified_count: 10, ownership_count: 0, valuation_count: 16, year_built_count: 6, size_count: 6, coordinate_count: 6, multifamily_count: 1 },
+        listings: {
+          active_listing_count: 16, active_property_count: 16, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 16, creative_finance_count: 0,
+          latest_listing_seen: '2026-09-08T21:05:42.627Z', listing_sources: ['redfin'],
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   antiochTn: {
     key: 'antioch-tn', aliases: ['antioch', 'antioch-tn'], label: 'Antioch', publicLabel: 'Antioch, TN',
     city: 'Antioch', cityUpper: 'ANTIOCH', county: 'Davidson', state: 'TN', countyId: 1741138,
