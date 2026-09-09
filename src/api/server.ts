@@ -221,6 +221,29 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  coraopolisPa: {
+    key: 'coraopolis-pa', aliases: ['coraopolis', 'coraopolis-pa'], label: 'Coraopolis', publicLabel: 'Coraopolis, PA',
+    city: 'Coraopolis', cityUpper: 'CORAOPOLIS', county: 'Allegheny', state: 'PA', countyId: 1973350,
+    latitude: 40.5184, longitude: -80.1667, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Allegheny parcel reconciliation and verified contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Allegheny county_id 1973350 property rows for Coraopolis, including 54 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 65 active listing rows are linked with no remaining unlinked rows after exact matching and 54 new address-and-ZIP-qualified shells; eleven active properties retain parcel identity and ownership support.',
+      'Verified agent contacts, year built, square footage, debt, rents, and positive creative-finance evidence are absent and must not be guessed; brokerage covers all 65 rows, valuation and classification cover the 54 shells, and coordinates cover ten properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 65, parcel_identity_count: 11, classified_count: 54, ownership_count: 11, valuation_count: 54, year_built_count: 0, size_count: 0, coordinate_count: 10, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 65, active_property_count: 65, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 65, creative_finance_count: 0,
+        unlinked_listing_count: 0, latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   conshohockenPa: {
     key: 'conshohocken-pa', aliases: ['conshohocken', 'conshohocken-pa'], label: 'Conshohocken', publicLabel: 'Conshohocken, PA',
     city: 'Conshohocken', cityUpper: 'CONSHOHOCKEN', county: 'Montgomery', state: 'PA', countyId: 1973413,
