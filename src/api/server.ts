@@ -198,6 +198,144 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  chapelHillNc: {
+    key: 'chapel-hill-nc',
+    aliases: [
+      'chapel-hill',
+      'chapel-hill-nc'
+    ],
+    label: 'Chapel Hill',
+    publicLabel: 'Chapel Hill, NC',
+    city: 'Chapel Hill',
+    cityUpper: 'CHAPEL HILL',
+    county: 'Orange',
+    state: 'NC',
+    countyId: 739292,
+    latitude: 35.9132,
+    longitude: -79.0558,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 267 active listings and zero unlinked rows; 246 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Linked inventory spans Orange county_id 739292 (246 properties) and Durham county_id 376654 (21 properties); this is city-scoped coverage, not strictly county-bounded.',
+      'Parcel identity and ownership support cover 21 and 21 properties respectively; valuation covers 258, classification 246, coordinates 7, and brokerage 267. Listing-derived valuation and classification do not establish assessor verification.',
+      'Verified agent contacts, year built, square footage, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:30:30.795584+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 0,
+        parcel_count: 267,
+        ownership_count: 21,
+        valuation_count: 258,
+        classified_count: 246,
+        coordinate_count: 7,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 21,
+        listing_backed_shell_count: 246
+      },
+      listings: {
+        brokerage_count: 267,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:30:30.795584+00:00',
+        active_listing_count: 267,
+        active_property_count: 267,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
+  ravennaOh: {
+    key: 'ravenna-oh',
+    aliases: [
+      'ravenna',
+      'ravenna-oh'
+    ],
+    label: 'Ravenna',
+    publicLabel: 'Ravenna, OH',
+    city: 'Ravenna',
+    cityUpper: 'RAVENNA',
+    county: 'Portage',
+    state: 'OH',
+    countyId: 1741134,
+    latitude: 41.1576,
+    longitude: -81.242,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 48 active listings and zero unlinked rows; 47 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 48 active listing properties link within Portage county_id 1741134.',
+      'Parcel identity and ownership support cover 1 and 1 properties respectively; valuation covers 48, classification 47, coordinates 0, and brokerage 0. Listing-derived valuation and classification do not establish assessor verification.',
+      'Verified agent contacts, year built, square footage, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-06-10T17:35:15.73704+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 0,
+        parcel_count: 48,
+        ownership_count: 1,
+        valuation_count: 48,
+        classified_count: 47,
+        coordinate_count: 0,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 1,
+        listing_backed_shell_count: 47
+      },
+      listings: {
+        brokerage_count: 0,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-06-10T17:35:15.73704+00:00',
+        active_listing_count: 48,
+        active_property_count: 48,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   maranaAz: {
     key: 'marana-az', aliases: ['marana', 'marana-az'], label: 'Marana', publicLabel: 'Marana, AZ',
     city: 'Marana', cityUpper: 'MARANA', county: 'Pima', state: 'AZ', countyId: 1741144,
