@@ -12341,6 +12341,32 @@ const MARKET_CONFIGS: Record<string, {
         rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
       },
   },
+  claytonOh: {
+      key: 'clayton-oh', aliases: ['clayton-oh'], label: 'Clayton', publicLabel: 'Clayton, OH',
+      city: 'Clayton', cityUpper: 'CLAYTON', county: 'Montgomery', state: 'OH', countyId: 1698991,
+      latitude: 39.8631, longitude: -84.3608, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked into Montgomery county_id 1698991 property rows for Clayton, including 37 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 51 active listing rows are linked with no remaining unlinked rows across 51 active properties; 14 active properties carry parcel identity and ownership support while 37 remain address-level listing shells pending assessor reconciliation.',
+        'Verified agent contacts, year built, square footage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and asset classification cover the 37 listing-backed shells, brokerage covers 18 rows, and coordinates cover seven parcel-backed properties.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 51, parcel_identity_count: 14, classified_count: 37, ownership_count: 14, valuation_count: 37, year_built_count: 0, size_count: 0, coordinate_count: 7, multifamily_count: 0 },
+        listings: {
+          active_listing_count: 51, active_property_count: 51, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 18, creative_finance_count: 0,
+          latest_listing_seen: null, listing_sources: ['redfin'],
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   antiochTn: {
     key: 'antioch-tn', aliases: ['antioch', 'antioch-tn'], label: 'Antioch', publicLabel: 'Antioch, TN',
     city: 'Antioch', cityUpper: 'ANTIOCH', county: 'Davidson', state: 'TN', countyId: 1741138,
