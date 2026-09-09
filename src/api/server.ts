@@ -12367,6 +12367,32 @@ const MARKET_CONFIGS: Record<string, {
         rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
       },
   },
+  whittierCa: {
+      key: 'whittier-ca', aliases: ['whittier', 'whittier-ca'], label: 'Whittier', publicLabel: 'Whittier, CA',
+      city: 'Whittier', cityUpper: 'WHITTIER', county: 'Los Angeles', state: 'CA', countyId: 401712,
+      latitude: 33.9792, longitude: -118.0328, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Whittier, including 13 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 16 active listing rows are linked with no remaining unlinked rows across 16 active properties; three active properties carry pre-existing parcel-backed enrichment while 13 remain address-level listing shells pending assessor reconciliation.',
+        'Ownership, verified agent contacts, debt, rent, and positive creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 16 rows, asset classification covers the 13 listing-backed shells, and one multifamily candidate has no rent snapshots.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 16, parcel_identity_count: 3, classified_count: 13, ownership_count: 0, valuation_count: 16, year_built_count: 3, size_count: 3, coordinate_count: 3, multifamily_count: 1 },
+        listings: {
+          active_listing_count: 16, active_property_count: 16, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 16, creative_finance_count: 0,
+          unlinked_listing_count: 0, latest_listing_observed: null,
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   leonaValleyCa: {
       key: 'leona-valley-ca', aliases: ['leona-valley', 'leona-valley-ca'], label: 'Leona Valley', publicLabel: 'Leona Valley, CA',
       city: 'Leona Valley', cityUpper: 'LEONA VALLEY', county: 'Los Angeles', state: 'CA', countyId: 401712,
