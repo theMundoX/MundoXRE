@@ -221,6 +221,29 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  artesiaCa: {
+    key: 'artesia-ca', aliases: ['artesia', 'artesia-ca'], label: 'Artesia', publicLabel: 'Artesia, CA',
+    city: 'Artesia', cityUpper: 'ARTESIA', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 33.8658, longitude: -118.0831, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles parcel reconciliation and verified contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Artesia, including 20 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 24 active listing rows are linked with no remaining unlinked rows after exact matching and 20 new address-and-ZIP-qualified shells; four active properties retain parcel identity, year-built, unit-count, and coordinate support.',
+      'Ownership, verified agent contacts, square footage, debt, rents, and positive creative-finance evidence are absent and must not be guessed; valuation and brokerage cover all 24 rows while classification covers the 20 shells.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 24, parcel_identity_count: 4, classified_count: 20, ownership_count: 0, valuation_count: 24, year_built_count: 4, size_count: 0, coordinate_count: 4, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 24, active_property_count: 24, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 24, creative_finance_count: 0,
+        unlinked_listing_count: 0, latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   paramountCa: {
     key: 'paramount-ca', aliases: ['paramount', 'paramount-ca'], label: 'Paramount', publicLabel: 'Paramount, CA',
     city: 'Paramount', cityUpper: 'PARAMOUNT', county: 'Los Angeles', state: 'CA', countyId: 401712,
