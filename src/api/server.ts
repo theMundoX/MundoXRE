@@ -12367,6 +12367,32 @@ const MARKET_CONFIGS: Record<string, {
         rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
       },
   },
+  leonaValleyCa: {
+      key: 'leona-valley-ca', aliases: ['leona-valley', 'leona-valley-ca'], label: 'Leona Valley', publicLabel: 'Leona Valley, CA',
+      city: 'Leona Valley', cityUpper: 'LEONA VALLEY', county: 'Los Angeles', state: 'CA', countyId: 401712,
+      latitude: 34.6183, longitude: -118.2884, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Leona Valley, including eight clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 10 active listing rows are linked with no remaining unlinked rows across 10 active properties; two active properties carry parcel identity, valuation, year-built, unit-count, and coordinate support while eight remain address-level listing shells pending assessor reconciliation.',
+        'Ownership, verified agent contacts, square footage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 10 rows, asset classification covers the eight listing-backed shells, and no multifamily candidates are currently identified.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 10, parcel_identity_count: 2, classified_count: 8, ownership_count: 0, valuation_count: 10, year_built_count: 2, size_count: 0, coordinate_count: 2, multifamily_count: 0 },
+        listings: {
+          active_listing_count: 10, active_property_count: 10, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 10, creative_finance_count: 0,
+          latest_listing_seen: null, listing_sources: ['redfin'],
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   lomitaCa: {
       key: 'lomita-ca', aliases: ['lomita', 'lomita-ca'], label: 'Lomita', publicLabel: 'Lomita, CA',
       city: 'Lomita', cityUpper: 'LOMITA', county: 'Los Angeles', state: 'CA', countyId: 401712,
