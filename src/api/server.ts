@@ -198,6 +198,43 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  curtisBayMd: {
+    key: 'curtis-bay-md',
+    aliases: ['curtis-bay', 'curtis-bay-md'],
+    label: 'Curtis Bay',
+    publicLabel: 'Curtis Bay, MD',
+    city: 'Curtis Bay',
+    cityUpper: 'CURTIS BAY',
+    county: 'Anne Arundel',
+    state: 'MD',
+    countyId: 1742812,
+    latitude: 39.2243,
+    longitude: -76.5889,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and verified contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the CURTIS BAY listing-city label, anchored to linked-property Anne Arundel county_id 1742812; geography near the Baltimore boundary must not be interpreted as countywide coverage.',
+      'All 22 active listing rows are linked with no remaining unlinked rows after exact matching and 18 new address-and-ZIP-qualified listing-backed shells; four active properties retain pre-existing parcel identity support.',
+      'Ownership, verified agent contacts, square footage, debt, rents, and positive creative-finance evidence are absent and must not be guessed or implied; valuation and brokerage cover all 22 rows, while year built and coordinates cover only four parcel-backed properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 22, parcel_identity_count: 4, classified_count: 18, ownership_count: 0, valuation_count: 22, year_built_count: 4, size_count: 0, coordinate_count: 4, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 22, active_property_count: 22, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 22, creative_finance_count: 0,
+        unlinked_listing_count: 0, latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   hooverAl: {
     key: 'hoover-al',
     aliases: ['hoover', 'hoover-al'],
