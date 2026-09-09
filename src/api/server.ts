@@ -612,6 +612,144 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  albuquerqueNm: {
+    key: 'albuquerque-nm',
+    aliases: [
+      'albuquerque',
+      'albuquerque-nm'
+    ],
+    label: 'Albuquerque',
+    publicLabel: 'Albuquerque, NM',
+    city: 'Albuquerque',
+    cityUpper: 'ALBUQUERQUE',
+    county: 'Bernalillo',
+    state: 'NM',
+    countyId: 2338854,
+    latitude: 35.083333,
+    longitude: -106.65,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 309 active listings and zero unlinked rows; 309 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 309 active listing properties are assigned to Bernalillo county_id 2338854. Coverage uses the ALBUQUERQUE listing city, not the metropolitan area. Shell county assignments remain subject to assessor reconciliation and do not establish complete geographic coverage.',
+      'Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 309, classification 309, coordinates 0, and brokerage 309. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical size cover 0 and 0 properties respectively. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:28:52.823914+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 0,
+        parcel_count: 309,
+        ownership_count: 0,
+        valuation_count: 309,
+        classified_count: 309,
+        coordinate_count: 0,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 0,
+        listing_backed_shell_count: 309
+      },
+      listings: {
+        brokerage_count: 309,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:28:52.823914+00:00',
+        active_listing_count: 309,
+        active_property_count: 309,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
+  rioRicoAz: {
+    key: 'rio-rico-az',
+    aliases: [
+      'rio-rico',
+      'rio-rico-az'
+    ],
+    label: 'Rio Rico',
+    publicLabel: 'Rio Rico, AZ',
+    city: 'Rio Rico',
+    cityUpper: 'RIO RICO',
+    county: 'Santa Cruz',
+    state: 'AZ',
+    countyId: 2338855,
+    latitude: 31.46583,
+    longitude: -110.97861,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 307 active listings and zero unlinked rows; 307 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 307 active listing properties are assigned to Santa Cruz county_id 2338855. Rio Rico is an unincorporated census-designated place; coverage uses the RIO RICO listing-city label, not a verified boundary. Shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 307, classification 307, coordinates 0, and brokerage 307. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical size cover 0 and 0 properties respectively. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:28:54.310384+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 0,
+        parcel_count: 307,
+        ownership_count: 0,
+        valuation_count: 307,
+        classified_count: 307,
+        coordinate_count: 0,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 0,
+        listing_backed_shell_count: 307
+      },
+      listings: {
+        brokerage_count: 307,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:28:54.310384+00:00',
+        active_listing_count: 307,
+        active_property_count: 307,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   maranaAz: {
     key: 'marana-az', aliases: ['marana', 'marana-az'], label: 'Marana', publicLabel: 'Marana, AZ',
     city: 'Marana', cityUpper: 'MARANA', county: 'Pima', state: 'AZ', countyId: 1741144,
