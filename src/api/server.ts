@@ -12289,6 +12289,32 @@ const MARKET_CONFIGS: Record<string, {
         rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
       },
   },
+  westlakeVillageCa: {
+      key: 'westlake-village-ca', aliases: ['westlake-village', 'westlake-village-ca'], label: 'Westlake Village', publicLabel: 'Westlake Village, CA',
+      city: 'Westlake Village', cityUpper: 'WESTLAKE VILLAGE', county: 'Los Angeles', state: 'CA', countyId: 401712,
+      latitude: 34.1458, longitude: -118.8056, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Westlake Village, including 43 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 56 active listing rows are linked with no remaining unlinked rows across 56 active properties; 13 active properties carry parcel identity, year-built, unit-count, and coordinate support while 43 remain address-level listing shells pending assessor reconciliation.',
+        'Ownership, verified agent contacts, square footage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 56 rows, while asset classification covers the 43 listing-backed shells.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 56, parcel_identity_count: 13, classified_count: 43, ownership_count: 0, valuation_count: 56, year_built_count: 13, size_count: 0, coordinate_count: 13, multifamily_count: 0 },
+        listings: {
+          active_listing_count: 56, active_property_count: 56, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 56, creative_finance_count: 0,
+          latest_listing_seen: null, listing_sources: ['redfin'],
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   antiochTn: {
     key: 'antioch-tn', aliases: ['antioch', 'antioch-tn'], label: 'Antioch', publicLabel: 'Antioch, TN',
     city: 'Antioch', cityUpper: 'ANTIOCH', county: 'Davidson', state: 'TN', countyId: 1741138,
