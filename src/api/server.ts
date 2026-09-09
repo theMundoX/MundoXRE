@@ -12367,6 +12367,32 @@ const MARKET_CONFIGS: Record<string, {
         rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
       },
   },
+  lomitaCa: {
+      key: 'lomita-ca', aliases: ['lomita', 'lomita-ca'], label: 'Lomita', publicLabel: 'Lomita, CA',
+      city: 'Lomita', cityUpper: 'LOMITA', county: 'Los Angeles', state: 'CA', countyId: 401712,
+      latitude: 33.7922, longitude: -118.3151, status: 'live', readinessTarget: 28, scope: 'city',
+      metricScope: 'active_listing_properties',
+      refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until listing-shell reconciliation, verified contact, physical, debt, and rent coverage improve',
+      restrictions: [
+        'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+        'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Lomita, including 20 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+        'All 25 active listing rows are linked with no remaining unlinked rows across 25 active properties; five active properties carry parcel identity, valuation, year-built, unit-count, and coordinate support while 20 remain address-level listing shells pending assessor reconciliation.',
+        'Ownership, verified agent contacts, square footage, debt, rent, and creative-finance signals are absent and must not be guessed; valuation and brokerage cover all 25 rows, asset classification covers the 20 listing-backed shells, and two multifamily candidates have no rent snapshots.',
+      ],
+      fallbackCoverageMetrics: {
+        parcels: { parcel_count: 25, parcel_identity_count: 5, classified_count: 20, ownership_count: 0, valuation_count: 25, year_built_count: 5, size_count: 0, coordinate_count: 5, multifamily_count: 2 },
+        listings: {
+          active_listing_count: 25, active_property_count: 25, agent_name_count: 0, agent_email_count: 0,
+          agent_phone_count: 0, brokerage_count: 25, creative_finance_count: 0,
+          latest_listing_seen: null, listing_sources: ['redfin'],
+        },
+        debt: {
+          mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+          mortgage_amount_count: 0, latest_recording: null,
+        },
+        rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      },
+  },
   glendaleCa: {
       key: 'glendale-ca', aliases: ['glendale-ca'], label: 'Glendale', publicLabel: 'Glendale, CA',
       city: 'Glendale', cityUpper: 'GLENDALE', county: 'Los Angeles', state: 'CA', countyId: 401712,
