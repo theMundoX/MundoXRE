@@ -198,6 +198,43 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  hooverAl: {
+    key: 'hoover-al',
+    aliases: ['hoover', 'hoover-al'],
+    label: 'Hoover',
+    publicLabel: 'Hoover, AL',
+    city: 'Hoover',
+    cityUpper: 'HOOVER',
+    county: 'Jefferson',
+    state: 'AL',
+    countyId: 1973348,
+    latitude: 33.4054,
+    longitude: -86.8114,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Jefferson parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Jefferson county_id 1973348 property rows for Hoover, and the full active set remains listing-backed shell coverage rather than assessor-confirmed parcel identity.',
+      'All 270 active listing rows are linked with no remaining unlinked rows after exact matching and 80 new address-and-ZIP-qualified listing-backed shells; the 190 previously linked rows were already labeled listing-backed shells.',
+      'Parcel identity, ownership, verified agent contacts, brokerage, structure facts, coordinates, debt, rents, and positive creative-finance evidence are absent and must not be guessed or implied; valuation and asset classification cover all 270 linked shells.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 270, parcel_identity_count: 0, classified_count: 270, ownership_count: 0, valuation_count: 270, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 270, active_property_count: 270, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0,
+        unlinked_listing_count: 0, latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   indianapolis: {
     key: 'indianapolis',
     aliases: ['indianapolis', 'indy'],
