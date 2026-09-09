@@ -221,6 +221,29 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  paramountCa: {
+    key: 'paramount-ca', aliases: ['paramount', 'paramount-ca'], label: 'Paramount', publicLabel: 'Paramount, CA',
+    city: 'Paramount', cityUpper: 'PARAMOUNT', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 33.8895, longitude: -118.1598, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles parcel reconciliation and verified contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles county_id 401712 property rows for Paramount, including 40 clearly labeled address-level listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 48 active listing rows are linked with no remaining unlinked rows after exact matching and 40 new address-and-ZIP-qualified shells; eight active properties retain parcel identity, year-built, unit-count, and coordinate support.',
+      'Ownership, verified agent contacts, square footage, debt, rents, and positive creative-finance evidence are absent and must not be guessed; valuation and brokerage cover all 48 rows, classification covers the 40 shells, and four properties are multifamily candidates without rent snapshots.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 48, parcel_identity_count: 8, classified_count: 40, ownership_count: 0, valuation_count: 48, year_built_count: 8, size_count: 0, coordinate_count: 8, multifamily_count: 4 },
+      listings: {
+        active_listing_count: 48, active_property_count: 48, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 48, creative_finance_count: 0,
+        unlinked_listing_count: 0, latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   coraopolisPa: {
     key: 'coraopolis-pa', aliases: ['coraopolis', 'coraopolis-pa'], label: 'Coraopolis', publicLabel: 'Coraopolis, PA',
     city: 'Coraopolis', cityUpper: 'CORAOPOLIS', county: 'Allegheny', state: 'PA', countyId: 1973350,
