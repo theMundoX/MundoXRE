@@ -474,6 +474,144 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  sheridanWy: {
+    key: 'sheridan-wy',
+    aliases: [
+      'sheridan',
+      'sheridan-wy'
+    ],
+    label: 'Sheridan',
+    publicLabel: 'Sheridan, WY',
+    city: 'Sheridan',
+    cityUpper: 'SHERIDAN',
+    county: 'Sheridan',
+    state: 'WY',
+    countyId: 2338853,
+    latitude: 44.7972,
+    longitude: -106.9562,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 313 active listings and zero unlinked rows; 313 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 313 active listing properties are assigned to Sheridan county_id 2338853. Shell county assignments remain subject to assessor reconciliation; city matching does not establish complete geographic coverage.',
+      'Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 313, classification 313, coordinates 0, and brokerage 313. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical size cover 0 and 0 properties respectively. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:28:51.237415+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 0,
+        parcel_count: 313,
+        ownership_count: 0,
+        valuation_count: 313,
+        classified_count: 313,
+        coordinate_count: 0,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 0,
+        listing_backed_shell_count: 313
+      },
+      listings: {
+        brokerage_count: 313,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:28:51.237415+00:00',
+        active_listing_count: 313,
+        active_property_count: 313,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
+  losAngelesCa: {
+    key: 'los-angeles-ca',
+    aliases: [
+      'los-angeles',
+      'los-angeles-ca'
+    ],
+    label: 'Los Angeles',
+    publicLabel: 'Los Angeles, CA',
+    city: 'Los Angeles',
+    cityUpper: 'LOS ANGELES',
+    county: 'Los Angeles',
+    state: 'CA',
+    countyId: 401712,
+    latitude: 34.019394,
+    longitude: -118.410825,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 312 active listings and zero unlinked rows; 238 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 312 active listing properties are assigned to Los Angeles county_id 401712. Coverage uses the LOS ANGELES listing city, not the entire county or metropolitan area. Shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership support cover 74 and 0 properties respectively; valuation covers 312, classification 238, coordinates 74, and brokerage 312. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical size cover 71 and 71 properties respectively. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:30:34.440535+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 71,
+        parcel_count: 312,
+        ownership_count: 0,
+        valuation_count: 312,
+        classified_count: 238,
+        coordinate_count: 74,
+        year_built_count: 71,
+        multifamily_count: 18,
+        parcel_identity_count: 74,
+        listing_backed_shell_count: 238
+      },
+      listings: {
+        brokerage_count: 312,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:30:34.440535+00:00',
+        active_listing_count: 312,
+        active_property_count: 312,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   maranaAz: {
     key: 'marana-az', aliases: ['marana', 'marana-az'], label: 'Marana', publicLabel: 'Marana, AZ',
     city: 'Marana', cityUpper: 'MARANA', county: 'Pima', state: 'AZ', countyId: 1741144,
