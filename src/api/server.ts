@@ -1490,6 +1490,210 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  ranchoPalosVerdesCa: {
+    "key": "rancho-palos-verdes-ca",
+    "aliases": [
+      "rancho-palos-verdes",
+      "rancho-palos-verdes-ca"
+    ],
+    "label": "Rancho Palos Verdes",
+    "publicLabel": "Rancho Palos Verdes, CA",
+    "city": "Rancho Palos Verdes",
+    "cityUpper": "RANCHO PALOS VERDES",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 33.738517,
+    "longitude": -118.369685,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 118 active listings and zero unlinked rows; 108 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 118 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the RANCHO PALOS VERDES listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 10 and 0 properties respectively; valuation covers 118, classification 108, coordinates 10, and brokerage 118. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 9 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:49.494084+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 118,
+        "ownership_count": 0,
+        "valuation_count": 118,
+        "classified_count": 108,
+        "coordinate_count": 10,
+        "year_built_count": 9,
+        "multifamily_count": 0,
+        "parcel_identity_count": 10,
+        "listing_backed_shell_count": 108
+      },
+      "listings": {
+        "brokerage_count": 118,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:49.494084+00:00",
+        "active_listing_count": 118,
+        "active_property_count": 118,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  newportBeachCa: {
+    "key": "newport-beach-ca",
+    "aliases": [
+      "newport-beach",
+      "newport-beach-ca"
+    ],
+    "label": "Newport Beach",
+    "publicLabel": "Newport Beach, CA",
+    "city": "Newport Beach",
+    "cityUpper": "NEWPORT BEACH",
+    "county": "Orange",
+    "state": "CA",
+    "countyId": 2338869,
+    "latitude": 33.6086,
+    "longitude": -117.8725,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 116 active listings and zero unlinked rows; 116 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 116 active listing properties are assigned to Orange county_id 2338869. Coverage follows the NEWPORT BEACH listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 116, classification 116, coordinates 0, and brokerage 116. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:30.987719+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 116,
+        "ownership_count": 0,
+        "valuation_count": 116,
+        "classified_count": 116,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 116
+      },
+      "listings": {
+        "brokerage_count": 116,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:30.987719+00:00",
+        "active_listing_count": 116,
+        "active_property_count": 116,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  pleasantonCa: {
+    "key": "pleasanton-ca",
+    "aliases": [
+      "pleasanton",
+      "pleasanton-ca"
+    ],
+    "label": "Pleasanton",
+    "publicLabel": "Pleasanton, CA",
+    "city": "Pleasanton",
+    "cityUpper": "PLEASANTON",
+    "county": "Alameda",
+    "state": "CA",
+    "countyId": 773104,
+    "latitude": 37.6624,
+    "longitude": -121.8747,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 111 active listings and zero unlinked rows; 111 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 111 active listing properties are assigned to Alameda county_id 773104. Coverage follows the PLEASANTON listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 111, classification 111, coordinates 0, and brokerage 111. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:39.455127+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 111,
+        "ownership_count": 0,
+        "valuation_count": 111,
+        "classified_count": 111,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 111
+      },
+      "listings": {
+        "brokerage_count": 111,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:39.455127+00:00",
+        "active_listing_count": 111,
+        "active_property_count": 111,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
