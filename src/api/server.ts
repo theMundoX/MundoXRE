@@ -2442,6 +2442,142 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  elMirageAz: {
+    "key": "el-mirage-az",
+    "aliases": [
+      "el-mirage",
+      "el-mirage-az"
+    ],
+    "label": "El Mirage",
+    "publicLabel": "El Mirage, AZ",
+    "city": "El Mirage",
+    "cityUpper": "EL MIRAGE",
+    "county": "Maricopa",
+    "state": "AZ",
+    "countyId": 1741140,
+    "latitude": 33.613,
+    "longitude": -112.3245,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 89 active listings and zero unlinked rows; 89 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 89 active listing properties are assigned to Maricopa county_id 1741140. Coverage follows the EL MIRAGE listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 89, classification 89, coordinates 0, and brokerage 89. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:35:41.703677+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 89,
+        "ownership_count": 0,
+        "valuation_count": 89,
+        "classified_count": 89,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 89
+      },
+      "listings": {
+        "brokerage_count": 89,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:35:41.703677+00:00",
+        "active_listing_count": 89,
+        "active_property_count": 89,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  dundalkMd: {
+    "key": "dundalk-md",
+    "aliases": [
+      "dundalk",
+      "dundalk-md"
+    ],
+    "label": "Dundalk",
+    "publicLabel": "Dundalk, MD",
+    "city": "Dundalk",
+    "cityUpper": "DUNDALK",
+    "county": "Baltimore",
+    "state": "MD",
+    "countyId": 2338913,
+    "latitude": 39.2574,
+    "longitude": -76.5237,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 89 active listings and zero unlinked rows; 89 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 89 active listing properties are assigned to Baltimore county_id 2338913. Coverage follows the DUNDALK listing-city label for the unincorporated community in Baltimore County; it does not establish municipal boundaries, independent Baltimore City coverage, or complete county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 89, classification 89, coordinates 0, and brokerage 89. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:35:40.088013+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 89,
+        "ownership_count": 0,
+        "valuation_count": 89,
+        "classified_count": 89,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 89
+      },
+      "listings": {
+        "brokerage_count": 89,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:35:40.088013+00:00",
+        "active_listing_count": 89,
+        "active_property_count": 89,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
