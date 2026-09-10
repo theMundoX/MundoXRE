@@ -1014,6 +1014,142 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  sylmarCa: {
+    "key": "sylmar-ca",
+    "aliases": [
+      "sylmar",
+      "sylmar-ca"
+    ],
+    "label": "Sylmar",
+    "publicLabel": "Sylmar, CA",
+    "city": "Sylmar",
+    "cityUpper": "SYLMAR",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 34.30759,
+    "longitude": -118.44972,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 131 active listings and zero unlinked rows; 125 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 131 active listing properties are assigned to Los Angeles county_id 401712. Sylmar is a neighborhood of Los Angeles. Coverage follows only the SYLMAR listing-city label, not all Los Angeles or separate city-label variants. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 6 and 0 properties respectively; valuation covers 131, classification 125, coordinates 6, and brokerage 131. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 6 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:13.491744+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 131,
+        "ownership_count": 0,
+        "valuation_count": 131,
+        "classified_count": 125,
+        "coordinate_count": 6,
+        "year_built_count": 6,
+        "multifamily_count": 1,
+        "parcel_identity_count": 6,
+        "listing_backed_shell_count": 125
+      },
+      "listings": {
+        "brokerage_count": 131,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:13.491744+00:00",
+        "active_listing_count": 131,
+        "active_property_count": 131,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  troyOh: {
+    "key": "troy-oh",
+    "aliases": [
+      "troy",
+      "troy-oh"
+    ],
+    "label": "Troy",
+    "publicLabel": "Troy, OH",
+    "city": "Troy",
+    "cityUpper": "TROY",
+    "county": "Miami",
+    "state": "OH",
+    "countyId": 2338898,
+    "latitude": 40.03847,
+    "longitude": -84.20417,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 347 active listings and zero unlinked rows; 347 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 347 active listing properties are assigned to Miami county_id 2338898. Coverage follows the TROY listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 347, classification 347, coordinates 0, and brokerage 0. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-09-09T13:34:23.706+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 347,
+        "ownership_count": 0,
+        "valuation_count": 347,
+        "classified_count": 347,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 347
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-10T11:51:24.435723+00:00",
+        "active_listing_count": 347,
+        "active_property_count": 347,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
