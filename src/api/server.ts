@@ -3326,6 +3326,142 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  lebanonOh: {
+    "key": "lebanon-oh",
+    "aliases": [
+      "lebanon",
+      "lebanon-oh"
+    ],
+    "label": "Lebanon",
+    "publicLabel": "Lebanon, OH",
+    "city": "Lebanon",
+    "cityUpper": "LEBANON",
+    "county": "Warren",
+    "state": "OH",
+    "countyId": 1741129,
+    "latitude": 39.4353373,
+    "longitude": -84.2029922,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 471 active listings and zero unlinked rows; 471 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 471 active listing properties are assigned to Warren county_id 1741129. Coverage follows the LEBANON listing-city label and does not establish complete municipal, metro-area, or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 471, classification 471, coordinates 0, and brokerage 0. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-09-10T13:27:21.574+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 471,
+        "ownership_count": 0,
+        "valuation_count": 471,
+        "classified_count": 471,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 471
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-10T20:00:24.064314+00:00",
+        "active_listing_count": 471,
+        "active_property_count": 471,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  oaklandCa: {
+    "key": "oakland-ca",
+    "aliases": [
+      "oakland",
+      "oakland-ca"
+    ],
+    "label": "Oakland",
+    "publicLabel": "Oakland, CA",
+    "city": "Oakland",
+    "cityUpper": "OAKLAND",
+    "county": "Alameda",
+    "state": "CA",
+    "countyId": 773104,
+    "latitude": 37.8045,
+    "longitude": -122.2714,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 151 active listings and zero unlinked rows; 151 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 151 active listing properties are assigned to Alameda county_id 773104. Coverage follows the OAKLAND listing-city label and does not establish complete municipal, metro-area, or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 150, classification 151, coordinates 0, and brokerage 151. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:31:55.730996+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 151,
+        "ownership_count": 0,
+        "valuation_count": 150,
+        "classified_count": 151,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 151
+      },
+      "listings": {
+        "brokerage_count": 151,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:31:55.730996+00:00",
+        "active_listing_count": 151,
+        "active_property_count": 151,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
