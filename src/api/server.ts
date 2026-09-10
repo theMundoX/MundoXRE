@@ -3462,6 +3462,210 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  elyriaOh: {
+    "key": "elyria-oh",
+    "aliases": [
+      "elyria",
+      "elyria-oh"
+    ],
+    "label": "Elyria",
+    "publicLabel": "Elyria, OH",
+    "city": "Elyria",
+    "cityUpper": "ELYRIA",
+    "county": "Lorain",
+    "state": "OH",
+    "countyId": 1741132,
+    "latitude": 41.36838,
+    "longitude": -82.10765,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 423 active listings and zero unlinked rows; 423 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 423 active listing properties are assigned to Lorain county_id 1741132. Coverage follows the ELYRIA listing-city label, including postal areas, and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 423, classification 423, coordinates 0, and brokerage 0. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-09-10T13:27:20.514+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 423,
+        "ownership_count": 0,
+        "valuation_count": 423,
+        "classified_count": 423,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 423
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-10T20:59:41.990146+00:00",
+        "active_listing_count": 423,
+        "active_property_count": 423,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  crossvilleTn: {
+    "key": "crossville-tn",
+    "aliases": [
+      "crossville",
+      "crossville-tn"
+    ],
+    "label": "Crossville",
+    "publicLabel": "Crossville, TN",
+    "city": "Crossville",
+    "cityUpper": "CROSSVILLE",
+    "county": "Cumberland",
+    "state": "TN",
+    "countyId": 2338899,
+    "latitude": 35.94896,
+    "longitude": -85.0269,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 129 active listings and zero unlinked rows; 129 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 129 active listing properties are assigned to Cumberland county_id 2338899. Coverage follows the CROSSVILLE listing-city label, including postal communities, and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 128, classification 129, coordinates 0, and brokerage 129. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:10.420703+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 129,
+        "ownership_count": 0,
+        "valuation_count": 128,
+        "classified_count": 129,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 129
+      },
+      "listings": {
+        "brokerage_count": 129,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:10.420703+00:00",
+        "active_listing_count": 129,
+        "active_property_count": 129,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  beavercreekOh: {
+    "key": "beavercreek-oh",
+    "aliases": [
+      "beavercreek",
+      "beavercreek-oh"
+    ],
+    "label": "Beavercreek",
+    "publicLabel": "Beavercreek, OH",
+    "city": "Beavercreek",
+    "cityUpper": "BEAVERCREEK",
+    "county": "Greene",
+    "state": "OH",
+    "countyId": 2338903,
+    "latitude": 39.73067,
+    "longitude": -84.06885,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 336 active listings and zero unlinked rows; 336 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 336 active listing properties are assigned to Greene county_id 2338903. Coverage follows the BEAVERCREEK listing-city label, including township and postal areas, and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 336, classification 336, coordinates 0, and brokerage 31. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-09-10T13:27:59.395+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 336,
+        "ownership_count": 0,
+        "valuation_count": 336,
+        "classified_count": 336,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 336
+      },
+      "listings": {
+        "brokerage_count": 31,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-10T20:59:57.225677+00:00",
+        "active_listing_count": 336,
+        "active_property_count": 336,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
