@@ -742,6 +742,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  sylvaniaOh: {
+    key: 'sylvania-oh',
+    aliases: [
+      'sylvania',
+      'sylvania-oh'
+    ],
+    label: 'Sylvania',
+    publicLabel: 'Sylvania, OH',
+    city: 'Sylvania',
+    cityUpper: 'SYLVANIA',
+    county: 'Lucas',
+    state: 'OH',
+    countyId: 2338836,
+    latitude: 41.7189,
+    longitude: -83.71299,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 313 active listings and zero unlinked rows; 313 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 313 active listing properties are assigned to Lucas county_id 2338836. Coverage follows the Sylvania listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 311, classification 313, coordinates 0, and brokerage 85. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built support is absent; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent. Rent snapshots cover 163 properties, all from estimated sources; these are modeled amounts, not observed leases or verified rental comparables.',
+      'The latest pre-link listing row update was 2026-09-09T13:32:52.105+00:00. Linking updated row timestamps on 2026-09-10 without refreshing source availability; stored active flags are not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 313,
+        ownership_count: 0,
+        valuation_count: 311,
+        classified_count: 313,
+        coordinate_count: 0,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 0,
+        listing_backed_shell_count: 313
+      },
+      listings: {
+        brokerage_count: 85,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-09-10T09:48:54.711224+00:00',
+        active_listing_count: 313,
+        active_property_count: 313,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 163,
+        latest_rent_observed: '2026-05-26',
+        properties_with_rent_snapshots: 163
+      }
+    }
+  },
   chapelHillNc: {
     key: 'chapel-hill-nc',
     aliases: [
