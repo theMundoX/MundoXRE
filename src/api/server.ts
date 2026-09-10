@@ -4007,6 +4007,278 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  landenbergPa: {
+    "key": "landenberg-pa",
+    "aliases": [
+      "landenberg",
+      "landenberg-pa"
+    ],
+    "label": "Landenberg",
+    "publicLabel": "Landenberg, PA",
+    "city": "Landenberg",
+    "cityUpper": "LANDENBERG",
+    "county": "Chester",
+    "state": "PA",
+    "countyId": 817175,
+    "latitude": 39.7773329,
+    "longitude": -75.7713264,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 16 active listings and zero unlinked rows; 3 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 16 active listing properties are assigned to Chester county_id 817175. Coverage follows the LANDENBERG unincorporated community and postal listing label, not an incorporated municipality or complete county boundary. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 16 and 13 properties respectively; valuation covers 3, classification 3, coordinates 13, and brokerage 16. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 0 properties; snapshot presence does not establish current verified market rent.",
+      "The latest pre-link listing update is 2026-08-06T20:38:56.650069+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 16,
+        "ownership_count": 13,
+        "valuation_count": 3,
+        "classified_count": 3,
+        "coordinate_count": 13,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 16,
+        "listing_backed_shell_count": 3
+      },
+      "listings": {
+        "brokerage_count": 16,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-06T20:38:56.650069+00:00",
+        "active_listing_count": 16,
+        "active_property_count": 16,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  hiddenHillsCa: {
+    "key": "hidden-hills-ca",
+    "aliases": [
+      "hidden-hills",
+      "hidden-hills-ca"
+    ],
+    "label": "Hidden Hills",
+    "publicLabel": "Hidden Hills, CA",
+    "city": "Hidden Hills",
+    "cityUpper": "HIDDEN HILLS",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 34.163744,
+    "longitude": -118.66121,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 37 active listings and zero unlinked rows; 7 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 37 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the HIDDEN HILLS listing-city/postal label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 37 and 0 properties respectively; valuation covers 37, classification 7, coordinates 29, and brokerage 37. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 29 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 0 properties; snapshot presence does not establish current verified market rent.",
+      "The latest pre-link listing update is 2026-08-06T21:36:35.531267+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 37,
+        "ownership_count": 0,
+        "valuation_count": 37,
+        "classified_count": 7,
+        "coordinate_count": 29,
+        "year_built_count": 29,
+        "multifamily_count": 1,
+        "parcel_identity_count": 37,
+        "listing_backed_shell_count": 7
+      },
+      "listings": {
+        "brokerage_count": 37,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-06T21:36:35.531267+00:00",
+        "active_listing_count": 37,
+        "active_property_count": 37,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  newCastleCo: {
+    "key": "new-castle-co",
+    "aliases": [
+      "new-castle",
+      "new-castle-co"
+    ],
+    "label": "New Castle",
+    "publicLabel": "New Castle, CO",
+    "city": "New Castle",
+    "cityUpper": "NEW CASTLE",
+    "county": "Garfield",
+    "state": "CO",
+    "countyId": 71224,
+    "latitude": 39.57148,
+    "longitude": -107.53497,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 62 active listings and zero unlinked rows; 34 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 62 active listing properties are assigned to Garfield county_id 71224. Coverage follows the NEW CASTLE listing-city/postal label, including surrounding postal addresses, and does not establish complete town or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 62 and 28 properties respectively; valuation covers 34, classification 34, coordinates 14, and brokerage 62. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 10 properties; snapshot presence does not establish current verified market rent.",
+      "The latest pre-link listing update is 2026-08-06T21:41:25.43747+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 62,
+        "ownership_count": 28,
+        "valuation_count": 34,
+        "classified_count": 34,
+        "coordinate_count": 14,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 62,
+        "listing_backed_shell_count": 34
+      },
+      "listings": {
+        "brokerage_count": 62,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-06T21:41:25.43747+00:00",
+        "active_listing_count": 62,
+        "active_property_count": 62,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 10,
+        "latest_rent_observed": "2026-03-28",
+        "properties_with_rent_snapshots": 10
+      }
+    }
+  },
+  bellvueCo: {
+    "key": "bellvue-co",
+    "aliases": [
+      "bellvue",
+      "bellvue-co"
+    ],
+    "label": "Bellvue",
+    "publicLabel": "Bellvue, CO",
+    "city": "Bellvue",
+    "cityUpper": "BELLVUE",
+    "county": "Larimer",
+    "state": "CO",
+    "countyId": 75651,
+    "latitude": 40.626371,
+    "longitude": -105.1716479,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 42 active listings and zero unlinked rows; 9 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 42 active listing properties are assigned to Larimer county_id 75651. Coverage follows the BELLVUE unincorporated community and postal listing label, including rural postal addresses, not an incorporated municipality or complete county boundary. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 42 and 33 properties respectively; valuation covers 9, classification 9, coordinates 20, and brokerage 42. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 0 properties; snapshot presence does not establish current verified market rent.",
+      "The latest pre-link listing update is 2026-08-06T22:36:44.739319+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 42,
+        "ownership_count": 33,
+        "valuation_count": 9,
+        "classified_count": 9,
+        "coordinate_count": 20,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 42,
+        "listing_backed_shell_count": 9
+      },
+      "listings": {
+        "brokerage_count": 42,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-06T22:36:44.739319+00:00",
+        "active_listing_count": 42,
+        "active_property_count": 42,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
