@@ -1762,6 +1762,210 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  eugeneOr: {
+    "key": "eugene-or",
+    "aliases": [
+      "eugene",
+      "eugene-or"
+    ],
+    "label": "Eugene",
+    "publicLabel": "Eugene, OR",
+    "city": "Eugene",
+    "cityUpper": "EUGENE",
+    "county": "Lane",
+    "state": "OR",
+    "countyId": 2338905,
+    "latitude": 44.050506,
+    "longitude": -123.09505,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 111 active listings and zero unlinked rows; 111 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 111 active listing properties are assigned to Lane county_id 2338905. Coverage follows the EUGENE listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 111, classification 111, coordinates 0, and brokerage 111. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:41.142015+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 111,
+        "ownership_count": 0,
+        "valuation_count": 111,
+        "classified_count": 111,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 111
+      },
+      "listings": {
+        "brokerage_count": 111,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:41.142015+00:00",
+        "active_listing_count": 111,
+        "active_property_count": 111,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  monroeGa: {
+    "key": "monroe-ga",
+    "aliases": [
+      "monroe",
+      "monroe-ga"
+    ],
+    "label": "Monroe",
+    "publicLabel": "Monroe, GA",
+    "city": "Monroe",
+    "cityUpper": "MONROE",
+    "county": "Walton",
+    "state": "GA",
+    "countyId": 2338886,
+    "latitude": 33.79454,
+    "longitude": -83.7132,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 110 active listings and zero unlinked rows; 110 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 110 active listing properties are assigned to Walton county_id 2338886. Coverage follows the MONROE listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 110, classification 110, coordinates 0, and brokerage 110. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:42.87403+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 110,
+        "ownership_count": 0,
+        "valuation_count": 110,
+        "classified_count": 110,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 110
+      },
+      "listings": {
+        "brokerage_count": 110,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:42.87403+00:00",
+        "active_listing_count": 110,
+        "active_property_count": 110,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  boydTx: {
+    "key": "boyd-tx",
+    "aliases": [
+      "boyd",
+      "boyd-tx"
+    ],
+    "label": "Boyd",
+    "publicLabel": "Boyd, TX",
+    "city": "Boyd",
+    "cityUpper": "BOYD",
+    "county": "Wise",
+    "state": "TX",
+    "countyId": 2338888,
+    "latitude": 33.081098,
+    "longitude": -97.563069,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 108 active listings and zero unlinked rows; 108 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 108 active listing properties are assigned to Wise county_id 2338888. Coverage follows the BOYD listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 108, classification 108, coordinates 0, and brokerage 108. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:47.858035+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 108,
+        "ownership_count": 0,
+        "valuation_count": 108,
+        "classified_count": 108,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 108
+      },
+      "listings": {
+        "brokerage_count": 108,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:47.858035+00:00",
+        "active_listing_count": 108,
+        "active_property_count": 108,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
