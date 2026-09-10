@@ -1966,6 +1966,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  tarzanaCa: {
+    "key": "tarzana-ca",
+    "aliases": [
+      "tarzana",
+      "tarzana-ca"
+    ],
+    "label": "Tarzana",
+    "publicLabel": "Tarzana, CA",
+    "city": "Tarzana",
+    "cityUpper": "TARZANA",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 34.16893,
+    "longitude": -118.53658,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 102 active listings and zero unlinked rows; 102 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 102 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the TARZANA listing-city label for this Los Angeles neighborhood; it does not establish an independent municipality or complete Los Angeles city or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 102, classification 102, coordinates 0, and brokerage 102. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:35:06.656194+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 102,
+        "ownership_count": 0,
+        "valuation_count": 102,
+        "classified_count": 102,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 102
+      },
+      "listings": {
+        "brokerage_count": 102,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:35:06.656194+00:00",
+        "active_listing_count": 102,
+        "active_property_count": 102,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
