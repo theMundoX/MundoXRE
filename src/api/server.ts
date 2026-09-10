@@ -750,6 +750,75 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  coloradoSpringsCo: {
+    key: 'colorado-springs-co',
+    aliases: [
+      'colorado-springs',
+      'colorado-springs-co'
+    ],
+    label: 'Colorado Springs',
+    publicLabel: 'Colorado Springs, CO',
+    city: 'Colorado Springs',
+    cityUpper: 'COLORADO SPRINGS',
+    county: 'El Paso',
+    state: 'CO',
+    countyId: 83642,
+    latitude: 38.8339,
+    longitude: -104.8214,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 274 active listings and zero unlinked rows; 274 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 274 active listing properties are assigned to El Paso county_id 83642. Coverage uses the COLORADO SPRINGS listing city. Shell county assignments remain subject to assessor reconciliation and do not establish complete geographic coverage.',
+      'Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 274, classification 274, coordinates 0, and brokerage 274. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built support is absent; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:29:02.692984+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 0,
+        parcel_count: 274,
+        ownership_count: 0,
+        valuation_count: 274,
+        classified_count: 274,
+        coordinate_count: 0,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 0,
+        listing_backed_shell_count: 274
+      },
+      listings: {
+        brokerage_count: 274,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:29:02.692984+00:00',
+        active_listing_count: 274,
+        active_property_count: 274,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   mcallenTx: {
     key: 'mcallen-tx',
     aliases: [
