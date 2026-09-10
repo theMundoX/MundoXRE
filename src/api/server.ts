@@ -1218,6 +1218,210 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  oceansideCa: {
+    "key": "oceanside-ca",
+    "aliases": [
+      "oceanside",
+      "oceanside-ca"
+    ],
+    "label": "Oceanside",
+    "publicLabel": "Oceanside, CA",
+    "city": "Oceanside",
+    "cityUpper": "OCEANSIDE",
+    "county": "San Diego",
+    "state": "CA",
+    "countyId": 2338873,
+    "latitude": 33.2106,
+    "longitude": -117.3533,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 124 active listings and zero unlinked rows; 124 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 124 active listing properties are assigned to San Diego county_id 2338873. Coverage follows the OCEANSIDE listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 124, classification 124, coordinates 0, and brokerage 124. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:18.501075+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 124,
+        "ownership_count": 0,
+        "valuation_count": 124,
+        "classified_count": 124,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 124
+      },
+      "listings": {
+        "brokerage_count": 124,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:18.501075+00:00",
+        "active_listing_count": 124,
+        "active_property_count": 124,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  campVerdeAz: {
+    "key": "camp-verde-az",
+    "aliases": [
+      "camp-verde",
+      "camp-verde-az"
+    ],
+    "label": "Camp Verde",
+    "publicLabel": "Camp Verde, AZ",
+    "city": "Camp Verde",
+    "cityUpper": "CAMP VERDE",
+    "county": "Yavapai",
+    "state": "AZ",
+    "countyId": 2338902,
+    "latitude": 34.5636,
+    "longitude": -111.8543,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 123 active listings and zero unlinked rows; 123 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 123 active listing properties are assigned to Yavapai county_id 2338902. Coverage follows the CAMP VERDE listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 123, classification 123, coordinates 0, and brokerage 123. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:22.214193+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 123,
+        "ownership_count": 0,
+        "valuation_count": 123,
+        "classified_count": 123,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 123
+      },
+      "listings": {
+        "brokerage_count": 123,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:22.214193+00:00",
+        "active_listing_count": 123,
+        "active_property_count": 123,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  bedfordTx: {
+    "key": "bedford-tx",
+    "aliases": [
+      "bedford",
+      "bedford-tx"
+    ],
+    "label": "Bedford",
+    "publicLabel": "Bedford, TX",
+    "city": "Bedford",
+    "cityUpper": "BEDFORD",
+    "county": "Tarrant",
+    "state": "TX",
+    "countyId": 8,
+    "latitude": 32.8463949,
+    "longitude": -97.135019,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 123 active listings and zero unlinked rows; 123 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 123 active listing properties are assigned to Tarrant county_id 8. Coverage follows the BEDFORD listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 123, classification 123, coordinates 0, and brokerage 123. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-25T10:34:24.05871+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 123,
+        "ownership_count": 0,
+        "valuation_count": 123,
+        "classified_count": 123,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 123
+      },
+      "listings": {
+        "brokerage_count": 123,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-25T10:34:24.05871+00:00",
+        "active_listing_count": 123,
+        "active_property_count": 123,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
