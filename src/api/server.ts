@@ -2192,6 +2192,213 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  torranceCa: {
+    key: 'torrance-ca',
+    aliases: [
+      'torrance',
+      'torrance-ca'
+    ],
+    label: 'Torrance',
+    publicLabel: 'Torrance, CA',
+    city: 'Torrance',
+    cityUpper: 'TORRANCE',
+    county: 'Los Angeles',
+    state: 'CA',
+    countyId: 401712,
+    latitude: 33.830453,
+    longitude: -118.356618,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 186 active listings and zero unlinked rows; 133 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Linked properties are assigned to Los Angeles county_id 401712. Coverage follows the Torrance listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership support cover 53 and 0 properties respectively; valuation covers 186, classification 133, coordinates 53, and brokerage 186. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical size cover 51 and 51 properties respectively. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:34:02.217256+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 51,
+        parcel_count: 186,
+        ownership_count: 0,
+        valuation_count: 186,
+        classified_count: 133,
+        coordinate_count: 53,
+        year_built_count: 51,
+        multifamily_count: 7,
+        parcel_identity_count: 53,
+        listing_backed_shell_count: 133
+      },
+      listings: {
+        brokerage_count: 186,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:34:02.217256+00:00',
+        active_listing_count: 186,
+        active_property_count: 186,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
+  bensonAz: {
+    key: 'benson-az',
+    aliases: [
+      'benson',
+      'benson-az'
+    ],
+    label: 'Benson',
+    publicLabel: 'Benson, AZ',
+    city: 'Benson',
+    cityUpper: 'BENSON',
+    county: 'Cochise',
+    state: 'AZ',
+    countyId: 2338872,
+    latitude: 31.9157,
+    longitude: -110.3257,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 184 active listings and zero unlinked rows; 184 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Linked properties are assigned to Cochise county_id 2338872. Coverage follows the Benson listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 184, classification 184, coordinates 0, and brokerage 184. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical size cover 0 and 0 properties respectively. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:31:11.520763+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 0,
+        parcel_count: 184,
+        ownership_count: 0,
+        valuation_count: 184,
+        classified_count: 184,
+        coordinate_count: 0,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 0,
+        listing_backed_shell_count: 184
+      },
+      listings: {
+        brokerage_count: 184,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:31:11.520763+00:00',
+        active_listing_count: 184,
+        active_property_count: 184,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
+  palmdaleCa: {
+    key: 'palmdale-ca',
+    aliases: [
+      'palmdale',
+      'palmdale-ca'
+    ],
+    label: 'Palmdale',
+    publicLabel: 'Palmdale, CA',
+    city: 'Palmdale',
+    cityUpper: 'PALMDALE',
+    county: 'Los Angeles',
+    state: 'CA',
+    countyId: 401712,
+    latitude: 34.5793,
+    longitude: -118.1171,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 184 active listings and zero unlinked rows; 109 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Linked properties are assigned to Los Angeles county_id 401712. Coverage follows the Palmdale listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership support cover 75 and 0 properties respectively; valuation covers 184, classification 109, coordinates 72, and brokerage 184. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical size cover 75 and 75 properties respectively. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-25T10:34:46.088911+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        size_count: 75,
+        parcel_count: 184,
+        ownership_count: 0,
+        valuation_count: 184,
+        classified_count: 109,
+        coordinate_count: 72,
+        year_built_count: 75,
+        multifamily_count: 0,
+        parcel_identity_count: 75,
+        listing_backed_shell_count: 109
+      },
+      listings: {
+        brokerage_count: 184,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-25T10:34:46.088911+00:00',
+        active_listing_count: 184,
+        active_property_count: 184,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   maranaAz: {
     key: 'marana-az', aliases: ['marana', 'marana-az'], label: 'Marana', publicLabel: 'Marana, AZ',
     city: 'Marana', cityUpper: 'MARANA', county: 'Pima', state: 'AZ', countyId: 1741144,
