@@ -6795,6 +6795,73 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  londonOh: {
+    "key": "london-oh",
+    "aliases": [
+      "london-oh"
+    ],
+    "label": "London",
+    "publicLabel": "London, OH",
+    "city": "London",
+    "cityUpper": "LONDON",
+    "county": "Madison",
+    "state": "OH",
+    "countyId": 2338927,
+    "latitude": 39.88587,
+    "longitude": -83.4473,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Inventory has 135 active listings and zero unlinked rows after one unique exact site-address, city and ZIP public parcel import and 134 clearly labeled listing-backed shells. Shells remain pending assessor reconciliation and are not proof of unique parcels or units.",
+      "Madison county_id 2338927, Census-confirmed FIPS 39097, is supported by the linked county parcel. Coverage follows LONDON listing-city labels in ZIP 43140, including rural and Choctaw Lake postal inventory, not verified city boundaries or complete county inventory. Shell county assignments remain subject to parcel reconciliation.",
+      "The county source https://services8.arcgis.com/HCOT30BFUWvevW8A/arcgis/rest/services/Parcels_Engineer/FeatureServer/13 supplies one parcel identity and owner name. Many source street fields omit suffixes or directions; those incomplete addresses were not treated as exact matches. All 134 supported valuations and classifications are listing-derived shell signals. Property coordinates, year built and physical-size support are absent or unverified; the display point is not property enrichment.",
+      "Unresolved units, lots, proposed or model-home labels remain shells and need public parcel reconciliation. Brokerage labels, verified agent emails and phones, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link stored listing update is 2026-08-04T11:21:39.737+00:00; it is not independent verification of current availability. Linkage can advance updated_at without a source refresh. Public parcel retrieval on 2026-09-11 does not establish source revision freshness."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 135,
+        "ownership_count": 1,
+        "valuation_count": 134,
+        "classified_count": 134,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 1,
+        "listing_backed_shell_count": 134
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T15:17:43.885075+00:00",
+        "active_listing_count": 135,
+        "active_property_count": 135,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   unionCityCa: {
     "key": "union-city-ca",
     "aliases": [
