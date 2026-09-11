@@ -6795,6 +6795,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  tujungaCa: {
+    "key": "tujunga-ca",
+    "aliases": [
+      "tujunga",
+      "tujunga-ca"
+    ],
+    "label": "Tujunga",
+    "publicLabel": "Tujunga, CA",
+    "city": "Tujunga",
+    "cityUpper": "TUJUNGA",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 34.252225,
+    "longitude": -118.2884105,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 72 active listings and zero unlinked rows; 65 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 72 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows TUJUNGA listing-city labels for a Los Angeles neighborhood, not an independent incorporated city, verified neighborhood boundaries or complete county inventory. ZIP 91042 covers 70 rows; single rows in ZIPs 90031 and 91402 and placeholder-style addresses require source verification and are not corrected or independently validated. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 7 and 0 properties respectively; valuation covers 72, classification 65, coordinates 6, and brokerage 72. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 5 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:31:22.229162+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 72,
+        "ownership_count": 0,
+        "valuation_count": 72,
+        "classified_count": 65,
+        "coordinate_count": 6,
+        "year_built_count": 5,
+        "multifamily_count": 1,
+        "parcel_identity_count": 7,
+        "listing_backed_shell_count": 65
+      },
+      "listings": {
+        "brokerage_count": 72,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T10:10:08.860157+00:00",
+        "active_listing_count": 72,
+        "active_property_count": 72,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
