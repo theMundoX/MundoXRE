@@ -6795,6 +6795,73 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  unionCityCa: {
+    "key": "union-city-ca",
+    "aliases": [
+      "union-city-ca"
+    ],
+    "label": "Union City",
+    "publicLabel": "Union City, CA",
+    "city": "Union City",
+    "cityUpper": "UNION CITY",
+    "county": "Alameda",
+    "state": "CA",
+    "countyId": 773104,
+    "latitude": 37.59062,
+    "longitude": -122.02696,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Inventory has 73 active listings and zero unlinked rows after 59 unique exact site-address, city and ZIP public parcel imports and 14 clearly labeled listing-backed shells. Shells remain pending assessor reconciliation and are not proof of unique parcels or units.",
+      "Alameda county_id 773104 and FIPS 06001 are supported by 59 linked city GIS parcels. Coverage follows UNION CITY listing-city labels in ZIP 94587, not verified city boundaries or complete county inventory. Shell county assignments remain subject to parcel reconciliation.",
+      "The city public viewer source https://services7.arcgis.com/T3LbxamSmhpjBppB/arcgis/rest/services/UC_Parcels_07_2026_view/FeatureServer/12 supplies 59 parcel identities and positive assessed total values and 57 valid year-built fields. The other 14 valuations and classifications are listing-derived. Owner names, property coordinates and physical-size support are absent or unverified; the display point is not property enrichment.",
+      "Unresolved unit and partial street labels remain shells and need public parcel reconciliation. All 73 listings have brokerage labels; verified agent emails and phones, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link stored listing update is 2026-05-07T15:32:12.02703+00:00; it is not independent verification of current availability. Linkage can advance updated_at without a source refresh. Public parcel retrieval on 2026-09-11 does not establish source revision freshness."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 73,
+        "ownership_count": 0,
+        "valuation_count": 73,
+        "classified_count": 14,
+        "coordinate_count": 0,
+        "year_built_count": 57,
+        "multifamily_count": 0,
+        "parcel_identity_count": 59,
+        "listing_backed_shell_count": 14
+      },
+      "listings": {
+        "brokerage_count": 73,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T15:14:09.999497+00:00",
+        "active_listing_count": 73,
+        "active_property_count": 73,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   owingsMillsMd: {
     "key": "owings-mills-md",
     "aliases": [
