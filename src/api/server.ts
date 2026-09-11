@@ -7616,6 +7616,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  mariettaOh: {
+    "key": "marietta-oh",
+    "aliases": [
+      "marietta",
+      "marietta-oh"
+    ],
+    "label": "Marietta",
+    "publicLabel": "Marietta, OH",
+    "city": "Marietta",
+    "cityUpper": "MARIETTA",
+    "county": "Washington",
+    "state": "OH",
+    "countyId": 2338933,
+    "latitude": 39.4168,
+    "longitude": -81.4548,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 64 active listings and zero unlinked rows; 64 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 64 active listing properties are assigned to Washington county_id 2338933. Coverage follows the MARIETTA listing-city label and ZIP 45750, including surrounding communities and rural areas, not strict municipal boundaries. County corroboration uses ZIP scope; no assessor parcel identities were verified. The zero-number Newells Run address remains an unresolved shell, not a matched federal parcel. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 64, classification 64, coordinates 0, and brokerage 64. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:33:25.933439+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 64,
+        "ownership_count": 0,
+        "valuation_count": 64,
+        "classified_count": 64,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 64
+      },
+      "listings": {
+        "brokerage_count": 64,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T19:19:36.932045+00:00",
+        "active_listing_count": 64,
+        "active_property_count": 64,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
