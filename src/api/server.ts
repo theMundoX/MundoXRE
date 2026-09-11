@@ -4891,6 +4891,210 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  vandaliaOh: {
+    "key": "vandalia-oh",
+    "aliases": [
+      "vandalia",
+      "vandalia-oh"
+    ],
+    "label": "Vandalia",
+    "publicLabel": "Vandalia, OH",
+    "city": "Vandalia",
+    "cityUpper": "VANDALIA",
+    "county": "Montgomery",
+    "state": "OH",
+    "countyId": 1698991,
+    "latitude": 39.8906122,
+    "longitude": -84.1988308,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 171 active listings and zero unlinked rows; 57 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 171 active listing properties are assigned to Montgomery county_id 1698991. Coverage follows the VANDALIA listing-city label, including surrounding postal addresses, and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 161 and 114 properties respectively; valuation covers 57, classification 57, coordinates 78, and brokerage 24. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-09-10T13:27:37.231+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 171,
+        "ownership_count": 114,
+        "valuation_count": 57,
+        "classified_count": 57,
+        "coordinate_count": 78,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 161,
+        "listing_backed_shell_count": 57
+      },
+      "listings": {
+        "brokerage_count": 24,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T03:04:21.575527+00:00",
+        "active_listing_count": 171,
+        "active_property_count": 171,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  westCovinaCa: {
+    "key": "west-covina-ca",
+    "aliases": [
+      "west-covina",
+      "west-covina-ca"
+    ],
+    "label": "West Covina",
+    "publicLabel": "West Covina, CA",
+    "city": "West Covina",
+    "cityUpper": "WEST COVINA",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 34.055941,
+    "longitude": -117.909937,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 41 active listings and zero unlinked rows; 20 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 41 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the WEST COVINA listing-city label, including surrounding postal addresses, and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 41 and 0 properties respectively; valuation covers 41, classification 20, coordinates 16, and brokerage 41. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 20 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-07T07:45:29.491257+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 41,
+        "ownership_count": 0,
+        "valuation_count": 41,
+        "classified_count": 20,
+        "coordinate_count": 16,
+        "year_built_count": 20,
+        "multifamily_count": 0,
+        "parcel_identity_count": 41,
+        "listing_backed_shell_count": 20
+      },
+      "listings": {
+        "brokerage_count": 41,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-07T07:45:29.491257+00:00",
+        "active_listing_count": 41,
+        "active_property_count": 41,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  cerritosCa: {
+    "key": "cerritos-ca",
+    "aliases": [
+      "cerritos",
+      "cerritos-ca"
+    ],
+    "label": "Cerritos",
+    "publicLabel": "Cerritos, CA",
+    "city": "Cerritos",
+    "cityUpper": "CERRITOS",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 33.867745,
+    "longitude": -118.069471,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 28 active listings and zero unlinked rows; 14 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 28 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the CERRITOS listing-city label, including surrounding postal addresses, and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 28 and 0 properties respectively; valuation covers 28, classification 14, coordinates 14, and brokerage 28. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 14 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-07T07:48:46.50182+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 28,
+        "ownership_count": 0,
+        "valuation_count": 28,
+        "classified_count": 14,
+        "coordinate_count": 14,
+        "year_built_count": 14,
+        "multifamily_count": 0,
+        "parcel_identity_count": 28,
+        "listing_backed_shell_count": 14
+      },
+      "listings": {
+        "brokerage_count": 28,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-07T07:48:46.50182+00:00",
+        "active_listing_count": 28,
+        "active_property_count": 28,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
