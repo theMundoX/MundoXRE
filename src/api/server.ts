@@ -4347,6 +4347,210 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  lancasterPa: {
+    "key": "lancaster-pa",
+    "aliases": [
+      "lancaster-pa",
+      "lancaster-pa"
+    ],
+    "label": "Lancaster",
+    "publicLabel": "Lancaster, PA",
+    "city": "Lancaster",
+    "cityUpper": "LANCASTER",
+    "county": "Lancaster",
+    "state": "PA",
+    "countyId": 1973408,
+    "latitude": 40.039233,
+    "longitude": -76.303822,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 52 active listings and zero unlinked rows; 13 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 52 active listing properties are assigned to Lancaster county_id 1973408. Coverage follows the LANCASTER listing-city label and ZIP 17602, including surrounding postal addresses; it does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 52 and 39 properties respectively; valuation covers 13, classification 13, coordinates 39, and brokerage 52. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 0 properties; snapshot presence does not establish current verified market rent.",
+      "The latest pre-link listing update is 2026-08-06T23:40:50.013515+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 52,
+        "ownership_count": 39,
+        "valuation_count": 13,
+        "classified_count": 13,
+        "coordinate_count": 39,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 52,
+        "listing_backed_shell_count": 13
+      },
+      "listings": {
+        "brokerage_count": 52,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-06T23:40:50.013515+00:00",
+        "active_listing_count": 52,
+        "active_property_count": 52,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  drakeCo: {
+    "key": "drake-co",
+    "aliases": [
+      "drake",
+      "drake-co"
+    ],
+    "label": "Drake",
+    "publicLabel": "Drake, CO",
+    "city": "Drake",
+    "cityUpper": "DRAKE",
+    "county": "Larimer",
+    "state": "CO",
+    "countyId": 75651,
+    "latitude": 40.431928,
+    "longitude": -105.340268,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 20 active listings and zero unlinked rows; 3 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 20 active listing properties are assigned to Larimer county_id 75651. Drake is an unincorporated community. Coverage follows the DRAKE listing label with 17 ZIP 80515, two ZIP 80512 and one ZIP 80532 rows; it includes surrounding postal areas and does not establish municipal boundaries or complete county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 20 and 17 properties respectively; valuation covers 3, classification 3, coordinates 10, and brokerage 20. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 0 properties; snapshot presence does not establish current verified market rent.",
+      "The latest pre-link listing update is 2026-08-07T00:39:20.878379+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 20,
+        "ownership_count": 17,
+        "valuation_count": 3,
+        "classified_count": 3,
+        "coordinate_count": 10,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 20,
+        "listing_backed_shell_count": 3
+      },
+      "listings": {
+        "brokerage_count": 20,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-07T00:39:20.878379+00:00",
+        "active_listing_count": 20,
+        "active_property_count": 20,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  manhattanBeachCa: {
+    "key": "manhattan-beach-ca",
+    "aliases": [
+      "manhattan-beach",
+      "manhattan-beach-ca"
+    ],
+    "label": "Manhattan Beach",
+    "publicLabel": "Manhattan Beach, CA",
+    "city": "Manhattan Beach",
+    "cityUpper": "MANHATTAN BEACH",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 33.90087,
+    "longitude": -118.420715,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 69 active listings and zero unlinked rows; 20 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 69 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the MANHATTAN BEACH listing-city label and ZIP 90266 and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 69 and 0 properties respectively; valuation covers 69, classification 20, coordinates 49, and brokerage 69. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 49 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 0 properties; snapshot presence does not establish current verified market rent.",
+      "The latest pre-link listing update is 2026-08-07T00:43:00.886436+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 69,
+        "ownership_count": 0,
+        "valuation_count": 69,
+        "classified_count": 20,
+        "coordinate_count": 49,
+        "year_built_count": 49,
+        "multifamily_count": 7,
+        "parcel_identity_count": 69,
+        "listing_backed_shell_count": 20
+      },
+      "listings": {
+        "brokerage_count": 69,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-07T00:43:00.886436+00:00",
+        "active_listing_count": 69,
+        "active_property_count": 69,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
