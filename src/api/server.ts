@@ -6795,6 +6795,75 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  limaOh: {
+    "key": "lima-oh",
+    "aliases": [
+      "lima",
+      "lima-oh"
+    ],
+    "label": "Lima",
+    "publicLabel": "Lima, OH",
+    "city": "Lima",
+    "cityUpper": "LIMA",
+    "county": "Allen",
+    "state": "OH",
+    "countyId": 2338925,
+    "latitude": 40.74001,
+    "longitude": -84.10413,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Redfin inventory has 221 active listings and zero unlinked rows. The City of Lima Allen County parcel layer supplied 171 unique exact site-address and site-ZIP matches; these assessor properties were imported and exact-linked. Fifty remaining properties are clearly labeled listing-backed shells pending assessor reconciliation.",
+      "Allen county_id 2338925 was created with Census-confirmed FIPS 39003 and is supported by 171 linked public parcels. Shell county assignments remain subject to assessor reconciliation. Coverage follows LIMA listing-city labels in ZIP 45805, not verified municipal boundaries or complete county inventory.",
+      "The public source https://colgis.cityhall.lima.oh.us/server/rest/services/CitywideMaps/Lima_Zoning/MapServer/2 supplies 171 parcel identities and owner names and 170 positive market values. Fifty additional valuations and classifications are listing-derived, not assessor verification. Property coordinates, year built and physical-size support are absent; the map display point is not property enrichment.",
+      "The 50 unresolved shells include unit addresses, 9 UNIT PACKAGE and other package or vacant-land labels. They are address-level listing records, not proof of a unique parcel, a verified unit count or ownership.",
+      "Brokerage and agent contact support, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-09-11T11:24:14.38+00:00; this is a stored update timestamp, not independent verification of availability. Linkage can advance updated_at without a new source observation. Public parcel retrieval on 2026-09-11 does not establish source revision freshness or current listing availability."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 221,
+        "ownership_count": 171,
+        "valuation_count": 220,
+        "classified_count": 50,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 171,
+        "listing_backed_shell_count": 50
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T13:17:46.673846+00:00",
+        "active_listing_count": 221,
+        "active_property_count": 221,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   winstonSalemNc: {
     "key": "winston-salem-nc",
     "aliases": [
