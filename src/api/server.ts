@@ -6795,6 +6795,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  owingsMillsMd: {
+    "key": "owings-mills-md",
+    "aliases": [
+      "owings-mills",
+      "owings-mills-md"
+    ],
+    "label": "Owings Mills",
+    "publicLabel": "Owings Mills, MD",
+    "city": "Owings Mills",
+    "cityUpper": "OWINGS MILLS",
+    "county": "Baltimore",
+    "state": "MD",
+    "countyId": 2338913,
+    "latitude": 39.4195499,
+    "longitude": -76.7802529,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Inventory has 75 active listings and zero unlinked rows after 42 unique exact site-address, city and ZIP public parcel imports and 33 clearly labeled listing-backed shells. Shells remain pending assessor reconciliation and are not proof of unique parcels or units.",
+      "Baltimore county_id 2338913, Census-confirmed FIPS 24005, is supported by 42 linked county parcels. This is Baltimore County, distinct from independent Baltimore City. Coverage follows OWINGS MILLS listing-city labels in ZIP 21117, not verified census-designated-place boundaries or complete county inventory. Shell county assignments remain subject to parcel reconciliation.",
+      "The county source https://bcgisdata.baltimorecountymd.gov/arcgis/rest/services/Property/Property/MapServer/1 supplies 42 parcel identities and owner names, 40 positive total values and 41 valid year-built fields. The other 33 valuations and classifications are listing-derived. Property coordinates and physical-size support remain unverified; the display point is not property enrichment.",
+      "Unresolved unit, lot and model-home labels remain shells and need further public parcel reconciliation. All 75 listings have brokerage labels; verified agent emails and phones, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link stored listing update is 2026-05-07T15:32:01.328573+00:00; it is not independent verification of current availability. Linkage can advance updated_at without a source refresh. Public parcel retrieval on 2026-09-11 does not establish source revision freshness."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 75,
+        "ownership_count": 42,
+        "valuation_count": 73,
+        "classified_count": 33,
+        "coordinate_count": 0,
+        "year_built_count": 41,
+        "multifamily_count": 0,
+        "parcel_identity_count": 42,
+        "listing_backed_shell_count": 33
+      },
+      "listings": {
+        "brokerage_count": 75,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T14:20:45.574658+00:00",
+        "active_listing_count": 75,
+        "active_property_count": 75,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   mainevilleOh: {
     "key": "maineville-oh",
     "aliases": [
