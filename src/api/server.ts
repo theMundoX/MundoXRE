@@ -5979,6 +5979,278 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  oakdalePa: {
+    "key": "oakdale-pa",
+    "aliases": [
+      "oakdale",
+      "oakdale-pa"
+    ],
+    "label": "Oakdale",
+    "publicLabel": "Oakdale, PA",
+    "city": "Oakdale",
+    "cityUpper": "OAKDALE",
+    "county": "Allegheny",
+    "state": "PA",
+    "countyId": 1973350,
+    "latitude": 40.400165,
+    "longitude": -80.187151,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 35 active listings and zero unlinked rows; 22 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 35 active listing properties are assigned to Allegheny county_id 1973350. Coverage follows the OAKDALE listing-city label and ZIP 15071, including surrounding postal areas; it does not establish complete borough or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 13 and 13 properties respectively; valuation covers 22, classification 22, coordinates 6, and brokerage 35. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-10T10:51:16.986735+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 35,
+        "ownership_count": 13,
+        "valuation_count": 22,
+        "classified_count": 22,
+        "coordinate_count": 6,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 13,
+        "listing_backed_shell_count": 22
+      },
+      "listings": {
+        "brokerage_count": 35,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-10T10:51:16.986735+00:00",
+        "active_listing_count": 35,
+        "active_property_count": 35,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  elMonteCa: {
+    "key": "el-monte-ca",
+    "aliases": [
+      "el-monte",
+      "el-monte-ca"
+    ],
+    "label": "El Monte",
+    "publicLabel": "El Monte, CA",
+    "city": "El Monte",
+    "cityUpper": "EL MONTE",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 34.074633,
+    "longitude": -118.029136,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 27 active listings and zero unlinked rows; 17 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 27 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the EL MONTE listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 10 and 0 properties respectively; valuation covers 27, classification 17, coordinates 9, and brokerage 27. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 10 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-10T10:53:31.050082+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 27,
+        "ownership_count": 0,
+        "valuation_count": 27,
+        "classified_count": 17,
+        "coordinate_count": 9,
+        "year_built_count": 10,
+        "multifamily_count": 6,
+        "parcel_identity_count": 10,
+        "listing_backed_shell_count": 17
+      },
+      "listings": {
+        "brokerage_count": 27,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-10T10:53:31.050082+00:00",
+        "active_listing_count": 27,
+        "active_property_count": 27,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  laMiradaCa: {
+    "key": "la-mirada-ca",
+    "aliases": [
+      "la-mirada",
+      "la-mirada-ca"
+    ],
+    "label": "La Mirada",
+    "publicLabel": "La Mirada, CA",
+    "city": "La Mirada",
+    "cityUpper": "LA MIRADA",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 33.902045,
+    "longitude": -118.008961,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 42 active listings and zero unlinked rows; 27 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 42 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the LA MIRADA listing-city label and does not establish verified municipal boundaries or complete city coverage. Of 42 listings, 41 report ZIP 90638 and one reports inconsistent ZIP 90063; that address/ZIP requires source reconciliation. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 15 and 0 properties respectively; valuation covers 42, classification 27, coordinates 12, and brokerage 42. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 14 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-10T11:43:26.255809+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 42,
+        "ownership_count": 0,
+        "valuation_count": 42,
+        "classified_count": 27,
+        "coordinate_count": 12,
+        "year_built_count": 14,
+        "multifamily_count": 0,
+        "parcel_identity_count": 15,
+        "listing_backed_shell_count": 27
+      },
+      "listings": {
+        "brokerage_count": 42,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-10T11:43:26.255809+00:00",
+        "active_listing_count": 42,
+        "active_property_count": 42,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  bellflowerCa: {
+    "key": "bellflower-ca",
+    "aliases": [
+      "bellflower",
+      "bellflower-ca"
+    ],
+    "label": "Bellflower",
+    "publicLabel": "Bellflower, CA",
+    "city": "Bellflower",
+    "cityUpper": "BELLFLOWER",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 33.887821,
+    "longitude": -118.12725,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 53 active listings and zero unlinked rows; 36 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 53 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the BELLFLOWER listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 17 and 0 properties respectively; valuation covers 53, classification 36, coordinates 17, and brokerage 53. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 16 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-10T11:47:44.285593+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 53,
+        "ownership_count": 0,
+        "valuation_count": 53,
+        "classified_count": 36,
+        "coordinate_count": 17,
+        "year_built_count": 16,
+        "multifamily_count": 7,
+        "parcel_identity_count": 17,
+        "listing_backed_shell_count": 36
+      },
+      "listings": {
+        "brokerage_count": 53,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-10T11:47:44.285593+00:00",
+        "active_listing_count": 53,
+        "active_property_count": 53,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
