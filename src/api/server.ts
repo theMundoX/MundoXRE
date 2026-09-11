@@ -7547,6 +7547,75 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  gardnervilleNv: {
+    "key": "gardnerville-nv",
+    "aliases": [
+      "gardnerville",
+      "gardnerville-nv"
+    ],
+    "label": "Gardnerville",
+    "publicLabel": "Gardnerville, NV",
+    "city": "Gardnerville",
+    "cityUpper": "GARDNERVILLE",
+    "county": "Douglas",
+    "state": "NV",
+    "countyId": 2338932,
+    "latitude": 38.93991,
+    "longitude": -119.74752,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; assessor reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be represented as full-market underwriting coverage.",
+      "All 66 active listings are linked to clearly labeled address-level listing-backed shells. No assessor parcel identities or public parcel enrichment have been established.",
+      "County assignment is based on the GARDNERVILLE listing label and ZIPs 89410/89460 in Douglas County, county_id 2338932, FIPS 32005; each shell remains subject to assessor reconciliation. County/ZIP references: https://www.zipdatamaps.com/89410 ; https://www.zipdatamaps.com/89460 ; https://tigerweb.geo.census.gov/tigerwebmain/Files/acs26/tigerweb_acs26_county_nv.html .",
+      "Coverage follows the stored listing-city/postal label across Gardnerville, Gardnerville Ranchos and surrounding communities; this is not complete town, CDP or county coverage.",
+      "Listing-derived valuation and classification each cover 66 and 66 properties respectively; 66 listings have brokerage labels. These are not assessor verification or verified agent contacts.",
+      "Parcel identity, ownership, property coordinates, year built, physical size, verified agent phone/email, mortgage/debt coverage, rents and positive creative-finance evidence are absent or incomplete and must not be inferred.",
+      "Latest pre-link listing update: 2026-05-07T15:32:14.390122+00:00. Stored active source flags do not guarantee current availability; linkage advances updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 66,
+        "ownership_count": 0,
+        "valuation_count": 66,
+        "classified_count": 66,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 66
+      },
+      "listings": {
+        "brokerage_count": 66,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T18:21:12.43116+00:00",
+        "active_listing_count": 66,
+        "active_property_count": 66,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
