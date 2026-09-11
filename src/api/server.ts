@@ -5639,6 +5639,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  glendoraCa: {
+    "key": "glendora-ca",
+    "aliases": [
+      "glendora",
+      "glendora-ca"
+    ],
+    "label": "Glendora",
+    "publicLabel": "Glendora, CA",
+    "city": "Glendora",
+    "cityUpper": "GLENDORA",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 34.1361,
+    "longitude": -117.8653,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 42 active listings and zero unlinked rows; 25 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 42 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the GLENDORA listing-city/postal label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 17 and 0 properties respectively; valuation covers 42, classification 25, coordinates 17, and brokerage 42. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 14 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-10T07:58:24.179428+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 42,
+        "ownership_count": 0,
+        "valuation_count": 42,
+        "classified_count": 25,
+        "coordinate_count": 17,
+        "year_built_count": 14,
+        "multifamily_count": 3,
+        "parcel_identity_count": 17,
+        "listing_backed_shell_count": 25
+      },
+      "listings": {
+        "brokerage_count": 42,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-10T07:58:24.179428+00:00",
+        "active_listing_count": 42,
+        "active_property_count": 42,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
