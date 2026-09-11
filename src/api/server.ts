@@ -6795,6 +6795,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  benbrookTx: {
+    "key": "benbrook-tx",
+    "aliases": [
+      "benbrook",
+      "benbrook-tx"
+    ],
+    "label": "Benbrook",
+    "publicLabel": "Benbrook, TX",
+    "city": "Benbrook",
+    "cityUpper": "BENBROOK",
+    "county": "Tarrant",
+    "state": "TX",
+    "countyId": 8,
+    "latitude": 32.67319,
+    "longitude": -97.46058,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 82 active listings and zero unlinked rows. All 82 properties are clearly labeled listing-backed shells pending assessor reconciliation; two were linked by unique exact address and ZIP and 80 were created from remaining listing addresses and ZIPs.",
+      "Tarrant county_id 8 is supported by the two exact-linked properties and official Benbrook geography. Shell county assignments remain subject to assessor reconciliation. Coverage follows BENBROOK listing-city labels, not verified municipal boundaries or complete county inventory.",
+      "Parcel identity, ownership, property coordinates and year-built support are absent. Valuation and classification cover all 82 properties but are listing-derived, not assessor verification. Brokerage covers all 82 listings; physical enrichment remains incomplete.",
+      "Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:33:24.491158+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 82,
+        "ownership_count": 0,
+        "valuation_count": 82,
+        "classified_count": 82,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 82
+      },
+      "listings": {
+        "brokerage_count": 82,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T12:13:36.087725+00:00",
+        "active_listing_count": 82,
+        "active_property_count": 82,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   tujungaCa: {
     "key": "tujunga-ca",
     "aliases": [
