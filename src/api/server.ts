@@ -5707,6 +5707,142 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  norwalkCa: {
+    "key": "norwalk-ca",
+    "aliases": [
+      "norwalk",
+      "norwalk-ca"
+    ],
+    "label": "Norwalk",
+    "publicLabel": "Norwalk, CA",
+    "city": "Norwalk",
+    "cityUpper": "NORWALK",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 33.9093,
+    "longitude": -118.0849,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 58 active listings and zero unlinked rows; 35 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 58 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the NORWALK listing-city/postal label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 23 and 0 properties respectively; valuation covers 58, classification 35, coordinates 23, and brokerage 58. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 22 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-10T08:39:44.977833+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 58,
+        "ownership_count": 0,
+        "valuation_count": 58,
+        "classified_count": 35,
+        "coordinate_count": 23,
+        "year_built_count": 22,
+        "multifamily_count": 0,
+        "parcel_identity_count": 23,
+        "listing_backed_shell_count": 35
+      },
+      "listings": {
+        "brokerage_count": 58,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-10T08:39:44.977833+00:00",
+        "active_listing_count": 58,
+        "active_property_count": 58,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  highlandParkMi: {
+    "key": "highland-park-mi",
+    "aliases": [
+      "highland-park",
+      "highland-park-mi"
+    ],
+    "label": "Highland Park",
+    "publicLabel": "Highland Park, MI",
+    "city": "Highland Park",
+    "cityUpper": "HIGHLAND PARK",
+    "county": "Wayne",
+    "state": "MI",
+    "countyId": 1973412,
+    "latitude": 42.4056,
+    "longitude": -83.09658,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 230 active listings and zero unlinked rows; 225 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 230 active listing properties are assigned to Wayne county_id 1973412. Coverage follows the HIGHLAND PARK listing-city/postal label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 5 and 5 properties respectively; valuation covers 229, classification 228, coordinates 0, and brokerage 0. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 4 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-09-11T04:25:06.64133+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 230,
+        "ownership_count": 5,
+        "valuation_count": 229,
+        "classified_count": 228,
+        "coordinate_count": 0,
+        "year_built_count": 4,
+        "multifamily_count": 0,
+        "parcel_identity_count": 5,
+        "listing_backed_shell_count": 225
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T06:07:19.608376+00:00",
+        "active_listing_count": 230,
+        "active_property_count": 230,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
