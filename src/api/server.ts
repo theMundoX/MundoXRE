@@ -8024,6 +8024,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  annArborMi: {
+    "key": "ann-arbor-mi",
+    "aliases": [
+      "ann-arbor",
+      "ann-arbor-mi"
+    ],
+    "label": "Ann Arbor",
+    "publicLabel": "Ann Arbor, MI",
+    "city": "Ann Arbor",
+    "cityUpper": "ANN ARBOR",
+    "county": "Washtenaw",
+    "state": "MI",
+    "countyId": 2338936,
+    "latitude": 42.2814,
+    "longitude": -83.7485,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 58 active listings and zero unlinked rows; 48 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 58 active listing properties are assigned to Washtenaw county_id 2338936. Coverage follows ANN ARBOR listing-city labels with 55 listings in ZIP 48108 and three in 48103, including surrounding township/postal areas; this is not strict municipal or county-wide coverage. County ZIP corroboration: https://www.zipdatamaps.com/48108 and https://www.zipdatamaps.com/en/us/zip-code-faq/48103. Public parcel source https://a2maps.a2gov.org/a2arcgis/rest/services/CachedBasemaps/BaseMapParcels/MapServer/343 provided 10 unique exact situs-address/city/state/ZIP matches, imported with owner names, taxable values, nine valid year-built values and ten source coordinates. Taxable values are not market values. The remaining 48 shell valuations are stored listing asking prices and their classification fields are unknown placeholders, not verified asset types. Zero-number listing addresses remain unreconciled shells. Public ownership names are not mortgage evidence. City display coordinates from https://mapcarta.com/Ann_Arbor are not property enrichment. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 10 and 10 properties respectively; valuation covers 58, classification 48, coordinates 10, and brokerage 58. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 9 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:32:31.100551+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 58,
+        "ownership_count": 10,
+        "valuation_count": 58,
+        "classified_count": 48,
+        "coordinate_count": 10,
+        "year_built_count": 9,
+        "multifamily_count": 0,
+        "parcel_identity_count": 10,
+        "listing_backed_shell_count": 48
+      },
+      "listings": {
+        "brokerage_count": 58,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T22:21:49.628062+00:00",
+        "active_listing_count": 58,
+        "active_property_count": 58,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
