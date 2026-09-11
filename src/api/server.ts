@@ -5095,6 +5095,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  veronaPa: {
+    "key": "verona-pa",
+    "aliases": [
+      "verona",
+      "verona-pa"
+    ],
+    "label": "Verona",
+    "publicLabel": "Verona, PA",
+    "city": "Verona",
+    "cityUpper": "VERONA",
+    "county": "Allegheny",
+    "state": "PA",
+    "countyId": 1973350,
+    "latitude": 40.5064571,
+    "longitude": -79.843105,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 33 active listings and zero unlinked rows; 17 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 33 active listing properties are assigned to Allegheny county_id 1973350. Coverage follows the VERONA listing-city label, including surrounding postal addresses, and does not establish complete borough or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 33 and 16 properties respectively; valuation covers 17, classification 17, coordinates 16, and brokerage 33. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-07T10:48:21.486867+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 33,
+        "ownership_count": 16,
+        "valuation_count": 17,
+        "classified_count": 17,
+        "coordinate_count": 16,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 33,
+        "listing_backed_shell_count": 17
+      },
+      "listings": {
+        "brokerage_count": 33,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-07T10:48:21.486867+00:00",
+        "active_listing_count": 33,
+        "active_property_count": 33,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
