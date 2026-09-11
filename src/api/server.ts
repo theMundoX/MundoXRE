@@ -8092,6 +8092,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  pembrokePinesFl: {
+    "key": "pembroke-pines-fl",
+    "aliases": [
+      "pembroke-pines",
+      "pembroke-pines-fl"
+    ],
+    "label": "Pembroke Pines",
+    "publicLabel": "Pembroke Pines, FL",
+    "city": "Pembroke Pines",
+    "cityUpper": "PEMBROKE PINES",
+    "county": "Broward",
+    "state": "FL",
+    "countyId": 1973354,
+    "latitude": 26.0062,
+    "longitude": -80.2872,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 57 active listings and zero unlinked rows; 5 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 57 active listing properties are assigned to Broward county_id 1973354. Coverage follows PEMBROKE PINES listing-city labels and ZIP 33028, corroborated within Broward by https://www.zipdatamaps.com/33028; this is not complete municipal or county-wide coverage. Public source https://bcgishub.broward.org/server/rest/services/GeoHubDownloads/GISAddressPoints/FeatureServer/0 provided 52 unique case-insensitive exact street/city/ZIP address-point matches with folio references, all independently found in https://gisweb-adapters.bcpa.net/arcgis/rest/services/BCPA_EXTERNAL_JAN26/MapServer/16. Imported coordinates are public address points, not parcel centroids. All 57 valuations are stored Redfin asking prices, including the 52 parcel-referenced records; no assessor values were imported. Five shells retain unknown-placeholder classifications, not verified asset types. Ownership and physical facts remain unenriched. The Florida health parcel layer was assessment-year 2011 and was not imported. Display coordinates from https://mapcarta.com/20681956 are for map display only. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 52 and 0 properties respectively; valuation covers 57, classification 5, coordinates 52, and brokerage 57. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:31:32.637325+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 57,
+        "ownership_count": 0,
+        "valuation_count": 57,
+        "classified_count": 5,
+        "coordinate_count": 52,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 52,
+        "listing_backed_shell_count": 5
+      },
+      "listings": {
+        "brokerage_count": 57,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T22:27:32.824059+00:00",
+        "active_listing_count": 57,
+        "active_property_count": 57,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
