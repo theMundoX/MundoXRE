@@ -6795,6 +6795,76 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  winstonSalemNc: {
+    "key": "winston-salem-nc",
+    "aliases": [
+      "winston-salem",
+      "winston-salem-nc",
+      "winston salem"
+    ],
+    "label": "Winston Salem",
+    "publicLabel": "Winston Salem, NC",
+    "city": "Winston Salem",
+    "cityUpper": "WINSTON SALEM",
+    "county": "Forsyth",
+    "state": "NC",
+    "countyId": 42033,
+    "latitude": 36.082124,
+    "longitude": -80.343154,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 77 active listings and zero unlinked rows. Seventy properties were imported from NC OneMap public parcels by unique exact site address and Winston-Salem city in Forsyth County, then linked by exact address and listing-sourced ZIP. Seven remaining properties are clearly labeled listing-backed shells pending assessor reconciliation.",
+      "Forsyth county_id 42033 is supported by 70 linked public parcels with state/county FIPS 37067. Shell county assignments remain subject to assessor reconciliation. Coverage follows WINSTON SALEM listing-city labels, not verified municipal boundaries or complete county inventory. Display coordinates summarize returned Forsyth parcel points, not an official city center.",
+      "NC OneMap https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/FeatureServer/0 supplies 70 parcel identities, owners and coordinates and 62 positive assessed values. Imported property ZIPs come from listing signals and are labeled in source; they are not independent parcel ZIP verification. Seven additional valuations and classifications are listing-derived. Brokerage covers all 77 listings.",
+      "The seven shells include unit addresses, a multi-address listing and 0 S PEACE HAVEN RD, which matches 24 public parcels and has no resolved parcel identity. Shells must not be treated as unique assessor parcels or proof of unit ownership.",
+      "Year-built and physical-size support, verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:33:19.921607+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation. Public parcel retrieval on 2026-09-11 does not establish current listing availability."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 77,
+        "ownership_count": 70,
+        "valuation_count": 69,
+        "classified_count": 7,
+        "coordinate_count": 70,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 70,
+        "listing_backed_shell_count": 7
+      },
+      "listings": {
+        "brokerage_count": 77,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T13:12:51.97571+00:00",
+        "active_listing_count": 77,
+        "active_property_count": 77,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   benbrookTx: {
     "key": "benbrook-tx",
     "aliases": [
