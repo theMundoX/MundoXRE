@@ -5843,6 +5843,142 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  bridgevillePa: {
+    "key": "bridgeville-pa",
+    "aliases": [
+      "bridgeville",
+      "bridgeville-pa"
+    ],
+    "label": "Bridgeville",
+    "publicLabel": "Bridgeville, PA",
+    "city": "Bridgeville",
+    "cityUpper": "BRIDGEVILLE",
+    "county": "Allegheny",
+    "state": "PA",
+    "countyId": 1973350,
+    "latitude": 40.35618,
+    "longitude": -80.11006,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 39 active listings and zero unlinked rows; 24 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 39 active listing properties are assigned to Allegheny county_id 1973350. Coverage follows the BRIDGEVILLE listing-city/postal label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 15 and 15 properties respectively; valuation covers 24, classification 24, coordinates 12, and brokerage 39. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-10T09:46:42.299568+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 39,
+        "ownership_count": 15,
+        "valuation_count": 24,
+        "classified_count": 24,
+        "coordinate_count": 12,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 15,
+        "listing_backed_shell_count": 24
+      },
+      "listings": {
+        "brokerage_count": 39,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-10T09:46:42.299568+00:00",
+        "active_listing_count": 39,
+        "active_property_count": 39,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  lakewoodCa: {
+    "key": "lakewood-ca",
+    "aliases": [
+      "lakewood",
+      "lakewood-ca"
+    ],
+    "label": "Lakewood",
+    "publicLabel": "Lakewood, CA",
+    "city": "Lakewood",
+    "cityUpper": "LAKEWOOD",
+    "county": "Los Angeles",
+    "state": "CA",
+    "countyId": 401712,
+    "latitude": 33.8503,
+    "longitude": -118.1172,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 61 active listings and zero unlinked rows; 38 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 61 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the LAKEWOOD listing-city/postal label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 23 and 0 properties respectively; valuation covers 61, classification 38, coordinates 23, and brokerage 61. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 23 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-08-10T10:42:54.995483+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 61,
+        "ownership_count": 0,
+        "valuation_count": 61,
+        "classified_count": 38,
+        "coordinate_count": 23,
+        "year_built_count": 23,
+        "multifamily_count": 0,
+        "parcel_identity_count": 23,
+        "listing_backed_shell_count": 38
+      },
+      "listings": {
+        "brokerage_count": 61,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-08-10T10:42:54.995483+00:00",
+        "active_listing_count": 61,
+        "active_property_count": 61,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
