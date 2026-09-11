@@ -6795,6 +6795,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  loganOh: {
+    "key": "logan-oh",
+    "aliases": [
+      "logan-oh"
+    ],
+    "label": "Logan",
+    "publicLabel": "Logan, OH",
+    "city": "Logan",
+    "cityUpper": "LOGAN",
+    "county": "Hocking",
+    "state": "OH",
+    "countyId": 2338926,
+    "latitude": 39.53983,
+    "longitude": -82.40693,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Inventory has 76 active listings and zero unlinked rows after 37 unique exact-address public parcel imports and 39 clearly labeled listing-backed shells. Shells remain pending assessor reconciliation; an address label is not proof of a unique parcel or unit.",
+      "Hocking county_id 2338926 uses Census-confirmed FIPS 39073 and is supported by 37 linked Hocking County public parcels. Coverage follows LOGAN listing-city labels, including rural addresses and Hide-A-Way Hills postal scope, not verified municipal boundaries or complete county inventory. Shell county assignments remain subject to parcel reconciliation.",
+      "The official auditor map source https://services7.arcgis.com/clXmZ04BrbYyKlqh/ArcGIS/rest/services/parcel_joinedHoc2OH/FeatureServer/0 supplies 37 parcel identities, owner names and total values, plus 32 unambiguous single year-built values. Multiple-year strings were not collapsed to a guessed year. The source has no situs ZIP; imported ZIPs and 36 missing city labels are explicitly listing-derived. Physical-size and property-coordinate coverage remain unverified; the display point is not property enrichment.",
+      "The other 39 valuations and classifications are listing-derived. Four unresolved addresses returned multiple public parcel matches; vacant-land and lot labels also remain shells. The listing ZIP 43107 on 1832 PIEGAN CT is retained: the county layer has 1832 PIEGAN COURT, supporting Hocking county scope but not an exact-text parcel link. Public listings disagree on postal city/ZIP.",
+      "All 76 listings have brokerage labels; verified agent emails and phones, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link stored listing update is 2026-05-07T15:33:27.156369+00:00; it is not independent verification of current availability. Linkage can advance updated_at without a new source observation. Public parcel retrieval on 2026-09-11 does not establish source revision freshness."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 76,
+        "ownership_count": 37,
+        "valuation_count": 76,
+        "classified_count": 39,
+        "coordinate_count": 0,
+        "year_built_count": 32,
+        "multifamily_count": 0,
+        "parcel_identity_count": 37,
+        "listing_backed_shell_count": 39
+      },
+      "listings": {
+        "brokerage_count": 76,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T14:14:32.072595+00:00",
+        "active_listing_count": 76,
+        "active_property_count": 76,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   limaOh: {
     "key": "lima-oh",
     "aliases": [
