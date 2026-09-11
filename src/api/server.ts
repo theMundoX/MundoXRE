@@ -6795,6 +6795,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  kennedaleTx: {
+    "key": "kennedale-tx",
+    "aliases": [
+      "kennedale-tx"
+    ],
+    "label": "Kennedale",
+    "publicLabel": "Kennedale, TX",
+    "city": "Kennedale",
+    "cityUpper": "KENNEDALE",
+    "county": "Tarrant",
+    "state": "TX",
+    "countyId": 8,
+    "latitude": 32.646801,
+    "longitude": -97.2258465,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Inventory has 72 active listings and zero unlinked rows after 25 unique exact parcel links and 47 clearly labeled listing-backed shells. Shells remain pending assessor reconciliation and are not proof of unique parcels or units.",
+      "Tarrant county_id 8, FIPS 48439, is supported by 25 linked county parcels. Coverage follows KENNEDALE listing-city labels in ZIP 76060, not verified city boundaries or complete county inventory. Shell county assignments remain subject to parcel reconciliation.",
+      "The county source https://mapit.tarrantcounty.com/arcgis/rest/services/Dynamic/TADParcels/FeatureServer/0 supported 25 exact situs-address, city and state matches to existing parcel accounts. Those existing records had FORT WORTH city labels and blank ZIPs. Only city, ZIP and provenance were corrected: the source confirms KENNEDALE, while ZIP 76060 is listing-derived because county ZIPCODE is blank. Existing assessor owner, valuation, year-built and coordinate fields were retained, not freshly reverified.",
+      "Parcel identity and ownership cover 25 properties; valuations cover 72 (25 existing assessor records and 47 listing shells), classifications 47, year built 16 and coordinates 4. Physical size remains incomplete or unverified; the display point is not property enrichment. Three addresses have multiple public parcel matches and remain shells: 1425 SWINEY HIETT RD, 3780 KENNEDALE NEW HOPE RD, and 1201 MANSFIELD CARDINAL RD.",
+      "Brokerage labels cover 72 listings, but verified agent emails and phones, mortgage/debt coverage and positive creative-finance evidence are absent. The 50 existing rent snapshots on 25 properties are estimated signals dated 2026-03-26, not observed leases or verified current asking rents; rent coverage must not imply source verification.",
+      "The latest pre-link stored listing update is 2026-05-07T15:33:24.822985+00:00; it is not independent verification of current availability. Linkage can advance updated_at without a source refresh. Public parcel retrieval on 2026-09-11 does not establish source revision freshness."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 72,
+        "ownership_count": 25,
+        "valuation_count": 72,
+        "classified_count": 47,
+        "coordinate_count": 4,
+        "year_built_count": 16,
+        "multifamily_count": 0,
+        "parcel_identity_count": 25,
+        "listing_backed_shell_count": 47
+      },
+      "listings": {
+        "brokerage_count": 72,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T16:16:26.001616+00:00",
+        "active_listing_count": 72,
+        "active_property_count": 72,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 50,
+        "latest_rent_observed": "2026-03-26",
+        "properties_with_rent_snapshots": 25
+      }
+    }
+  },
   londonOh: {
     "key": "london-oh",
     "aliases": [
