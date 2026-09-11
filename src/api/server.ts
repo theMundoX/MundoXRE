@@ -6795,6 +6795,76 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  mainevilleOh: {
+    "key": "maineville-oh",
+    "aliases": [
+      "maineville",
+      "maineville-oh"
+    ],
+    "label": "Maineville",
+    "publicLabel": "Maineville, OH",
+    "city": "Maineville",
+    "cityUpper": "MAINEVILLE",
+    "county": "Warren",
+    "state": "OH",
+    "countyId": 1741129,
+    "latitude": 39.31506,
+    "longitude": -84.22083,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Inventory has 236 active listings and zero unlinked rows after 14 exact public parcel links and 222 clearly labeled listing-backed shells. Shells remain pending assessor reconciliation and do not establish unique parcel or unit identity.",
+      "Warren county_id 1741129, FIPS 39165, is supported by 14 linked public county parcels with exact site address and MAINEVILLE 45039 site-city/ZIP matches. Coverage follows listing-city labels across the Maineville postal area and Hamilton Township, not verified village boundaries or complete county inventory. Shell county assignments remain subject to assessor reconciliation.",
+      "The county source https://maps.co.warren.oh.us/arcgis/rest/services/Dynamic/ParcelLabelsAddr/MapServer/0 confirms 14 parcel identities and owner names. Those existing parcel records had site city/ZIP appended to the street address and a guessed HAMILTON/45011 location; only these 14 exact-evidence records were corrected to source-reported situs fields and then exact-linked. No duplicate parcels were imported.",
+      "The other 222 valuations and classifications are listing-derived; assessor market values, year built and physical-size support are absent. Thirteen existing property coordinates were retained but not independently reverified in this run. The map display point is not property enrichment.",
+      "6759 CLOUDSCAPE WAY has two public parcel candidates and remains a shell. Other unresolved unit, vacant-land and model-home labels require parcel reconciliation; stored active flags are not independent proof of current availability.",
+      "Brokerage and verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link stored listing update is 2026-09-11T11:21:54.993+00:00; it is not a verified source observation. Linkage can advance updated_at without a source refresh. Public parcel retrieval on 2026-09-11 does not establish source revision freshness."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 236,
+        "ownership_count": 14,
+        "valuation_count": 222,
+        "classified_count": 222,
+        "coordinate_count": 13,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 14,
+        "listing_backed_shell_count": 222
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T14:17:36.343151+00:00",
+        "active_listing_count": 236,
+        "active_property_count": 236,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   loganOh: {
     "key": "logan-oh",
     "aliases": [
