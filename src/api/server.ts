@@ -7684,6 +7684,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  saginawTx: {
+    "key": "saginaw-tx",
+    "aliases": [
+      "saginaw",
+      "saginaw-tx"
+    ],
+    "label": "Saginaw",
+    "publicLabel": "Saginaw, TX",
+    "city": "Saginaw",
+    "cityUpper": "SAGINAW",
+    "county": "Tarrant",
+    "state": "TX",
+    "countyId": 8,
+    "latitude": 32.8653549,
+    "longitude": -97.365264,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 64 active listings and zero unlinked rows; 23 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 64 active listing properties are assigned to Tarrant county_id 8. Coverage follows SAGINAW listing-city labels in ZIPs 76179 and 76131, including Fort Worth postal areas, not verified municipal boundaries. County source https://mapit.tarrantcounty.com/arcgis/rest/services/Dynamic/TADParcels/FeatureServer/0 supports 41 unique exact situs-address/city/state parcel matches: two new parcels and 39 existing assessor records with corrected city and listing-derived ZIP (source ZIPCODE blank). Other existing assessor fields, including 36 coordinates, were retained without fresh verification. Address 632 CRESTVIEW CT has multiple parcel matches and remains a shell. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 41 and 41 properties respectively; valuation covers 64, classification 23, coordinates 36, and brokerage 64. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 41 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage and positive creative-finance evidence are absent. All 78 existing rent snapshots on 39 properties are estimated signals dated 2026-03-26, not observed leases or verified asking rents.",
+      "The latest pre-link listing update is 2026-05-07T15:33:23.484282+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 64,
+        "ownership_count": 41,
+        "valuation_count": 64,
+        "classified_count": 23,
+        "coordinate_count": 36,
+        "year_built_count": 41,
+        "multifamily_count": 0,
+        "parcel_identity_count": 41,
+        "listing_backed_shell_count": 23
+      },
+      "listings": {
+        "brokerage_count": 64,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-11T19:22:55.314983+00:00",
+        "active_listing_count": 64,
+        "active_property_count": 64,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 78,
+        "latest_rent_observed": "2026-03-26",
+        "properties_with_rent_snapshots": 39
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
