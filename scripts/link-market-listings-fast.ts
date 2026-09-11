@@ -6,6 +6,7 @@
  * - link active listing_signals to existing property rows by unique exact address + ZIP
  * - optionally create clearly sourced listing-backed property shells when no parcel row exists
  * - keep shell records distinguishable from assessor/parcel records for later reconciliation
+ * - use --ssh-psql to select the existing SSH transport when the HTTP bridge is unavailable
  *
  * This is intentionally set-based and market-parameterized so daily refreshes do not stall
  * on per-row in-memory matching.
@@ -38,7 +39,7 @@ if (!STATE || !CITY || !Number.isFinite(COUNTY_ID)) {
 
 type Row = Record<string, unknown>;
 let dbClient: DbClient | null = null;
-let forceSshPsql = false;
+let forceSshPsql = flag("ssh-psql");
 
 async function db(): Promise<DbClient> {
   dbClient ??= await makeDbClient();
