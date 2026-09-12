@@ -8434,6 +8434,142 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  concordNc: {
+    "key": "concord-nc",
+    "aliases": [
+      "concord",
+      "concord-nc"
+    ],
+    "label": "Concord",
+    "publicLabel": "Concord, NC",
+    "city": "Concord",
+    "cityUpper": "CONCORD",
+    "county": "Cabarrus",
+    "state": "NC",
+    "countyId": 312095,
+    "latitude": 35.4094,
+    "longitude": -80.58,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 52 active listings and zero unlinked rows; 8 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 52 active listing properties are assigned to Cabarrus county_id 312095. Coverage follows CONCORD listing-city labels, not municipal boundaries or county-wide inventory. The official location.cabarruscounty.us OpenData/Addresses/MapServer/0 supplied 44 unique exact address/ZIP/no-unit matches; each address point intersected exactly one Tax_Parcels/MapServer/1 polygon with a distinct PIN. Imported PIN, AcctName1 and MarketValue retain public county provenance; assessor values are not asking prices. No address-point coordinates were promoted to property coordinates. Six remaining unit-labeled listings have base addresses in the county service; 205 and 315 CLIFFWOOD ST NW are supported by county unit records with differing unit labels. Eight shells retain the complete listing unit labels and do not assert verified legal units or parcel identities. Shell values are stored asking prices, and classifications are unknown placeholders. City display point: https://mapcarta.com/Concord_(North_Carolina), not property geocoding. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 44 and 44 properties respectively; valuation covers 52, classification 8, coordinates 0, and brokerage 52. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:33:44.099874+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 52,
+        "ownership_count": 44,
+        "valuation_count": 52,
+        "classified_count": 8,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 44,
+        "listing_backed_shell_count": 8
+      },
+      "listings": {
+        "brokerage_count": 52,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T02:28:11.393862+00:00",
+        "active_listing_count": 52,
+        "active_property_count": 52,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
+  liveOakTx: {
+    "key": "live-oak-tx",
+    "aliases": [
+      "live-oak",
+      "live-oak-tx"
+    ],
+    "label": "Live Oak",
+    "publicLabel": "Live Oak, TX",
+    "city": "Live Oak",
+    "cityUpper": "LIVE OAK",
+    "county": "Bexar",
+    "state": "TX",
+    "countyId": 1741238,
+    "latitude": 29.5629,
+    "longitude": -98.33344,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 125 active listings and zero unlinked rows; 76 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 125 active listing properties are assigned to Bexar county_id 1741238. Coverage follows LIVE OAK listing-city labels in ZIP 78233, not all San Antonio postal inventory, municipal boundaries, or Live Oak County. Existing exact address/ZIP matches link 49 Bexar parcels with identity, ownership, valuation and year-built evidence. ZIP 78233 county scope is corroborated by https://www.zipdatamaps.com/en/us/zip-code-faq/78233 and the county ZIP map https://www.bexar.org/DocumentCenter/View/12327/Zip-Code-Assignments-Map-PDF. Remaining shells retain source addresses and require assessor reconciliation; values are asking prices and classifications are unknown placeholders. City display point: https://mapcarta.com/21759788, not property geocoding. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 49 and 49 properties respectively; valuation covers 125, classification 76, coordinates 0, and brokerage 0. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 49 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-09-11T21:34:37.487723+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 125,
+        "ownership_count": 49,
+        "valuation_count": 125,
+        "classified_count": 76,
+        "coordinate_count": 0,
+        "year_built_count": 49,
+        "multifamily_count": 0,
+        "parcel_identity_count": 49,
+        "listing_backed_shell_count": 76
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T02:28:33.925155+00:00",
+        "active_listing_count": 125,
+        "active_property_count": 125,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
