@@ -8228,6 +8228,76 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  mountainBrookAl: {
+    "key": "mountain-brook-al",
+    "aliases": [
+      "mountain-brk",
+      "mountain-brook-al",
+      "mountain-brook",
+      "mountain brk"
+    ],
+    "label": "Mountain Brook",
+    "publicLabel": "Mountain Brook, AL",
+    "city": "Mountain Brook",
+    "cityUpper": "MOUNTAIN BRK",
+    "county": "Jefferson",
+    "state": "AL",
+    "countyId": 1973348,
+    "latitude": 33.50195,
+    "longitude": -86.75568,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 86 active listings and zero unlinked rows; 12 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 86 active listing properties are assigned to Jefferson county_id 1973348. Coverage follows MOUNTAIN BRK listing-city labels, including Birmingham postal aliases, not complete incorporated-city or county coverage. Jefferson county was confirmed by 74 exact-linked county parcels. Residual ZIPs 35213/35223/35243 are entirely Jefferson per https://www.zipdatamaps.com/35213 , https://www.zipdatamaps.com/35223 and https://www.zipdatamaps.com/35243 . County source https://jccgis.jccal.org/server/rest/services/Basemap/Parcels/MapServer/0 supported 51 newly imported identities, owners and PrevParcelTotal values with RecordYear 2026; 23 existing records retained their prior data. One pair of identical county records was deduplicated by PID and identical attributes. The 12 residual shells include street-direction/spelling differences and unit labels pending exact parcel reconciliation; no fuzzy parcel identities were assigned. Their valuations are stored listing asking prices and classifications are unknown placeholders, not verified asset types. No unit listing was collapsed onto a building-wide parcel. Display coordinates from https://mapcarta.com/20502970 are map display only. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 74 and 74 properties respectively; valuation covers 86, classification 12, coordinates 0, and brokerage 11. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-06-23T14:47:30.503+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 86,
+        "ownership_count": 74,
+        "valuation_count": 86,
+        "classified_count": 12,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 74,
+        "listing_backed_shell_count": 12
+      },
+      "listings": {
+        "brokerage_count": 11,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T00:25:35.295365+00:00",
+        "active_listing_count": 86,
+        "active_property_count": 86,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
