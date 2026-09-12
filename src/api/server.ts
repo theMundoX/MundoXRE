@@ -8841,6 +8841,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  glenAllenVa: {
+    "key": "glen-allen-va",
+    "aliases": [
+      "glen-allen",
+      "glen-allen-va"
+    ],
+    "label": "Glen Allen",
+    "publicLabel": "Glen Allen, VA",
+    "city": "Glen Allen",
+    "cityUpper": "GLEN ALLEN",
+    "county": "Henrico",
+    "state": "VA",
+    "countyId": 2338947,
+    "latitude": 37.66,
+    "longitude": -77.53,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and ownership, contact, debt and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and does not establish full-market underwriting coverage.",
+      "Single-source Redfin inventory has 42 active listings and zero unlinked rows; 12 are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 42 active properties are assigned to Henrico county_id 2338947, confirmed from 30 exact linked county assessor parcels. Coverage follows the GLEN ALLEN listing-city label and ZIP 23060, not verified CDP boundaries or full county coverage. All 12 shells use ZIP 23060, entirely within Henrico per https://www.zipdatamaps.com/23060 . Shell county and parcel identity assignments remain subject to assessor reconciliation. Display coordinates are an approximate ZIP center from https://www.unitedstateszipcodes.org/23060/ and do not establish property coordinates.",
+      "Public Henrico Tax Parcels and CAMA Data External (https://portal.henrico.gov/mapping/rest/services/Layers/Tax_Parcels_and_CAMA_Data_External/MapServer/0) supplied 30 unique exact FULL_ADDRESS and ZIP matches with agreeing GPIN/CAMA_GPIN, Tax Year 2026. Parcel identity and substantive property use cover 30 properties; year built covers 28. Valuation covers 42: 30 current assessed land-plus-improvement values and 12 listing prices. Listing city labels are retained; no owner mailing address was used. Unknown shell asset types are excluded from classification coverage.",
+      "Ownership, property coordinates, verified agent contacts, recorded mortgage/debt evidence, rent support and positive creative-finance evidence are absent. Brokerage names cover 42 listings; brokerage names are not verified agent contacts. Physical size remains incomplete. Shells include unit-level and nonstandard address labels, including zero-number land, and must not be presented as verified legal parcels.",
+      "The latest pre-link listing update is 2026-05-07T15:33:44.345329+00:00. Active status reflects stored source flags and is not a guarantee of current availability. Linking can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 42,
+        "ownership_count": 0,
+        "valuation_count": 42,
+        "classified_count": 30,
+        "coordinate_count": 0,
+        "year_built_count": 28,
+        "multifamily_count": 0,
+        "parcel_identity_count": 30,
+        "listing_backed_shell_count": 12
+      },
+      "listings": {
+        "brokerage_count": 42,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T11:32:37.960861+00:00",
+        "active_listing_count": 42,
+        "active_property_count": 42,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
