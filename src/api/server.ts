@@ -8366,6 +8366,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  maumeeOh: {
+    "key": "maumee-oh",
+    "aliases": [
+      "maumee",
+      "maumee-oh"
+    ],
+    "label": "Maumee",
+    "publicLabel": "Maumee, OH",
+    "city": "Maumee",
+    "cityUpper": "MAUMEE",
+    "county": "Lucas",
+    "state": "OH",
+    "countyId": 2338836,
+    "latitude": 41.5749,
+    "longitude": -83.684,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 53 active listings and zero unlinked rows; 16 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 53 active listing properties are assigned to Lucas county_id 2338836. Coverage follows MAUMEE listing-city labels in ZIP 43537, corroborated within Lucas County by https://www.zip-codes.com/zip-code/43537/zip-code-43537.asp and the county ZIP map https://www.co.lucas.oh.us/DocumentCenter/View/45254; postal labels do not establish municipal limits or county-wide coverage. The public Lucas_County_TaxParcels FeatureServer/0 at services3.arcgis.com/T8dczfwPixv79EgZ supplied 37 unique exact address/ZIP matches without source unit labels. Imported PARCELID, OWNERNME1, TOTALVALUE, RESYRBLT, TLA and USEDC preserve county provenance; assessor values are not current asking prices. The remaining 16 shells retain listing unit and lot descriptions, including LOT 122 WILLIAM GRACE WAY; these are not verified street addresses or unique legal parcels. Shell valuations are stored Redfin asking prices and classifications are unknown placeholders. Property coordinates, verified contacts, mortgages, rents and positive creative evidence remain absent. The ZIP display point from the ZIP source above is not property geocoding. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 37 and 37 properties respectively; valuation covers 53, classification 16, coordinates 0, and brokerage 53. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 29 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:34:02.10982+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 53,
+        "ownership_count": 37,
+        "valuation_count": 53,
+        "classified_count": 16,
+        "coordinate_count": 0,
+        "year_built_count": 29,
+        "multifamily_count": 0,
+        "parcel_identity_count": 37,
+        "listing_backed_shell_count": 16
+      },
+      "listings": {
+        "brokerage_count": 53,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T01:22:56.488454+00:00",
+        "active_listing_count": 53,
+        "active_property_count": 53,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
