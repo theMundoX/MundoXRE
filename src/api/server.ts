@@ -8978,6 +8978,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  sanLeandroCa: {
+    key: 'san-leandro-ca',
+    aliases: [
+      'san-leandro',
+      'san-leandro-ca'
+    ],
+    label: 'San Leandro',
+    publicLabel: 'San Leandro, CA',
+    city: 'San Leandro',
+    cityUpper: 'SAN LEANDRO',
+    county: 'Alameda',
+    state: 'CA',
+    countyId: 773104,
+    latitude: 37.7249296,
+    longitude: -122.1560768,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 50 active listings and zero unlinked rows; 15 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 50 active listing properties are assigned to Alameda county_id 773104. Coverage follows the San Leandro listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation. All residual shells use ZIP 94577 in Alameda County; unit, abbreviated and zero-number labels are preserved and are not verified legal parcels.',
+      'Parcel identity and ownership support cover 35 and 0 properties respectively; valuation covers 50, classification 15, coordinates 25, and brokerage 50. The 35 parcel links were verified against public Alameda APN and exact street-address/ZIP data; existing full situs strings include city and ZIP. No parcel rows were overwritten. Shell classification is unknown and shell values are listing-derived; they do not establish assessor verification.',
+      'Year built support is absent; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The stored pre-link listing timestamp is 2026-05-07T15:32:06.428413+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 50,
+        ownership_count: 0,
+        valuation_count: 50,
+        classified_count: 15,
+        coordinate_count: 25,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 35,
+        listing_backed_shell_count: 15
+      },
+      listings: {
+        brokerage_count: 50,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-07T15:32:06.428413+00:00',
+        active_listing_count: 50,
+        active_property_count: 50,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   chapelHillNc: {
     key: 'chapel-hill-nc',
     aliases: [
