@@ -9113,6 +9113,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  keeneTx: {
+    "key": "keene-tx",
+    "aliases": [
+      "keene",
+      "keene-tx"
+    ],
+    "label": "Keene",
+    "publicLabel": "Keene, TX",
+    "city": "Keene",
+    "cityUpper": "KEENE",
+    "county": "Johnson",
+    "state": "TX",
+    "countyId": 2338850,
+    "latitude": 32.39238358,
+    "longitude": -97.32984161,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 40 active listings and zero unlinked rows; 22 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 40 active listing properties are assigned to Johnson county_id 2338850. Coverage follows KEENE listing-city labels, not verified municipal boundaries or complete county coverage. Johnson county is confirmed from 18 linked assessor parcels. Public source https://johnsoncad.com/wp-content/uploads/2025/09/2025-Updated-Certified-Shapefiles-2.zip supplied 2025 WEBMAIN data with run date August 13, 2025. Eighteen unique real-property situs matches require city jurisdiction 8, confirmed as Keene by the supplied code table and WEBJURIS. Imported GIS parcel IDs, unmasked owner names, AAY_TOT_VAL total values, substantive state use descriptions and 15 years built. These are historical roll values, not verified current appraisals. ZIP is listing-derived; 413 PECAN ST retains unverified ZIP 76050 but its county and Keene jurisdiction are supported by exact parcel 126.3600.03710. The 22 residual unit, new-address and nonmatching labels remain shells, all ZIP 76059 entirely Johnson per https://www.zipdatamaps.com/76059 . Shell values are asking prices; unknown classifications are excluded. Approximate ZIP display coordinates use the same source and are not property coordinates. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 18 and 18 properties respectively; valuation covers 40, classification 18, coordinates 0, and brokerage 40. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 15 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:34:03.860295+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 40,
+        "ownership_count": 18,
+        "valuation_count": 40,
+        "classified_count": 18,
+        "coordinate_count": 0,
+        "year_built_count": 15,
+        "multifamily_count": 0,
+        "parcel_identity_count": 18,
+        "listing_backed_shell_count": 22
+      },
+      "listings": {
+        "brokerage_count": 40,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T13:37:46.235263+00:00",
+        "active_listing_count": 40,
+        "active_property_count": 40,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
