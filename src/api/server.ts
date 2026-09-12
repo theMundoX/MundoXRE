@@ -9181,6 +9181,76 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  viennaVa: {
+    "key": "vienna-va",
+    "aliases": [
+      "vienna",
+      "vienna-va"
+    ],
+    "label": "Vienna",
+    "publicLabel": "Vienna, VA",
+    "city": "Vienna",
+    "cityUpper": "VIENNA",
+    "county": "Fairfax",
+    "state": "VA",
+    "countyId": 2338951,
+    "latitude": 38.9361,
+    "longitude": -77.2676,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "All 39 stored active Redfin listings are linked: 28 public parcel matches and 11 clearly labeled listing-backed shells pending assessor reconciliation. Unknown shell classification is excluded.",
+      "Fairfax county_id 2338951 is confirmed from 28 linked county parcels and official current address jurisdiction fields. Coverage follows VIENNA listing-city labels, including mailing areas outside town boundaries, and does not establish complete town or county coverage.",
+      "Public Fairfax sources https://services1.arcgis.com/ioennV6PpG5Xodq0/ArcGIS/rest/services/ supply Address_Points/0 situs, ZIP, jurisdiction and WGS84 address-point coordinates, with PIN confirmed in Parcels/0. Twenty-seven matches are unique exact addresses and ZIPs; one condo match preserves exact unit 101 with CND versus # delimiters. Coordinates are address locations, not surveyed boundaries.",
+      "OpenData_A6/2 supplies 28 APRTOT assessed totals labeled tax year 2026; these are not market prices. OpenData_A6/1 supplies 28 substantive LUC_DESC classifications labeled tax year 2027 by the source; future-year labels are retained and are not a guarantee of final assessment. OpenData_A7/2 supplies 26 years built and living-area square footage. Ownership is absent.",
+      "The 11 residual shells include ten distinct ILLUMINATION DR units whose base address has county evidence but no verified unit parcels, and one abbreviated ABBEY GLN listing. Units are not merged onto the base parcel. All residual ZIPs are 22182, entirely Fairfax per https://www.zipdatamaps.com/22182 and https://www.zip-codes.com/zip-code/22182/zip-code-22182.asp . Shell county assignments remain subject to parcel reconciliation; shell values are asking prices. Approximate ZIP display coordinates use the latter source and are separate from property coordinates.",
+      "Parcel identity, substantive classification and address coordinates cover 28 properties; valuation covers 39 (28 assessed totals and 11 listing prices), brokerage 39, and year built/living area 26. Verified ownership, agent contacts, mortgage/debt, rent support and positive creative-finance evidence are absent.",
+      "Latest pre-link listing update is 2026-05-07T15:33:44.460394+00:00; stored active flags do not guarantee current availability. Linking may advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 39,
+        "ownership_count": 0,
+        "valuation_count": 39,
+        "classified_count": 28,
+        "coordinate_count": 28,
+        "year_built_count": 26,
+        "multifamily_count": 0,
+        "parcel_identity_count": 28,
+        "listing_backed_shell_count": 11
+      },
+      "listings": {
+        "brokerage_count": 39,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T16:34:34.387076+00:00",
+        "active_listing_count": 39,
+        "active_property_count": 39,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
