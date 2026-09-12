@@ -8298,6 +8298,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  arlingtonVa: {
+    "key": "arlington-va",
+    "aliases": [
+      "arlington",
+      "arlington-va"
+    ],
+    "label": "Arlington",
+    "publicLabel": "Arlington, VA",
+    "city": "Arlington",
+    "cityUpper": "ARLINGTON",
+    "county": "Arlington",
+    "state": "VA",
+    "countyId": 2338940,
+    "latitude": 38.8904,
+    "longitude": -77.0842,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 55 active listings and zero unlinked rows; 55 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 55 active listing properties are assigned to Arlington county_id 2338940. Coverage follows ARLINGTON listing-city labels restricted to ZIP 22209, corroborated entirely within Arlington County by https://www.zipdatamaps.com/22209; this is a postal/CDP listing subset, not county-wide coverage or an independent incorporated city. County FIPS 51013 was verified with Census ACS26 county data. Exact linking found no existing parcel matches. The public county polygon layer https://arlgis.arlingtonva.us/arcgis/rest/services/StaffMap/Property_Map_public/MapServer/3 provides master parcel IDs, which are not individual condo-unit identities. No master-parcel identity, building-wide ownership or assessment was assigned to a unit shell. All 55 valuations are stored Redfin asking prices and classifications are unknown placeholders. Unit strings, including combined units 1310/1311 and incomplete street labels, are retained as listing descriptions pending source and assessor reconciliation; a shell is not proof of a unique legal unit, condo ownership or verified address. Public address-point queries did not establish unit parcel identities, and no public parcel enrichment was imported. Display coordinates from https://mapcarta.com/21835096 are map display only. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 55, classification 55, coordinates 0, and brokerage 55. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:33:44.460394+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 55,
+        "ownership_count": 0,
+        "valuation_count": 55,
+        "classified_count": 55,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 0,
+        "listing_backed_shell_count": 55
+      },
+      "listings": {
+        "brokerage_count": 55,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T00:27:33.859965+00:00",
+        "active_listing_count": 55,
+        "active_property_count": 55,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
