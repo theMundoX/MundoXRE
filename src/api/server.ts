@@ -9045,6 +9045,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  santaBarbaraCa: {
+    "key": "santa-barbara-ca",
+    "aliases": [
+      "santa-barbara",
+      "santa-barbara-ca"
+    ],
+    "label": "Santa Barbara",
+    "publicLabel": "Santa Barbara, CA",
+    "city": "Santa Barbara",
+    "cityUpper": "SANTA BARBARA",
+    "county": "Santa Barbara",
+    "state": "CA",
+    "countyId": 2338950,
+    "latitude": 34.41925,
+    "longitude": -119.70808,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 40 active listings and zero unlinked rows; 17 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 40 active listing properties are assigned to Santa Barbara county_id 2338950. Coverage follows SANTA BARBARA listing-city labels, not verified municipal boundaries or complete county coverage. Santa Barbara FIPS 06083 is supported by Census and confirmed from 23 linked public parcels. Public source https://gisportal.santabarbaraca.gov/hosting/rest/services/Assessors_Parcels_County_Public/FeatureServer/0 supplied APN, situs address/ZIP and landUse for 23 unique exact matches; GIS edit dates are September 4, 2026, not a verified assessment vintage. All 40 values are Redfin asking prices, including the matched parcels; no assessor values or ownership were supplied. Seventeen residual unit, multi-address and unmatched listings remain separate shells; all ZIP 93101 entirely Santa Barbara County per https://www.zipdatamaps.com/93101 . Unit and multi-address labels were not collapsed onto building parcels. Unknown shell classifications are excluded. Approximate ZIP display coordinates from https://simplemaps.com/us-zips/93101/ are not property coordinates. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 23 and 0 properties respectively; valuation covers 40, classification 23, coordinates 0, and brokerage 40. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:32:12.538308+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 40,
+        "ownership_count": 0,
+        "valuation_count": 40,
+        "classified_count": 23,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 23,
+        "listing_backed_shell_count": 17
+      },
+      "listings": {
+        "brokerage_count": 40,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T13:30:42.877816+00:00",
+        "active_listing_count": 40,
+        "active_property_count": 40,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
