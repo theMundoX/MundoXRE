@@ -8773,6 +8773,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  bauxiteAr: {
+    "key": "bauxite-ar",
+    "aliases": [
+      "bauxite",
+      "bauxite-ar"
+    ],
+    "label": "Bauxite",
+    "publicLabel": "Bauxite, AR",
+    "city": "Bauxite",
+    "cityUpper": "BAUXITE",
+    "county": "Saline",
+    "state": "AR",
+    "countyId": 35,
+    "latitude": 34.513268,
+    "longitude": -92.467979,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 45 active listings and zero unlinked rows; 16 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 45 active listing properties are assigned to Saline county_id 35. Coverage follows the BAUXITE listing-city label, not verified municipal boundaries or complete county coverage. All 16 shells use ZIP 72011, entirely within Saline County per https://www.zipdatamaps.com/72011 . Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 29 and 29 properties respectively; valuation covers 45, classification 29, coordinates 29, and brokerage 45. Public Arkansas GIS parcel evidence (https://gis.arkansas.gov/arcgis/rest/services/FEATURESERVICES/Planning_Cadastre/FeatureServer/0) confirms 29 existing parcel IDs and situs addresses. Their missing TotalValue, ParcelType descriptions and centroid coordinates were filled from CAMA dated March 11, 2026, published April 1, 2026; original populated ownership fields were preserved. Coordinates are parcel centroids, not building locations. Unknown shell asset types are excluded from classification coverage. The remaining 16 values are listing prices, not appraisals.",
+      "The 4057 KINGS RIVER TRL listing retains unverified ZIP 72111, inconsistent with its BAUXITE city label; its Saline county assignment is supported by the exact public parcel situs and ID. Existing parcel ZIP 00000 and RURAL/RURBAN city placeholders remain unverified. Matching normalized whitespace, TRAIL/TRL and optional terminal DR/LOOP; no fuzzy street substitutions were used. Year built support covers 0 properties; physical size remains incomplete. Existing mortgage records cover 8 properties, with 24 records, 16 populated amounts and latest recording March 26, 2026; this is incomplete recorded-debt evidence and does not establish current balances, lien priority or a complete title search. Verified agent contacts, rent support and positive creative-finance evidence are absent.",
+      "The latest pre-link listing update is 2026-05-07T15:33:51.41061+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 45,
+        "ownership_count": 29,
+        "valuation_count": 45,
+        "classified_count": 29,
+        "coordinate_count": 29,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 29,
+        "listing_backed_shell_count": 16
+      },
+      "listings": {
+        "brokerage_count": 45,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T10:39:59.828541+00:00",
+        "active_listing_count": 45,
+        "active_property_count": 45,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": "2026-03-26",
+        "mortgage_amount_count": 16,
+        "mortgage_record_count": 24,
+        "properties_with_debt_coverage": 8,
+        "properties_with_mortgage_records": 8
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
