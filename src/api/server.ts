@@ -8977,6 +8977,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  lexingtonMa: {
+    "key": "lexington-ma",
+    "aliases": [
+      "lexington-massachusetts",
+      "lexington-ma"
+    ],
+    "label": "Lexington",
+    "publicLabel": "Lexington, MA",
+    "city": "Lexington",
+    "cityUpper": "LEXINGTON",
+    "county": "Middlesex",
+    "state": "MA",
+    "countyId": 2338948,
+    "latitude": 42.4456292,
+    "longitude": -71.2307018,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 41 active listings and zero unlinked rows; 8 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 41 active listing properties are assigned to Middlesex county_id 2338948. Coverage follows LEXINGTON listing-city labels, not verified municipal boundaries or complete county coverage. Middlesex FIPS 25017 is supported by Census and confirmed from 33 linked MassGIS assessor records. Public source https://services1.arcgis.com/hGdibHYSPO59RG1h/ArcGIS/rest/services/Massachusetts_Property_Tax_Parcels/FeatureServer/0 supplied TOWN_ID 155, town-scoped PROP_ID, owner, TOTAL_VAL assessed value, USE_DESC and year built for FY 2026. Matches require unique situs-address and ZIP; one address needed whitespace normalization. Eight residual unit-labeled listings remain separate shells, all ZIP 02420 entirely Middlesex per https://www.zipdatamaps.com/02420 . Units were not collapsed onto building parcels. Shell values are asking prices; unknown classifications are excluded. Census town display coordinates are not property coordinates; source https://tigerweb.geo.census.gov/tigerwebmain/Files/acs26/tigerweb_acs26_cousub_2025_acs25_ma.html . Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 33 and 33 properties respectively; valuation covers 41, classification 33, coordinates 0, and brokerage 41. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built support covers 33 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest pre-link listing update is 2026-05-07T15:32:31.784976+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 41,
+        "ownership_count": 33,
+        "valuation_count": 41,
+        "classified_count": 33,
+        "coordinate_count": 0,
+        "year_built_count": 33,
+        "multifamily_count": 0,
+        "parcel_identity_count": 33,
+        "listing_backed_shell_count": 8
+      },
+      "listings": {
+        "brokerage_count": 41,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T12:31:08.579088+00:00",
+        "active_listing_count": 41,
+        "active_property_count": 41,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
