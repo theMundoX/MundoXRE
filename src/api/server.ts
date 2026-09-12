@@ -9251,6 +9251,75 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  scrantonPa: {
+    "key": "scranton-pa",
+    "aliases": [
+      "scranton",
+      "scranton-pa"
+    ],
+    "label": "Scranton",
+    "publicLabel": "Scranton, PA",
+    "city": "Scranton",
+    "cityUpper": "SCRANTON",
+    "county": "Lackawanna",
+    "state": "PA",
+    "countyId": 1652972,
+    "latitude": 41.45477295,
+    "longitude": -75.65911102,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "All 38 stored active Redfin listings are linked: 25 unique public parcel matches and 13 clearly labeled listing-backed shells pending assessor reconciliation. Unknown shell classifications are excluded.",
+      "Lackawanna county_id 1652972 is confirmed from 25 linked official parcels. Scope follows SCRANTON listing-city labels, including two verified Dickson City parcels, and does not establish complete municipal or county coverage.",
+      "Public source https://gis.lackawannacounty.org/arcgis/rest/services/GISViewer/LandRecords/MapServer/85 supplies ParcelPIN, OwnerName and TotalValue assessed totals, validated against LandValue plus ImprovedValue. Assessment vintage is unspecified and values are not current market prices. Exact LOCATION street matches remove only explicit city/state/postal suffixes and require Scranton or Dickson City municipality; source ZIPs agree wherever present, otherwise ZIP is listing-derived. No fuzzy address, lot, unit or multi-address merges were used. Undecoded dwelling codes are not treated as substantive classifications.",
+      "The 13 shells retain source address labels, including SUMMIT POINTE numbers, duplicated N direction and 1108-1110 ALBRIGHT range; these do not prove legal parcel or unit identities. All residual ZIPs are 18508 or 18519, entirely Lackawanna per https://www.zipdatamaps.com/18508 and https://www.zipdatamaps.com/18519 . County assignments remain subject to parcel reconciliation. Shell values are asking prices. Approximate ZIP display coordinates use the 18508 source and are not property coordinates.",
+      "Parcel identity and ownership cover 25 properties; valuation covers 38 (25 county assessed totals and 13 listing asking prices), and brokerage 38. Substantive classification, property coordinates, year built, verified agent contacts, mortgage/debt coverage, rents and positive creative-finance evidence are absent.",
+      "Latest pre-link listing update is 2026-05-07T15:33:46.708577+00:00; stored active flags do not guarantee current availability. Linking may advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 38,
+        "ownership_count": 25,
+        "valuation_count": 38,
+        "classified_count": 0,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 25,
+        "listing_backed_shell_count": 13
+      },
+      "listings": {
+        "brokerage_count": 38,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-12T17:34:29.127066+00:00",
+        "active_listing_count": 38,
+        "active_property_count": 38,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   eulessTx: {
     key: 'euless-tx',
     aliases: [
