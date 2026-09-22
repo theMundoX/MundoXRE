@@ -10272,6 +10272,75 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  baskingRidgeNj: {
+    "key": "basking-ridge-nj",
+    "aliases": [
+      "basking-ridge",
+      "basking-ridge-nj"
+    ],
+    "label": "Basking Ridge",
+    "publicLabel": "Basking Ridge, NJ",
+    "city": "Basking Ridge",
+    "cityUpper": "BASKING RIDGE",
+    "county": "Somerset",
+    "state": "NJ",
+    "countyId": 13629,
+    "latitude": 40.7064,
+    "longitude": -74.5493,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; shell reconciliation and verified contacts remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled with field-level quality flags; coverage is incomplete and is not full-market underwriting coverage.",
+      "31 stored active Redfin listings have zero unlinked rows: 23 exact address-and-ZIP parcel links and eight clearly labeled listing-backed shells. Shells have no parcel identity, ownership, valuation, substantive classification or coordinates.",
+      "County_id 13629 is Somerset on all linked properties. Shell county assignments use the listing-city cohort supported by 23 existing Somerset parcels and township information; property-level county and parcel reconciliation remains pending. Full listing unit text is preserved. One shell carries ZIP 08558 rather than the predominant 07920; the listing-city label is not verified municipal or CDP geography.",
+      "Coverage follows the Basking Ridge listing-city label, not all Bernards Township or Somerset County. The map center is approximate display positioning and does not supply property coordinates.",
+      "23 existing NJGIN parcels carry parcel identities, assessed values, coordinates and year built; stored source classifications are 22 single_family and one vacant_land. Assessed values are not current market prices. Ownership and verified agent email/phone coverage are absent. Brokerage presence is not a verified contact.",
+      "Two properties have historical mortgage records and only one record has a positive amount; this is not verified current debt, payoff, assumability or creative-finance eligibility. The latest recorded mortgage date is 2023-07-27. 23 rent snapshots exist; inspected provenance is low-confidence estimated_v2_nj value/FMR blending, not verified leases or current asking rents. Positive creative-finance evidence is absent.",
+      "Original stored listing observations were May 7, 2026. The exact linker advanced timestamps on matched rows during reconciliation; this does not refresh listing availability. Shell creation preserved listing timestamps. Current active status must be reconfirmed."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 31,
+        "ownership_count": 0,
+        "valuation_count": 23,
+        "classified_count": 23,
+        "coordinate_count": 23,
+        "year_built_count": 23,
+        "multifamily_count": 0,
+        "parcel_identity_count": 23,
+        "listing_backed_shell_count": 8
+      },
+      "listings": {
+        "brokerage_count": 31,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-22T19:42:37.094737+00:00",
+        "active_listing_count": 31,
+        "active_property_count": 31,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": "2023-07-27",
+        "mortgage_amount_count": 1,
+        "mortgage_record_count": 2,
+        "properties_with_debt_coverage": 2,
+        "properties_with_mortgage_records": 2
+      },
+      "rents": {
+        "rent_snapshot_count": 23,
+        "latest_rent_observed": "2026-03-28",
+        "properties_with_rent_snapshots": 23
+      }
+    }
+  },
   chapelHillNc: {
     key: 'chapel-hill-nc',
     aliases: [
