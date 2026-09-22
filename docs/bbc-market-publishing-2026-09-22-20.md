@@ -33,3 +33,18 @@ Liberty Twp: current inventory is 59 active/unlinked rather than historical 30. 
 - No RapidAPI, secret requests or secret output. Hydrated Windows environment before protected access.
 - Evidence retained in tmp/*-sep22-20-* and durable database provenance. Intentional files: src/api/server.ts and this report.
 - Continuing with Belmont NC, then Copley OH and Ottawa Hills OH; preserve earlier holds.
+
+## Continuation: Belmont and Copley
+
+| Market | Active listings | Unlinked before → after | Historical CSV overall | Result |
+| --- | ---: | ---: | ---: | --- |
+| Belmont NC | 29 | 29 → 1 | 0% | 28 public parcel links; held for COOPER 3 PLAN |
+| Copley OH | 90 (CSV 29) | 89 → 3 | 0% | Four exact links, 82 new shells; held |
+
+Belmont: Gaston county_id 634608 exact-unique first zero. Fully paginated 1,038 house-number candidates from the official [Gaston parcels](https://gis.gastoncountync.gov/publicgis/rest/services/PublicGIS/Parcels/MapServer/11). Imported 28 unique exact situs street/ZIP/NC/postal-city matches, consistent AKPAR/PID and WHOLE_ADDRESS/PHYSSTRADD, no subPIN. Final 28 identities/owners/valuations/county use descriptions, 26 years, zero coordinates/debt/rents/verified contacts. Stored FMV_TOTAL in market_value with explicit provenance: county fair-market tax valuation, not independent current sale-price estimate; source parcel_year is 2027. Current co-owner names retained. Many rows are Cramerton tax district despite Belmont postal city. Durable raw.gastonParcelEvidence includes full source attributes. Listing timestamps unchanged. COOPER 3 PLAN is not a specific street address and receives no shell or fabricated identity; market remains held.
+
+Copley: Summit 1698989 exact-unique linked four, two of them pre-existing shells. County evidence after exact linking was five linked properties, including three parcel records and two shells. Created 82 labeled shells for remaining numeric street addresses/ZIP 44321 with full unit text, null identities/values, unknown/listing_only classification, and raw.listingCityCountyEvidence disclosing cohort-level county assignment pending property-level reconciliation. Initial guarded transaction rolled back completely on existing-property conflicts; inspected and excluded those records before successful retry. Unresolved: 712 S HAMETOWN RD has two existing parcel identities; 20 S HAMETOWN RD has four pre-existing shells; V/L APPROX 62 AC JACOBY RD is not a specific street address. No arbitrary identity chosen.
+
+Final Copley: 90 active, 87 linked, three unlinked, 84 total shells (82 new). Three parcel identities/owners/classifications/coordinates/years, five stored valuations, three historical mortgage records on one property (latest 2020-09-24), one rent snapshot; no verified contacts or brokerage rows. New-shell creation preserved timestamps; exact linking changed timestamps without refreshing availability. Public Summit metadata retrieved for later parcel reconciliation; no broad ingestion run.
+
+Post-push public smoke remains HTTP 401 with credentialAvailable=false. Local inventory remains 638 and only Scottdale was promoted during this run. Published config/report commit b192f05. This continuation changes the report only. Next ranked target: Ottawa Hills OH, then Southampton PA. Preserve all previous holds.
