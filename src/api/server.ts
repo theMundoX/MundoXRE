@@ -10136,6 +10136,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  richlandHillsTx: {
+    key: 'richland-hills-tx',
+    aliases: [
+      'richland-hills',
+      'richland-hills-tx'
+    ],
+    label: 'Richland Hills',
+    publicLabel: 'Richland Hills, TX',
+    city: 'Richland Hills',
+    cityUpper: 'RICHLAND HILLS',
+    county: 'Tarrant',
+    state: 'TX',
+    countyId: 8,
+    latitude: 32.815,
+    longitude: -97.228,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 33 active listings and zero unlinked rows; 5 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 33 active listing properties are assigned to Tarrant county_id 8. Coverage follows the Richland Hills listing-city label and does not establish complete municipal or county coverage; five shell county assignments use the city label supported by 28 linked parcels and the official city comprehensive plan, and remain subject to property-level assessor reconciliation.',
+      'Parcel identity and ownership support cover 28 and 28 properties respectively; valuation covers 28, classification 0, coordinates 0, and brokerage 33. All five new shells have no valuation or substantive classification. Values on 28 county parcel records are APPRAISEDV appraisal values, not market prices; source appraisal dates remain in provenance. Source situs ZIP fields were blank, so ZIP is listing-derived; parcel matches require unique exact address, city and state with a single account. Classification remains unknown. Shells at 2600 ROSEBUD LN and 3720 GRANADA DR have unresolved multiple county accounts; no account, owner or value was selected.',
+      'Year built is stored for 25 assessor parcels; physical data on shells remain absent. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest stored listing timestamp is 2026-05-07T15:34:03.736537+00:00; this reconciliation preserved listing timestamps without refreshing availability. Active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 33,
+        ownership_count: 28,
+        valuation_count: 28,
+        classified_count: 0,
+        coordinate_count: 0,
+        year_built_count: 25,
+        multifamily_count: 0,
+        parcel_identity_count: 28,
+        listing_backed_shell_count: 5
+      },
+      listings: {
+        brokerage_count: 33,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-07T15:34:03.736537+00:00',
+        active_listing_count: 33,
+        active_property_count: 33,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   chapelHillNc: {
     key: 'chapel-hill-nc',
     aliases: [
