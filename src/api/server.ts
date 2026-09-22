@@ -10204,6 +10204,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  northChesterfieldVa: {
+    key: 'north-chesterfield-va',
+    aliases: [
+      'north-chesterfield',
+      'north-chesterfield-va'
+    ],
+    label: 'North Chesterfield',
+    publicLabel: 'North Chesterfield, VA',
+    city: 'North Chesterfield',
+    cityUpper: 'NORTH CHESTERFIELD',
+    county: 'Chesterfield',
+    state: 'VA',
+    countyId: 2338956,
+    latitude: 37.45,
+    longitude: -77.5,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and does not establish full-market underwriting coverage.',
+      'All 32 stored active Redfin listings are linked: 31 county parcel records and one clearly labeled listing-backed shell at 2300 SPRINGS RD. The shell has no parcel identity, owner, valuation, classification or coordinates.',
+      'Coverage follows the North Chesterfield listing-city label. County_id 2338956 is supported by 31 unique exact parcel and county address/ZIP matches with consistent TaxID and GPIN; the residual shell uses listing-city county assignment pending property-level reconciliation.',
+      'Parcel identity, ownership and valuation cover 31 properties; county UseCode classification and year built cover 28. TotalAssessment is the source assessed total for AssessmentYear, not market price. UseCode is untranslated county use text, not a verified detailed asset class. Source attributes and address evidence remain in listing provenance.',
+      'Coordinates, verified agent contacts, mortgage/debt coverage, rent support and positive creative-finance evidence are absent. Brokerage text is present for all 32 listings. The map center is approximate display positioning only.',
+      'Listing timestamps were preserved; the latest stored timestamp is 2026-05-07T15:33:45.32788+00:00. County transfers may postdate stored listings. Active status reflects source flags, has not been refreshed, and availability must be reconfirmed.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 32,
+        ownership_count: 31,
+        valuation_count: 31,
+        classified_count: 28,
+        coordinate_count: 0,
+        year_built_count: 28,
+        multifamily_count: 0,
+        parcel_identity_count: 31,
+        listing_backed_shell_count: 1
+      },
+      listings: {
+        brokerage_count: 32,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-07T15:33:45.32788+00:00',
+        active_listing_count: 32,
+        active_property_count: 32,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   chapelHillNc: {
     key: 'chapel-hill-nc',
     aliases: [
