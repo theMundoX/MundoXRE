@@ -10272,6 +10272,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  scottdaleGa: {
+    "key": "scottdale-ga",
+    "aliases": [
+      "scottdale",
+      "scottdale-ga"
+    ],
+    "label": "Scottdale",
+    "publicLabel": "Scottdale, GA",
+    "city": "Scottdale",
+    "cityUpper": "SCOTTDALE",
+    "county": "DeKalb",
+    "state": "GA",
+    "countyId": 1741141,
+    "latitude": 33.78983,
+    "longitude": -84.26409,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; shell reconciliation and verified contacts remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled with field-level quality flags; coverage is incomplete and does not establish full-market underwriting coverage.",
+      "All 30 stored active Redfin listings are linked: 24 public DeKalb parcel records and six clearly labeled listing-backed shells. Shells have no parcel identity, owner, valuation, substantive classification or coordinates.",
+      "County_id 1741141 is supported by 24 unique normalized exact situs street, city, state and ZIP parcel matches with blank unit fields. Six shells use the listing-city cohort for county assignment pending property-level reconciliation; five have unresolved source unit fields and their candidate parcel identities and values were not promoted.",
+      "Parcel identities, ownership and assessed values cover 24 properties. CNTASSDVAL is the source current assessed value with unspecified assessment vintage, not current market price. Untranslated county class codes are retained as source evidence but not counted as substantive asset classification.",
+      "Classification, year built, coordinates, verified agent contacts, debt, rent support and positive creative-finance evidence are absent. Brokerage text is present on all 30 listings; this is not verified contact coverage. Map center is approximate display positioning only. Coverage follows the listing-city label, not verified CDP boundaries.",
+      "Listing timestamps were preserved. Latest stored observation is May 7, 2026; active status reflects stored source flags and availability must be reconfirmed. Public parcel records do not refresh listing availability."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 30,
+        "ownership_count": 24,
+        "valuation_count": 24,
+        "classified_count": 0,
+        "coordinate_count": 0,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 24,
+        "listing_backed_shell_count": 6
+      },
+      "listings": {
+        "brokerage_count": 30,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-07T15:32:01.328573+00:00",
+        "active_listing_count": 30,
+        "active_property_count": 30,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   baskingRidgeNj: {
     "key": "basking-ridge-nj",
     "aliases": [
