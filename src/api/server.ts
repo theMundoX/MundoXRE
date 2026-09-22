@@ -10409,6 +10409,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  riverOaksTx: {
+    key: 'river-oaks-tx',
+    aliases: [
+      'river-oaks',
+      'river-oaks-tx'
+    ],
+    label: 'River Oaks',
+    publicLabel: 'River Oaks, TX',
+    city: 'River Oaks',
+    cityUpper: 'RIVER OAKS',
+    county: 'Tarrant',
+    state: 'TX',
+    countyId: 8,
+    latitude: 32.7767738,
+    longitude: -97.398436,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 27 active listings and zero unlinked rows; 2 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 27 active listing properties are assigned to Tarrant county_id 8. Coverage follows the River Oaks listing-city label and does not establish complete municipal or county coverage; two shell county assignments use the city label supported by 25 linked parcels, and remain subject to property-level assessor reconciliation.',
+      'Parcel identity and ownership support cover 25 and 25 properties respectively; valuation covers 25, classification 0, coordinates 0, and brokerage 27. Both new shells have no valuation or substantive classification. Values on 25 county parcel records are APPRAISEDV appraisal values, not market prices; source appraisal dates remain in provenance. Source situs ZIP fields were blank, so ZIP is listing-derived; parcel matches require unique exact address, city and state with a single account. Classification remains unknown. Shells at 1310 YALE ST and 1611 NANCY have no unique exact county parcel match; their parcel identities remain unresolved.',
+      'Year built is stored for 24 assessor parcels; physical data on shells remain absent. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest stored listing timestamp is 2026-05-07T15:33:24.314349+00:00; this reconciliation preserved listing timestamps without refreshing availability. Active status reflects stored source flags and is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 27,
+        ownership_count: 25,
+        valuation_count: 25,
+        classified_count: 0,
+        coordinate_count: 0,
+        year_built_count: 24,
+        multifamily_count: 0,
+        parcel_identity_count: 25,
+        listing_backed_shell_count: 2
+      },
+      listings: {
+        brokerage_count: 27,
+        listing_sources: [
+          'redfin'
+        ],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-05-07T15:33:24.314349+00:00',
+        active_listing_count: 27,
+        active_property_count: 27,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   chapelHillNc: {
     key: 'chapel-hill-nc',
     aliases: [
