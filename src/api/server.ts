@@ -10409,6 +10409,75 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  bellbrookOh: {
+    "key": "bellbrook-oh",
+    "aliases": [
+      "bellbrook",
+      "bellbrook-oh"
+    ],
+    "label": "Bellbrook",
+    "publicLabel": "Bellbrook, OH",
+    "city": "Bellbrook",
+    "cityUpper": "BELLBROOK",
+    "county": "Greene / Montgomery",
+    "state": "OH",
+    "countyId": 2338903,
+    "latitude": 39.642291,
+    "longitude": -84.08211,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.",
+      "Stored Redfin inventory has 80 active listings and zero unlinked rows; 22 properties are clearly labeled listing-backed shells with null parcel identity/value and unknown classification. Original lot, unit, and address-range text is preserved; possible duplicate marketing addresses remain unresolved.",
+      "Coverage follows the Bellbrook listing-city label, not municipal boundaries. There are 79 linked properties in Greene county_id 2338903 and one in Montgomery county_id 1698991. CountyId denotes the primary county only. Shell county assignments use ZIP 45305 and the city cohort supported by 57 Greene parcels; property-level assessor reconciliation remains pending.",
+      "Parcel identity, ownership and classification support cover 58 properties; tax assessment values cover 56, year built 52, brokerage 3, and coordinates 0. Greene source Tax_Year is retained in listing provenance; assessed values are not market prices. Shells have no inferred enrichment.",
+      "1940 ALDA CT is linked by unique exact Montgomery County situs address and matching normalized parcel ID. Listing Bellbrook/45459 conflicts with stored parcel Miamisburg/45342; both labels remain unchanged and no situs ZIP verification is claimed. Current county owner and assessment replaced the older owner/null assessment with previous values retained in provenance. Assessor transfers may postdate listing observations.",
+      "Verified agent contacts, mortgage/debt coverage, rent support and positive creative-finance evidence are absent. The display location is an approximate mean of matched public Ohio address points, not property coordinates.",
+      "Latest stored listing timestamp is 2026-09-21T13:41:26.682+00:00. Reconciliation preserved listing timestamps and did not refresh availability; active status reflects stored source flags only."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 80,
+        "ownership_count": 58,
+        "valuation_count": 56,
+        "classified_count": 58,
+        "coordinate_count": 0,
+        "year_built_count": 52,
+        "multifamily_count": 0,
+        "parcel_identity_count": 58,
+        "listing_backed_shell_count": 22
+      },
+      "listings": {
+        "brokerage_count": 3,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-21T13:41:26.682+00:00",
+        "active_listing_count": 80,
+        "active_property_count": 80,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   riverOaksTx: {
     key: 'river-oaks-tx',
     aliases: [
