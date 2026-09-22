@@ -21,3 +21,11 @@ Added live MARKET_CONFIGS entry with audited fallback counts and explicit field-
 - No RapidAPI or secret requests/output. Only this report and src/api/server.ts are intentional files.
 - Evidence retained in tmp/richland-hills-sep22-17-* and DB provenance.
 - Next ranked target: Rolling Hills Estates CA (32 active, 32 unlinked, historical overall 0%), then Wilmington CA.
+
+## Continued ranked reconciliation
+
+- Rolling Hills Estates CA: 32 active, unlinked 32 → 0, historical CSV overall 0%. Exact-unique Los Angeles county_id 401712 linked five existing properties. Guarded transaction created 27 labeled shells for residual address/ZIP listings. Final audit: five identities, stored values, classifications, coordinates and years; zero owners/debt/rents/verified contacts. Calculated readiness 6.7/28; held, no live config.
+- Wilmington CA: 32 active, unlinked 32 → 1, historical CSV overall 0%. Exact-unique Los Angeles linked ten existing properties. Created 21 guarded labeled shells; excluded the ZIP 90001 residual pending city/ZIP reconciliation. Final audit: 31 linked properties, ten identities/stored values/classifications/coordinates, nine years, zero owners/debt/rents/verified contacts. Held for residual and inadequate enrichment.
+- Shells preserve full listing address/unit text and ZIP with null parcel/value, unknown classification, listing_only confidence and durable raw.listingCityCountyEvidence. County assignment follows linked properties in each listing-city market; property-level county/parcel reconciliation remains pending. Exact-linker timestamps changed without refreshing availability; shell transactions preserved timestamps.
+- Current public [LA parcel service](https://public.gis.lacounty.gov/public/rest/services/LACounty_Cache/LACounty_Parcel/MapServer/0) metadata retrieved. Broad query cancelled; narrower paginated query timed out after its first page. No incomplete public data was imported. Resume with smaller address batches if revisiting.
+- Next ranked target: New Lexington OH, then York SC. Retain both California holds and all earlier holds.
