@@ -10409,6 +10409,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  southboroughMa: {
+    "key": "southborough-ma",
+    "aliases": [
+      "southborough",
+      "southborough-ma"
+    ],
+    "label": "Southborough",
+    "publicLabel": "Southborough, MA",
+    "city": "Southborough",
+    "cityUpper": "SOUTHBOROUGH",
+    "county": "Worcester",
+    "state": "MA",
+    "countyId": 2338958,
+    "latitude": 42.3011759,
+    "longitude": -71.5296605,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.",
+      "Stored Redfin inventory has 23 active listings and zero unlinked rows. Ten properties are explicitly labeled listing-backed shells with null parcel identity/value and unknown classification. Original unit, lot and incomplete street text is retained; duplicate marketing addresses may remain unresolved.",
+      "Coverage follows the Southborough listing-city label. All linked properties use Worcester county_id 2338958. Shell county assignments use the city cohort supported by 13 unique public parcel matches; property-level assessor reconciliation remains pending.",
+      "Official MassGIS parcels support 13 unique normalized situs-street and town matches with parcel IDs, owners, use descriptions, years built and FY2027 tax assessment values. Source situs ZIP is absent; ZIP remains listing-derived and is not independently verified. Owner mailing ZIP was not used. Assessment values are not market prices.",
+      "Property coordinates, verified agent contacts, mortgage/debt coverage, rent support and positive creative-finance evidence are absent. Shells have no inferred enrichment and are excluded from classified coverage. Display location uses the Census town representative point, not property coordinates.",
+      "Latest stored listing timestamp is 2026-05-07T15:32:31.784976+00:00. Reconciliation preserved listing timestamps and did not refresh availability; active status reflects stored source flags only."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 23,
+        "ownership_count": 13,
+        "valuation_count": 13,
+        "classified_count": 13,
+        "coordinate_count": 0,
+        "year_built_count": 13,
+        "multifamily_count": 0,
+        "parcel_identity_count": 13,
+        "listing_backed_shell_count": 10
+      },
+      "listings": {
+        "brokerage_count": 23,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-07T15:32:31.784976+00:00",
+        "active_listing_count": 23,
+        "active_property_count": 23,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   jamestownOh: {
     "key": "jamestown-oh",
     "aliases": [
