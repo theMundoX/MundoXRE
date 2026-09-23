@@ -10409,6 +10409,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  coventryTownshipOh: {
+    "key": "coventry-township-oh",
+    "aliases": [
+      "coventry-township",
+      "coventry-township-oh"
+    ],
+    "label": "Coventry Township",
+    "publicLabel": "Coventry Township, OH",
+    "city": "Coventry Township",
+    "cityUpper": "COVENTRY TOWNSHIP",
+    "county": "Summit",
+    "state": "OH",
+    "countyId": 1698989,
+    "latitude": 41.0049357,
+    "longitude": -81.5359473,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.",
+      "Stored Redfin inventory has 89 active listings and zero unlinked rows. Twenty properties are explicitly labeled listing-backed shells with null parcel identity/value and unknown classification. Original unit, lot, address ranges and incomplete street text are retained; duplicate marketing addresses and multi-parcel ambiguity remain unresolved.",
+      "Coverage follows the Coventry Township listing-city label, not verified municipal boundaries. All linked properties use Summit county_id 1698989. Shell county assignments use the city/ZIP cohort supported by 69 linked parcels; individual shell parcel reconciliation remains pending.",
+      "Official Summit parcels support 67 unique normalized situs-street matches with independent Ohio address ZIP/state evidence, consistent parcel IDs and COVENTRY TOWNSHIP tax district. These existing properties were reconciled to public owner, assessed value, use code and year fields, with prior values retained in provenance. County postal fields are owner mailing addresses and were not used as situs ZIP. Assessment vintage is unspecified; assessments are not market prices. Two additional exact-linked existing parcels retain legacy enrichment, which is not newly verified.",
+      "Thirty-two existing property coordinate pairs are retained without new verification. Verified agent contacts, mortgage/debt coverage, rent support and positive creative-finance evidence are absent. Shells have no inferred enrichment and are excluded from classified coverage. Display location is the Census township representative point, not a property location.",
+      "Latest stored listing timestamp is 2026-09-23T02:49:22.030033+00:00. The exact linker advanced six listing timestamps; subsequent public reconciliation and shell creation preserved timestamps. Linking did not refresh availability; active status reflects stored source flags only."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 89,
+        "ownership_count": 69,
+        "valuation_count": 69,
+        "classified_count": 69,
+        "coordinate_count": 32,
+        "year_built_count": 69,
+        "multifamily_count": 0,
+        "parcel_identity_count": 69,
+        "listing_backed_shell_count": 20
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-23T02:49:22.030033+00:00",
+        "active_listing_count": 89,
+        "active_property_count": 89,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   southboroughMa: {
     "key": "southborough-ma",
     "aliases": [
