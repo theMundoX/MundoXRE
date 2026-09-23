@@ -10409,6 +10409,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  westLakeHillsTx: {
+    "key": "west-lake-hills-tx",
+    "aliases": [
+      "west-lake-hills",
+      "west-lake-hills-tx"
+    ],
+    "label": "West Lake Hills",
+    "publicLabel": "West Lake Hills, TX",
+    "city": "West Lake Hills",
+    "cityUpper": "WEST LAKE HILLS",
+    "county": "Travis",
+    "state": "TX",
+    "countyId": 1973351,
+    "latitude": 30.2920442,
+    "longitude": -97.808364,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.",
+      "Stored Redfin inventory has 32 active listings and zero unlinked rows. Nine properties are explicitly labeled listing-backed shells with null parcel identity/value and unknown classification. Original unit and street text is retained; duplicate marketing addresses may remain unresolved.",
+      "Coverage follows the West Lake Hills listing-city label, not verified municipal boundaries or full Travis County coverage. All linked properties use Travis county_id 1973351. Shell county assignments use the city/ZIP78746 cohort supported by 23 public parcel matches; individual shell reconciliation remains pending.",
+      "Official Travis Tax Office parcels support 23 unique normalized situs-street, state and ZIP matches with parcel PROP_ID, source py_owner_name and land-use description. Twenty-one have source market_value and year-built fields. Tax-office market values have unspecified vintage and are not sale prices or assessed values; ownership freshness is unverified. Full source attributes and matching evidence are retained.",
+      "Property coordinates, verified agent contacts, mortgage/debt coverage, rent support and positive creative-finance evidence are absent. Six listing brokerage names are present. Shells have no inferred enrichment and are excluded from classified coverage. Display location uses the Census city representative point, not property coordinates.",
+      "Latest stored listing timestamp is 2026-06-18T09:12:58.153301+00:00. Linking and public enrichment preserved listing timestamps and did not refresh availability; active status reflects stored source flags only."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 32,
+        "ownership_count": 23,
+        "valuation_count": 21,
+        "classified_count": 23,
+        "coordinate_count": 0,
+        "year_built_count": 21,
+        "multifamily_count": 0,
+        "parcel_identity_count": 23,
+        "listing_backed_shell_count": 9
+      },
+      "listings": {
+        "brokerage_count": 6,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-06-18T09:12:58.153301+00:00",
+        "active_listing_count": 32,
+        "active_property_count": 32,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   coventryTownshipOh: {
     "key": "coventry-township-oh",
     "aliases": [
