@@ -10409,6 +10409,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  jamestownOh: {
+    "key": "jamestown-oh",
+    "aliases": [
+      "jamestown",
+      "jamestown-oh"
+    ],
+    "label": "Jamestown",
+    "publicLabel": "Jamestown, OH",
+    "city": "Jamestown",
+    "cityUpper": "JAMESTOWN",
+    "county": "Greene",
+    "state": "OH",
+    "countyId": 2338903,
+    "latitude": 39.63505001928571,
+    "longitude": -83.74740317285715,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.",
+      "Stored Redfin inventory has 24 active listings and zero unlinked rows. Eleven properties are explicitly labeled listing-backed shells with null parcel identity/value and unknown classification. Lot, zero-number and incomplete street text remain unchanged; duplicate marketing addresses may remain unresolved.",
+      "Coverage follows the Jamestown listing-city label, not municipal boundaries. All 24 linked properties use Greene county_id 2338903. Shell county assignments use ZIP 45335 and the city cohort supported by 13 exact public parcels; property-level assessor reconciliation remains pending.",
+      "Public Greene parcels support 13 parcel identities, owners, land-use classifications and tax assessment values, plus 12 years built. Source Tax_Year 2025 is retained in provenance; assessed values are not market prices. Shells have no inferred enrichment and are excluded from classified coverage.",
+      "Property coordinates, brokerage, verified agent contacts, mortgage/debt coverage, rent support and positive creative-finance evidence are absent. Display location is an approximate mean of matched Ohio address points, not property coordinates.",
+      "Latest stored listing timestamp is 2026-05-18T07:23:15.893+00:00. Reconciliation preserved listing timestamps and did not refresh availability; active status reflects stored source flags only."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 24,
+        "ownership_count": 13,
+        "valuation_count": 13,
+        "classified_count": 13,
+        "coordinate_count": 0,
+        "year_built_count": 12,
+        "multifamily_count": 0,
+        "parcel_identity_count": 13,
+        "listing_backed_shell_count": 11
+      },
+      "listings": {
+        "brokerage_count": 0,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-05-18T07:23:15.893+00:00",
+        "active_listing_count": 24,
+        "active_property_count": 24,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 0,
+        "properties_with_debt_coverage": 0,
+        "properties_with_mortgage_records": 0
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   bellbrookOh: {
     "key": "bellbrook-oh",
     "aliases": [
