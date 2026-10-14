@@ -31031,6 +31031,46 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  irmoSc: {
+    key: 'irmo-sc', aliases: ['irmo', 'irmo-sc'], label: 'Irmo', publicLabel: 'Irmo, SC',
+    city: 'Irmo', cityUpper: 'IRMO', county: 'Lexington', state: 'SC', countyId: 2338890,
+    latitude: 34.122818, longitude: -81.198068, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Lexington parcel reconciliation and verified contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the IRMO listing city, linked into Lexington county_id 2338890 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 161 active listings are linked to 161 active properties with no remaining unlinked rows; all are clearly labeled address-level listing-backed shells pending parcel reconciliation and have no inferred parcel identity, owner, physical, or coordinate fields.',
+      'Listing-backed valuation and classification plus brokerage attribution cover all active inventory. Verified agent contacts, ownership, year built, square footage, property coordinates, recorder/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'Latest stored listing timestamp is 2026-05-25T10:31:44.049998+00:00. Link checks preserved source timestamps and did not refresh availability; active status reflects stored source flags only.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 161, parcel_identity_count: 0, listing_backed_shell_count: 161, classified_count: 161, ownership_count: 0, valuation_count: 161, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 161, active_property_count: 161, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 161, creative_finance_count: 0, latest_listing_seen: '2026-05-25T10:31:44.049998+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
+  sanfordNc: {
+    key: 'sanford-nc', aliases: ['sanford', 'sanford-nc'], label: 'Sanford', publicLabel: 'Sanford, NC',
+    city: 'Sanford', cityUpper: 'SANFORD', county: 'Lee', state: 'NC', countyId: 548787,
+    latitude: 35.4799, longitude: -79.1803, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Lee parcel reconciliation and verified contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the SANFORD listing city, linked into Lee county_id 548787 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 158 active listings are linked to 158 active properties with no remaining unlinked rows; all are clearly labeled address-level listing-backed shells pending parcel reconciliation and have no inferred parcel identity, owner, physical, or coordinate fields.',
+      'Listing-backed valuation and classification plus brokerage attribution cover all active inventory. Verified agent contacts, ownership, year built, square footage, property coordinates, recorder/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'Latest stored listing timestamp is 2026-04-14T08:51:09.645+00:00. Link checks preserved source timestamps and did not refresh availability; active status reflects stored source flags only.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 158, parcel_identity_count: 0, listing_backed_shell_count: 158, classified_count: 158, ownership_count: 0, valuation_count: 158, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 158, active_property_count: 158, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 158, creative_finance_count: 0, latest_listing_seen: '2026-04-14T08:51:09.645+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
