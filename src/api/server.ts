@@ -31004,6 +31004,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  acworthGa: {
+    key: 'acworth-ga', aliases: ['acworth', 'acworth-ga'], label: 'Acworth', publicLabel: 'Acworth, GA',
+    city: 'Acworth', cityUpper: 'ACWORTH', county: 'Cobb', state: 'GA', countyId: 2338842,
+    latitude: 34.0659, longitude: -84.6769, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Cobb parcel reconciliation and verified contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the ACWORTH listing city, linked into Cobb county_id 2338842 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 164 active listings are linked to 164 active properties with no remaining unlinked rows. Forty-six carry parcel identity and owner support; 118 are clearly labeled address-level listing-backed shells pending parcel reconciliation.',
+      'Valuation covers all active properties and listing-backed classification covers the 118 shell records. Verified agent contacts, year built, square footage, property coordinates, recorder/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied; brokerage attribution covers all active listings.',
+      'Latest stored listing timestamp is 2026-09-12T19:34:49.546210+00:00. Linking checks preserved source timestamps and did not refresh availability; active status reflects stored source flags only.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 164, parcel_identity_count: 46, listing_backed_shell_count: 118, classified_count: 118, ownership_count: 46, valuation_count: 164, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 164, active_property_count: 164, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 164,
+        creative_finance_count: 0, latest_listing_seen: '2026-09-12T19:34:49.546210+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
