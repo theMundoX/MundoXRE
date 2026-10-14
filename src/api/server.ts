@@ -30977,6 +30977,33 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 4, properties_with_rent_snapshots: 4, latest_rent_observed: null },
     },
   },
+  ellenwoodGa: {
+    key: 'ellenwood-ga', aliases: ['ellenwood', 'ellenwood-ga'], label: 'Ellenwood', publicLabel: 'Ellenwood, GA',
+    city: 'Ellenwood', cityUpper: 'ELLENWOOD', county: 'DeKalb', state: 'GA', countyId: 1741141,
+    latitude: 33.6362, longitude: -84.2938, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until DeKalb parcel reconciliation and verified ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the ELLENWOOD listing city, linked into DeKalb county_id 1741141 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 167 active listings are linked to 167 active properties with no remaining unlinked rows; all are clearly labeled address-level listing-backed shells pending parcel reconciliation and have no inferred parcel identity, owner, physical, or coordinate fields.',
+      'Listing-backed valuation and classification plus brokerage attribution cover all active inventory. Verified agent contacts, ownership, year built, square footage, property coordinates, recorder/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'Latest stored listing timestamp is 2026-05-25T10:31:34.614817+00:00. Linking checks preserved source timestamps and did not refresh availability; active status reflects stored source flags only.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 167, parcel_identity_count: 0, listing_backed_shell_count: 167, classified_count: 167, ownership_count: 0, valuation_count: 167, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 167, active_property_count: 167, unlinked_listing_count: 0,
+        agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 167,
+        creative_finance_count: 0, latest_listing_seen: '2026-05-25T10:31:34.614817+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
