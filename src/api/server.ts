@@ -30212,6 +30212,63 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  mason: {
+    key: 'mason',
+    aliases: ['mason', 'mason-oh'],
+    label: 'Mason',
+    publicLabel: 'Mason, OH',
+    city: 'Mason',
+    cityUpper: 'MASON',
+    county: 'Warren',
+    state: 'OH',
+    countyId: 1741129,
+    latitude: 39.3601,
+    longitude: -84.3099,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Warren County parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory: two rows linked by exact address and ZIP, and 70 remaining active rows received clearly labeled listing-backed shells. The listing-backed rows are address-level fallback records, not assessor-confirmed parcel identities.',
+      'All 482 active listings are linked with no remaining unlinked rows, but parcel identity, ownership, verified agent contacts, brokerage attribution, recorder/debt coverage, rent support, year built, square footage, and coordinates are absent or incomplete and must not be guessed or implied.',
+      'Listing prices are asking prices rather than assessed values or independent valuations; data-quality flags must remain visible to downstream consumers.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 482,
+        parcel_identity_count: 2,
+        classified_count: 482,
+        ownership_count: 0,
+        valuation_count: 482,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 482,
+        active_property_count: 482,
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        brokerage_count: 0,
+        creative_finance_count: 0,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0,
+        properties_with_mortgage_records: 0,
+        properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30259,6 +30316,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'sugar-grove',
   'cedar-hill',
   'southampton',
+  'mason',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
