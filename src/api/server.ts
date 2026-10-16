@@ -31281,6 +31281,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  gainesvilleGa: {
+    key: 'gainesville-ga', aliases: ['gainesville-ga', 'gainesville-georgia'], label: 'Gainesville', publicLabel: 'Gainesville, GA',
+    city: 'Gainesville', cityUpper: 'GAINESVILLE', county: 'Hall', state: 'GA', countyId: 2338896,
+    latitude: 34.2979, longitude: -83.8241, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified ownership, contact, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the GAINESVILLE listing city, linked into Hall county_id 2338896 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 131 active listings are linked to 131 active properties with no remaining unlinked rows. Every linked property is clearly labeled as an address-level listing-backed shell pending parcel reconciliation.',
+      'Listing-derived valuation, classification, and brokerage attribution cover all active properties, but do not establish assessor verification. Parcel identity, ownership, year built, physical size, coordinates, and unit counts are absent.',
+      'Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 131, parcel_identity_count: 0, listing_backed_shell_count: 131, classified_count: 131, ownership_count: 0, valuation_count: 131, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 131, active_property_count: 131, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 131, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   austinTx: {
     key: 'austin-tx', aliases: ['austin', 'austin-tx'], label: 'Austin', publicLabel: 'Austin, TX',
     city: 'Austin', cityUpper: 'AUSTIN', county: 'Travis', state: 'TX', countyId: 1973351,
