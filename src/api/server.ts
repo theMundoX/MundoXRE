@@ -30269,6 +30269,63 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  germantown: {
+    key: 'germantown',
+    aliases: ['germantown', 'germantown-tn'],
+    label: 'Germantown',
+    publicLabel: 'Germantown, TN',
+    city: 'Germantown',
+    cityUpper: 'GERMANTOWN',
+    county: 'Shelby',
+    state: 'TN',
+    countyId: 1741244,
+    latitude: 35.0868,
+    longitude: -89.8101,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Shelby parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Shelby County property rows for Germantown with no remaining unlinked active listings.',
+      'Of 506 linked active properties, 108 carry parcel identity; the other 398 remain listing-backed, address-level coverage pending assessor reconciliation and must not be described as parcel-confirmed.',
+      'Verified agent contact fields, recorder/debt coverage, rent support, year-built, and building-size facts are currently absent and must not be guessed or implied; valuation covers 398 linked active properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 506,
+        parcel_identity_count: 108,
+        classified_count: 506,
+        ownership_count: 108,
+        valuation_count: 398,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 506,
+        active_property_count: 506,
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        brokerage_count: 0,
+        creative_finance_count: 0,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0,
+        properties_with_mortgage_records: 0,
+        properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30317,6 +30374,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'cedar-hill',
   'southampton',
   'mason',
+  'germantown',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
