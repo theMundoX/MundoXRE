@@ -2578,6 +2578,73 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  franklinLakesNj: {
+    "key": "franklin-lakes-nj",
+    "aliases": [
+      "franklin-lakes",
+      "franklin-lakes-nj"
+    ],
+    "label": "Franklin Lakes",
+    "publicLabel": "Franklin Lakes, NJ",
+    "city": "Franklin Lakes",
+    "cityUpper": "FRANKLIN LAKES",
+    "county": "Bergen",
+    "state": "NJ",
+    "countyId": 13672,
+    "latitude": 41.0082,
+    "longitude": -74.2082,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 27 active listings and zero unlinked rows. Four active properties are clearly labeled listing-backed shells pending assessor reconciliation.",
+      "All active listing properties are assigned to Bergen county_id 13672. Coverage follows the FRANKLIN LAKES listing-city label and is not a municipal-boundary or complete-county inventory.",
+      "Parcel identity covers 23 properties, valuation covers 27, year-built covers 23, coordinates cover 17, and classification covers 4. Listing-derived fields and shells do not establish assessor verification.",
+      "Ownership, verified agent contacts, rent support, and positive creative-finance evidence are absent. Seven properties have eight amount-bearing mortgage records, but public-record provenance remains incomplete and must not be inferred."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 27,
+        "ownership_count": 0,
+        "valuation_count": 27,
+        "classified_count": 4,
+        "coordinate_count": 17,
+        "year_built_count": 23,
+        "multifamily_count": 0,
+        "parcel_identity_count": 23,
+        "listing_backed_shell_count": 4
+      },
+      "listings": {
+        "brokerage_count": 27,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": null,
+        "active_listing_count": 27,
+        "active_property_count": 27,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 8,
+        "mortgage_record_count": 8,
+        "properties_with_debt_coverage": 7,
+        "properties_with_mortgage_records": 7
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   huntingtonBeachCa: {
     "key": "huntington-beach-ca",
     "aliases": [
