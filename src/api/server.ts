@@ -31214,6 +31214,27 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  austinTx: {
+    key: 'austin-tx', aliases: ['austin', 'austin-tx'], label: 'Austin', publicLabel: 'Austin, TX',
+    city: 'Austin', cityUpper: 'AUSTIN', county: 'Travis', state: 'TX', countyId: 1973351,
+    latitude: 30.2672, longitude: -97.7431, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first while listing-backed property shells await parcel-identity reconciliation',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the AUSTIN listing city, linked into Travis county_id 1973351 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 5,245 active listings are linked to 5,245 active properties with no remaining unlinked rows. Every linked property is explicitly marked as a listing-backed shell, so parcel identity is not verified despite retained enrichment fields.',
+      'Owner support covers 4,499 properties, valuation 5,184, year built 3,904, physical size 3,914, coordinates 5,244, and classification 5,245. These fields should be consumed with the property-level quality flags and do not establish assessor-parcel verification.',
+      'Verified agent contacts cover 3,612 email and 3,989 phone records; debt coverage spans 4,284 properties with 7,078 amount-bearing records. Multifamily rent snapshots cover all 132 classified multifamily assets, while property websites and floorplans remain unavailable.',
+      'Positive creative-finance evidence exists for 22 active listings. The inventory remains single-source and active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 5245, parcel_identity_count: 0, listing_backed_shell_count: 5245, classified_count: 5245, ownership_count: 4499, valuation_count: 5184, year_built_count: 3904, size_count: 3914, coordinate_count: 5244, multifamily_count: 132 },
+      listings: { active_listing_count: 5245, active_property_count: 5245, unlinked_listing_count: 0, agent_name_count: 3988, agent_email_count: 3612, agent_phone_count: 3989, brokerage_count: 4076, creative_finance_count: 22, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 7160, properties_with_mortgage_records: 3100, properties_with_debt_coverage: 4284, mortgage_amount_count: 7078, latest_recording: null },
+      rents: { rent_snapshot_count: 132, properties_with_rent_snapshots: 132, latest_rent_observed: '2026-06-10' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
