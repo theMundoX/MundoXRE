@@ -30283,6 +30283,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  boxElderSd: {
+    key: 'box-elder-sd', aliases: ['box-elder', 'box-elder-sd'], label: 'Box Elder', publicLabel: 'Box Elder, SD',
+    city: 'Box Elder', cityUpper: 'BOX ELDER', county: 'Pennington', state: 'SD', countyId: 2338914,
+    latitude: 44.1125, longitude: -103.0682, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Pennington parcel reconciliation and verified contact, ownership, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the BOX ELDER listing city linked into Pennington county_id 2338914 property rows; it is city inventory, not countywide Pennington coverage.',
+      'All 88 active listings are linked with no remaining unlinked rows; 41 properties are clearly labeled listing-backed shells pending assessor reconciliation, while 47 carry parcel identity and coordinates.',
+      'Listing-derived valuation and classification cover the 41 shell properties. Ownership, year built, physical size, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 88, parcel_identity_count: 47, classified_count: 41, ownership_count: 0, valuation_count: 41, year_built_count: 0, size_count: 0, coordinate_count: 47, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 88, active_property_count: 88, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 88, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   southlakeTx: {
     key: 'southlake-tx', aliases: ['southlake', 'southlake-tx'], label: 'Southlake', publicLabel: 'Southlake, TX',
     city: 'Southlake', cityUpper: 'SOUTHLAKE', county: 'Tarrant', state: 'TX', countyId: 8,
