@@ -30283,6 +30283,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  manahawkinNj: {
+    key: 'manahawkin-nj', aliases: ['manahawkin', 'manahawkin-nj'], label: 'Manahawkin', publicLabel: 'Manahawkin, NJ',
+    city: 'Manahawkin', cityUpper: 'MANAHAWKIN', county: 'Ocean', state: 'NJ', countyId: 13602,
+    latitude: 39.6954, longitude: -74.2588, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Ocean parcel reconciliation and verified contact, ownership, and physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the MANAHAWKIN listing city linked into Ocean county_id 13602 property rows; it is city inventory, not countywide Ocean coverage.',
+      'All 58 active listings are linked with no remaining unlinked rows; 23 properties are clearly labeled listing-backed shells pending assessor reconciliation, while 35 carry parcel identity support.',
+      'Listing-derived valuation covers all 58 active properties and classification covers the 23 shell rows. Ownership and verified agent contacts are absent; year built and physical size are incomplete. Coordinates cover 23 properties, debt records cover six, rent snapshots cover 35, and positive creative-finance evidence is absent and must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 58, parcel_identity_count: 35, classified_count: 23, ownership_count: 0, valuation_count: 58, year_built_count: 0, size_count: 0, coordinate_count: 23, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 58, active_property_count: 58, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 58, creative_finance_count: 0,
+        latest_listing_seen: '2026-06-02T00:33:56.540755+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 7, properties_with_mortgage_records: 6, properties_with_debt_coverage: 6,
+        mortgage_amount_count: 7, latest_recording: '2024-12-03',
+      },
+      rents: { rent_snapshot_count: 35, properties_with_rent_snapshots: 35, latest_rent_observed: '2026-03-28' },
+    },
+  },
   boxElderSd: {
     key: 'box-elder-sd', aliases: ['box-elder', 'box-elder-sd'], label: 'Box Elder', publicLabel: 'Box Elder, SD',
     city: 'Box Elder', cityUpper: 'BOX ELDER', county: 'Pennington', state: 'SD', countyId: 2338914,
