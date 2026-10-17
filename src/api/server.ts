@@ -31426,6 +31426,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 132, properties_with_rent_snapshots: 132, latest_rent_observed: '2026-06-10' },
     },
   },
+  baltimoreMd: {
+    key: 'baltimore-md', aliases: ['baltimore-md', 'baltimore maryland'], label: 'Baltimore', publicLabel: 'Baltimore, MD',
+    city: 'Baltimore', cityUpper: 'BALTIMORE', county: 'Baltimore City', state: 'MD', countyId: 1973418,
+    latitude: 39.2904, longitude: -76.6122, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified contact, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the BALTIMORE listing city, anchored to Baltimore City county_id 1973418; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 2,362 active listings are linked to 2,362 active properties with no remaining unlinked rows. Inventory includes 2,305 Baltimore City properties and 57 Baltimore County properties, and must not be described as exclusively Baltimore City-backed.',
+      'Parcel identity and ownership support cover 1,751 properties. Listing-derived valuation and classification cover 611 listing-backed shell properties; year-built support covers 1,661. Physical size and coordinates are absent.',
+      'Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 2362, parcel_identity_count: 1751, listing_backed_shell_count: 611, classified_count: 611, ownership_count: 1751, valuation_count: 611, year_built_count: 1661, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 2362, active_property_count: 2362, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 2362, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:49:15.981+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
