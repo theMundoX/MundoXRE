@@ -30309,6 +30309,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 35, properties_with_rent_snapshots: 35, latest_rent_observed: '2026-03-28' },
     },
   },
+  flemingtonNj: {
+    key: 'flemington-nj', aliases: ['flemington', 'flemington-nj'], label: 'Flemington', publicLabel: 'Flemington, NJ',
+    city: 'Flemington', cityUpper: 'FLEMINGTON', county: 'Hunterdon', state: 'NJ', countyId: 13563,
+    latitude: 40.5123, longitude: -74.8593, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Hunterdon parcel reconciliation and verified contact, ownership, and physical coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the FLEMINGTON listing city linked into Hunterdon county_id 13563 property rows; it is city inventory, not countywide Hunterdon coverage.',
+      'All 51 active listings are linked with no remaining unlinked rows; 16 properties are clearly labeled listing-backed shells pending assessor reconciliation, while 35 carry parcel identity support.',
+      'Listing-derived valuation covers all 51 active properties and classification covers the 16 shell rows. Ownership and verified agent contacts are absent; year built and physical size are incomplete. Coordinates cover 28 properties, mortgage records and amounts cover three, rent snapshots cover 35, and positive creative-finance evidence is absent and must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 51, parcel_identity_count: 35, classified_count: 16, ownership_count: 0, valuation_count: 51, year_built_count: 0, size_count: 0, coordinate_count: 28, multifamily_count: 1 },
+      listings: {
+        active_listing_count: 51, active_property_count: 51, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 51, creative_finance_count: 0,
+        latest_listing_seen: '2026-06-02T02:36:39.467509+00:00', listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 3, properties_with_mortgage_records: 3, properties_with_debt_coverage: 3,
+        mortgage_amount_count: 3, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 35, properties_with_rent_snapshots: 35, latest_rent_observed: '2026-03-28' },
+    },
+  },
   boxElderSd: {
     key: 'box-elder-sd', aliases: ['box-elder', 'box-elder-sd'], label: 'Box Elder', publicLabel: 'Box Elder, SD',
     city: 'Box Elder', cityUpper: 'BOX ELDER', county: 'Pennington', state: 'SD', countyId: 2338914,
