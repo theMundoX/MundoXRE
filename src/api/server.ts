@@ -30257,6 +30257,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: '2026-03-26' },
     },
   },
+  grapevineTx: {
+    key: 'grapevine-tx', aliases: ['grapevine', 'grapevine-tx'], label: 'Grapevine', publicLabel: 'Grapevine, TX',
+    city: 'Grapevine', cityUpper: 'GRAPEVINE', county: 'Tarrant', state: 'TX', countyId: 8,
+    latitude: 32.9343, longitude: -97.0781, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Tarrant parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the GRAPEVINE listing city linked into Tarrant county_id 8 property rows; it is city inventory, not countywide Tarrant coverage.',
+      'All 95 active listings are linked with no remaining unlinked rows; 20 properties are clearly labeled listing-backed shells pending assessor reconciliation, while 75 carry parcel identity and ownership support.',
+      'Listing-derived valuation covers all 95 active properties and classification covers the 20 shell rows; year built covers 69, coordinates cover 11, and physical size is incomplete. Verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 95, parcel_identity_count: 75, classified_count: 20, ownership_count: 75, valuation_count: 95, year_built_count: 69, size_count: 0, coordinate_count: 11, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 95, active_property_count: 95, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 95, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   southlakeTx: {
     key: 'southlake-tx', aliases: ['southlake', 'southlake-tx'], label: 'Southlake', publicLabel: 'Southlake, TX',
     city: 'Southlake', cityUpper: 'SOUTHLAKE', county: 'Tarrant', state: 'TX', countyId: 8,
