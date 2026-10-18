@@ -31446,6 +31446,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  timnathCo: {
+    key: 'timnath-co', aliases: ['timnath', 'timnath-co', 'timnath colorado'], label: 'Timnath', publicLabel: 'Timnath, CO',
+    city: 'Timnath', cityUpper: 'TIMNATH', county: 'Larimer', state: 'CO', countyId: 75651,
+    latitude: 40.528181, longitude: -104.953808, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the TIMNATH listing city, linked into Larimer county_id 75651 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 101 active listings are linked to 101 active properties with no remaining unlinked rows. Fourteen properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity covers all active properties; ownership covers 87, valuation 14, classification 99, and coordinates 23. Year built and physical-size support are absent and must not be inferred.',
+      'Verified agent contacts, recorder/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 101, parcel_identity_count: 101, listing_backed_shell_count: 14, classified_count: 99, ownership_count: 87, valuation_count: 14, year_built_count: 0, size_count: 0, coordinate_count: 23, multifamily_count: 0 },
+      listings: { active_listing_count: 101, active_property_count: 101, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 101, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:39:24.500+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
