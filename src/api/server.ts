@@ -30021,6 +30021,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-26T00:00:00+00:00' },
     },
   },
+  pineHillNj: {
+    key: 'pine-hill-nj', aliases: ['pine-hill', 'pine hill', 'pine-hill-nj', 'pine hill nj'], label: 'Pine Hill', publicLabel: 'Pine Hill, NJ',
+    city: 'Pine Hill', cityUpper: 'PINE HILL', county: 'Camden', state: 'NJ', countyId: 13690,
+    latitude: 39.7843, longitude: -74.9924, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified contact enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the PINE HILL listing city, linked into Camden county_id 13690 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 15 active listings are linked to 15 active properties with no remaining unlinked rows. Nine properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity covers six active properties; ownership is absent. Listing-derived valuation and classification cover all 15; year built covers six and coordinates cover five. Verified agent contacts and physical size facts must not be inferred.',
+      'One recorded mortgage with a usable amount covers one property and rent snapshots cover six properties. Brokerage attribution covers all active listings; active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 15, parcel_identity_count: 6, listing_backed_shell_count: 9, classified_count: 15, ownership_count: 0, valuation_count: 15, year_built_count: 6, size_count: 0, coordinate_count: 5, multifamily_count: 0 },
+      listings: { active_listing_count: 15, active_property_count: 15, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 15, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:36:51.739+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1, mortgage_amount_count: 1, latest_recording: '2024-07-26' },
+      rents: { rent_snapshot_count: 6, properties_with_rent_snapshots: 6, latest_rent_observed: '2026-03-28T00:00:00+00:00' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30078,6 +30097,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lancaster-tx',
   'lancaster',
   'pilot-point-tx',
+  'pine-hill-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
