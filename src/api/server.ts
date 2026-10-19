@@ -30040,6 +30040,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 6, properties_with_rent_snapshots: 6, latest_rent_observed: '2026-03-28T00:00:00+00:00' },
     },
   },
+  littleFerryNj: {
+    key: 'little-ferry-nj', aliases: ['little ferry', 'little-ferry', 'little ferry new jersey'], label: 'Little Ferry', publicLabel: 'Little Ferry, NJ',
+    city: 'Little Ferry', cityUpper: 'LITTLE FERRY', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.8523, longitude: -74.0421, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the LITTLE FERRY listing city, linked into Bergen county_id 13672 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 14 active listings are linked to 14 active properties with no remaining unlinked rows. Eleven properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity covers three active properties; ownership, physical size, and coordinates are absent. Listing-derived valuation and classification cover all 14, while year built covers two; missing attributes must not be inferred.',
+      'Verified agent contacts are absent. One recorded mortgage with a usable amount covers one property and rent snapshots cover three properties; brokerage attribution covers all active listings and active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 14, parcel_identity_count: 3, listing_backed_shell_count: 11, classified_count: 14, ownership_count: 0, valuation_count: 14, year_built_count: 2, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 14, active_property_count: 14, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 14, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:40:25.978+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1, mortgage_amount_count: 1, latest_recording: null },
+      rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30098,6 +30118,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lancaster',
   'pilot-point-tx',
   'pine-hill-nj',
+  'little-ferry-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
