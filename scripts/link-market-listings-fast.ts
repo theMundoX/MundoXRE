@@ -11,13 +11,13 @@
  * on per-row in-memory matching.
  */
 import "dotenv/config";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import { hydrateWindowsUserEnv } from "./lib/env.ts";
+import { makeDbClient, type DbClient } from "./lib/db.ts";
 
 hydrateWindowsUserEnv();
-
-const basePgUrl = (process.env.MXRE_PG_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
-const PG_URL = basePgUrl.endsWith("/pg/query") ? basePgUrl : `${basePgUrl}/pg/query`;
-const PG_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 
 const args = process.argv.slice(2);
 const arg = (name: string) => args.find(value => value.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
@@ -37,16 +37,61 @@ if (!STATE || !CITY || !Number.isFinite(COUNTY_ID)) {
 }
 
 type Row = Record<string, unknown>;
+let dbClient: DbClient | null = null;
+let forceSshPsql = flag("ssh-psql");
+
+async function db(): Promise<DbClient> {
+  dbClient ??= await makeDbClient();
+  return dbClient;
+}
 
 async function pg<T extends Row = Row>(query: string): Promise<T[]> {
-  const response = await fetch(PG_URL, {
-    method: "POST",
-    headers: { apikey: PG_KEY, Authorization: `Bearer ${PG_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
-    signal: AbortSignal.timeout(180_000),
+  if (forceSshPsql) return pgViaSsh<T>(query);
+  try {
+    return (await (await db()).query<T>(query)).rows;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("pg/query 401")) throw error;
+    forceSshPsql = true;
+    await dbClient?.end();
+    dbClient = null;
+    return pgViaSsh<T>(query);
+  }
+}
+
+function pgViaSsh<T extends Row = Row>(query: string): T[] {
+  const sshHost = process.env.MXRE_PG_HOST ? `root@${process.env.MXRE_PG_HOST}` : "root@207.244.225.239";
+  const keyPath = process.env.MXRE_PG_SSH_KEY ?? join(process.env.USERPROFILE ?? homedir(), ".ssh", "mxre_contabo_ed25519");
+  const output = execFileSync("ssh", ["-i", keyPath, "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", sshHost,
+    "docker exec -i supabase-db psql -U supabase_admin -d postgres --csv -P footer=off"], {
+    input: query.trim().replace(/;+$/, ""), encoding: "utf8", maxBuffer: 10 * 1024 * 1024, windowsHide: true,
+  }).trim();
+  return parseCsvRows(output) as T[];
+}
+
+function parseCsvRows(output: string): Row[] {
+  if (!output) return [];
+  const lines = output.split(/\r?\n/).filter((line) => line.trim() !== "");
+  if (lines.length <= 1) return [];
+  const headers = parseCsvLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? null]));
   });
-  if (!response.ok) throw new Error(`pg/query ${response.status}: ${await response.text()}`);
-  return response.json() as Promise<T[]>;
+}
+
+function parseCsvLine(line: string): string[] {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === "\"") {
+      if (inQuotes && line[i + 1] === "\"") { current += "\""; i += 1; } else inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) { values.push(current); current = ""; } else current += char;
+  }
+  values.push(current);
+  return values;
 }
 
 function sql(value: unknown): string {
