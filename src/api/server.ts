@@ -30001,6 +30001,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  pilotPointTx: {
+    key: 'pilot-point-tx', aliases: ['pilot-point', 'pilot point', 'pilot-point-tx', 'pilot point tx'], label: 'Pilot Point', publicLabel: 'Pilot Point, TX',
+    city: 'Pilot Point', cityUpper: 'PILOT POINT', county: 'Denton', state: 'TX', countyId: 10,
+    latitude: 33.3962, longitude: -96.9606, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the PILOT POINT listing city, linked into Denton county_id 10 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 94 active listings are linked to 94 active properties with no remaining unlinked rows. Forty properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and ownership each cover 54 active properties, while listing-derived valuation and classification cover all 94. Year built covers 40 and coordinates cover 16; physical size and unit counts are incomplete and must not be inferred.',
+      'Verified agent contacts, recorder/debt coverage, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover five properties; brokerage attribution covers all active listings and active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 94, parcel_identity_count: 54, listing_backed_shell_count: 40, classified_count: 94, ownership_count: 54, valuation_count: 94, year_built_count: 40, size_count: 0, coordinate_count: 16, multifamily_count: 0 },
+      listings: { active_listing_count: 94, active_property_count: 94, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 94, creative_finance_count: 0, latest_listing_seen: '2026-03-28T15:32:43.879+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-26T00:00:00+00:00' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30057,6 +30077,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'south-houston',
   'lancaster-tx',
   'lancaster',
+  'pilot-point-tx',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
