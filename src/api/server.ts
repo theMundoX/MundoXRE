@@ -30079,6 +30079,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 33, properties_with_rent_snapshots: 33, latest_rent_observed: null },
     },
   },
+  littleFallsNj: {
+    key: 'little-falls-nj', aliases: ['little falls', 'little-falls', 'little falls new jersey'], label: 'Little Falls', publicLabel: 'Little Falls, NJ',
+    city: 'Little Falls', cityUpper: 'LITTLE FALLS', county: 'Passaic', state: 'NJ', countyId: 13611,
+    latitude: 40.8689, longitude: -74.2082, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the LITTLE FALLS listing city, linked into Passaic county_id 13611 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 13 active listings are linked to 13 active properties with no remaining unlinked rows. Six properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity covers seven active properties; ownership is absent. Listing-derived valuation covers all 13, year built and coordinates each cover seven, and classification is limited to the six listing-backed shells; physical size facts must not be inferred.',
+      'Verified agent contacts, recorder/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover seven properties; brokerage attribution covers all active listings and active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 13, parcel_identity_count: 7, listing_backed_shell_count: 6, classified_count: 6, ownership_count: 0, valuation_count: 13, year_built_count: 7, size_count: 0, coordinate_count: 7, multifamily_count: 0 },
+      listings: { active_listing_count: 13, active_property_count: 13, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 13, creative_finance_count: 0, latest_listing_seen: '2026-06-08T15:50:56.173+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30139,6 +30158,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'pine-hill-nj',
   'little-ferry-nj',
   'bartonville-il',
+  'little-falls-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
