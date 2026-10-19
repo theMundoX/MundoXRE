@@ -30060,6 +30060,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 3, properties_with_rent_snapshots: 3, latest_rent_observed: null },
     },
   },
+  bartonvilleIl: {
+    key: 'bartonville-il', aliases: ['bartonville', 'bartonville-il', 'bartonville illinois'], label: 'Bartonville', publicLabel: 'Bartonville, IL',
+    city: 'Bartonville', cityUpper: 'BARTONVILLE', county: 'Peoria', state: 'IL', countyId: 2338837,
+    latitude: 40.6503, longitude: -89.6523, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the BARTONVILLE listing city, linked into Peoria county_id 2338837 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 43 active listings are linked to 43 active properties with no remaining unlinked rows. Eleven properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and ownership each cover 32 active properties. Listing-derived valuation covers all 43, year built covers 32, and classification is limited to the eleven listing-backed shells; coordinates and physical size facts are absent and must not be inferred.',
+      'Verified agent contacts, brokerage attribution, recorder/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 33 properties; active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 43, parcel_identity_count: 32, listing_backed_shell_count: 11, classified_count: 11, ownership_count: 32, valuation_count: 43, year_built_count: 32, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 43, active_property_count: 43, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-10-19T22:47:15.317+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 33, properties_with_rent_snapshots: 33, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30119,6 +30138,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'pilot-point-tx',
   'pine-hill-nj',
   'little-ferry-nj',
+  'bartonville-il',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
