@@ -30117,6 +30117,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: null },
     },
   },
+  peachtreeCornersGa: {
+    key: 'peachtree-corners-ga', aliases: ['peachtree corners', 'peachtree-corners', 'peachtree-corners-ga', 'peachtree corners ga'], label: 'Peachtree Corners', publicLabel: 'Peachtree Corners, GA',
+    city: 'Peachtree Corners', cityUpper: 'PEACHTREE CORNERS', county: 'Gwinnett', state: 'GA', countyId: 1741143,
+    latitude: 33.9701, longitude: -84.2216, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the PEACHTREE CORNERS listing city, linked into Gwinnett county_id 1741143 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 12 active listings are linked to 12 active properties with no remaining unlinked rows. Two properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and ownership each cover 10 active properties, valuations cover 12, and coordinates cover seven. Asset classification, year built, physical size, unit counts, and verified agent contacts are absent and must not be inferred.',
+      'Recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Brokerage attribution covers 11 active listings; active status reflects stored source flags, last observed on 2026-06-08, rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 12, parcel_identity_count: 10, listing_backed_shell_count: 2, classified_count: 0, ownership_count: 10, valuation_count: 12, year_built_count: 0, size_count: 0, coordinate_count: 7, multifamily_count: 0 },
+      listings: { active_listing_count: 12, active_property_count: 12, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 11, creative_finance_count: 0, latest_listing_seen: '2026-06-08T15:52:15.181Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30178,6 +30197,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'little-ferry-nj',
   'bartonville-il',
   'little-falls-nj',
+  'peachtree-corners-ga',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
