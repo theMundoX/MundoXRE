@@ -30001,6 +30001,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  hillsboroOh: {
+    key: 'hillsboro-oh', aliases: ['hillsboro', 'hillsboro-oh', 'hillsboro ohio'], label: 'Hillsboro', publicLabel: 'Hillsboro, OH',
+    city: 'Hillsboro', cityUpper: 'HILLSBORO', county: 'Highland', state: 'OH', countyId: 2338912,
+    latitude: 39.2023, longitude: -83.6127, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the HILLSBORO listing city, linked into Highland county_id 2338912 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 238 active listings are linked to 238 active properties with no remaining unlinked rows. Every active property is a clearly labeled address-level listing-backed shell pending assessor reconciliation and must not be described as owner-verified or parcel-backed inventory.',
+      'Listing-derived valuation and classification cover 235 and 238 properties respectively; ownership, year built, physical size, coordinates, verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'Active status reflects stored source flags rather than a guarantee of current availability; no brokerage attribution is currently available for these listing rows.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 238, parcel_identity_count: 0, listing_backed_shell_count: 238, classified_count: 238, ownership_count: 0, valuation_count: 235, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 238, active_property_count: 238, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-10-20T11:05:02.673Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   pilotPointTx: {
     key: 'pilot-point-tx', aliases: ['pilot-point', 'pilot point', 'pilot-point-tx', 'pilot point tx'], label: 'Pilot Point', publicLabel: 'Pilot Point, TX',
     city: 'Pilot Point', cityUpper: 'PILOT POINT', county: 'Denton', state: 'TX', countyId: 10,
