@@ -30001,6 +30001,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  springfieldOh: {
+    key: 'springfield-oh', aliases: ['springfield-oh', 'springfield ohio'], label: 'Springfield', publicLabel: 'Springfield, OH',
+    city: 'Springfield', cityUpper: 'SPRINGFIELD', county: 'Clark', state: 'OH', countyId: 2338868,
+    latitude: 39.9242, longitude: -83.8088, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the SPRINGFIELD listing city, linked into Clark county_id 2338868 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 477 active listings are linked to 477 active properties with no remaining unlinked rows. One hundred seventy-five properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity covers 302 active properties and ownership covers 292; listing-derived valuation and classification each cover 175. Year built, physical size, coordinates, verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'No brokerage attribution is currently available for these listing rows, and active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 477, parcel_identity_count: 302, listing_backed_shell_count: 175, classified_count: 175, ownership_count: 292, valuation_count: 175, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 477, active_property_count: 477, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   hillsboroOh: {
     key: 'hillsboro-oh', aliases: ['hillsboro', 'hillsboro-oh', 'hillsboro ohio'], label: 'Hillsboro', publicLabel: 'Hillsboro, OH',
     city: 'Hillsboro', cityUpper: 'HILLSBORO', county: 'Highland', state: 'OH', countyId: 2338912,
