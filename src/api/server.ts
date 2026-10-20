@@ -30020,6 +30020,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  mcKeesRocksPa: {
+    key: 'mc-kees-rocks-pa', aliases: ['mc kees rocks', 'mc-kees-rocks', 'mc-kees-rocks-pa', 'mckees rocks', 'mckees-rocks'], label: 'McKees Rocks', publicLabel: 'McKees Rocks, PA',
+    city: 'McKees Rocks', cityUpper: 'MC KEES ROCKS', county: 'Allegheny', state: 'PA', countyId: 1973350,
+    latitude: 40.4656, longitude: -80.0598, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the MC KEES ROCKS listing city, linked into Allegheny county_id 1973350 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 53 active listings are linked to 53 active properties with no remaining unlinked rows. Six properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and ownership each cover 47 active properties. Listing-derived valuation covers six and coordinates cover 44; year built, physical size, verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'Active status reflects stored source flags rather than a guarantee of current availability; brokerage attribution is not currently available for this listing inventory.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 53, parcel_identity_count: 47, listing_backed_shell_count: 6, classified_count: 47, ownership_count: 47, valuation_count: 6, year_built_count: 0, size_count: 0, coordinate_count: 44, multifamily_count: 0 },
+      listings: { active_listing_count: 53, active_property_count: 53, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   hillsboroOh: {
     key: 'hillsboro-oh', aliases: ['hillsboro', 'hillsboro-oh', 'hillsboro ohio'], label: 'Hillsboro', publicLabel: 'Hillsboro, OH',
     city: 'Hillsboro', cityUpper: 'HILLSBORO', county: 'Highland', state: 'OH', countyId: 2338912,
