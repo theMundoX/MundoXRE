@@ -198,6 +198,69 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  sacramentoCa: {
+    key: 'sacramento-ca',
+    aliases: ['sacramento', 'sacramento-ca'],
+    label: 'Sacramento',
+    publicLabel: 'Sacramento, CA',
+    city: 'Sacramento',
+    cityUpper: 'SACRAMENTO',
+    county: 'Sacramento',
+    state: 'CA',
+    countyId: 773106,
+    latitude: 38.5816,
+    longitude: -121.4944,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, rent, and classification support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 943 active listings and zero unlinked rows; 171 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 943 active listing properties currently link within Sacramento county_id 773106. Coverage follows the SACRAMENTO listing-city label and the stored county assignment, not verified municipal boundaries, the wider metro, or complete county coverage. Shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity support covers 772 properties; owner support is absent. Listing asking prices provide valuation support for 171 shells, while the remaining properties have no claimed assessor-value support. No substantive assessor classification is available; unknown listing-backed shell placeholders are excluded from classification coverage.',
+      'Coordinates cover 771 properties; year built, physical size, verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest pre-link listing update is 2026-09-12T14:33:28.883641+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 943,
+        ownership_count: 0,
+        valuation_count: 171,
+        classified_count: 0,
+        coordinate_count: 771,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 772,
+        listing_backed_shell_count: 171
+      },
+      listings: {
+        brokerage_count: 943,
+        listing_sources: ['redfin'],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-09-12T14:33:28.883641+00:00',
+        active_listing_count: 943,
+        active_property_count: 943,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   kellerTx: {
     key: 'keller-tx',
     aliases: [
