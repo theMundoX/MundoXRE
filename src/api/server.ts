@@ -30039,6 +30039,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  carnegiePa: {
+    key: 'carnegie-pa', aliases: ['carnegie', 'carnegie-pa', 'carnegie pennsylvania'], label: 'Carnegie', publicLabel: 'Carnegie, PA',
+    city: 'Carnegie', cityUpper: 'CARNEGIE', county: 'Allegheny', state: 'PA', countyId: 1973350,
+    latitude: 40.4087, longitude: -80.0834, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the CARNEGIE listing city, linked into Allegheny county_id 1973350 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 26 active listings are linked to 26 active properties with no remaining unlinked rows. Twenty-three properties have parcel identity and owner coverage; three are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Listing-derived valuation covers the three shell properties and coordinates cover 21 properties. Classification, year built, physical size, verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'Brokerage attribution covers all active listings, and active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 26, parcel_identity_count: 23, listing_backed_shell_count: 3, classified_count: 0, ownership_count: 23, valuation_count: 3, year_built_count: 0, size_count: 0, coordinate_count: 21, multifamily_count: 0 },
+      listings: { active_listing_count: 26, active_property_count: 26, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 26, creative_finance_count: 0, latest_listing_seen: '2026-08-06T17:35:24.348Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   mcKeesRocksPa: {
     key: 'mc-kees-rocks-pa', aliases: ['mc kees rocks', 'mc-kees-rocks', 'mc-kees-rocks-pa', 'mckees rocks', 'mckees-rocks'], label: 'McKees Rocks', publicLabel: 'McKees Rocks, PA',
     city: 'McKees Rocks', cityUpper: 'MC KEES ROCKS', county: 'Allegheny', state: 'PA', countyId: 1973350,
