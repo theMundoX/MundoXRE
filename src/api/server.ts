@@ -30020,6 +30020,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  fairbornOh: {
+    key: 'fairborn-oh', aliases: ['fairborn', 'fairborn-oh', 'fairborn ohio'], label: 'Fairborn', publicLabel: 'Fairborn, OH',
+    city: 'Fairborn', cityUpper: 'FAIRBORN', county: 'Greene', state: 'OH', countyId: 2338903,
+    latitude: 39.8209, longitude: -84.0194, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the FAIRBORN listing city, linked into Greene county_id 2338903 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 335 active listings are linked to 335 active properties with no remaining unlinked rows. Every active property is a clearly labeled address-level listing-backed shell pending assessor reconciliation and must not be described as owner-verified or parcel-backed inventory.',
+      'Listing-derived valuation covers all 335 active properties. Parcel identity, ownership, classification, year built, physical size, and coordinates are absent and must not be inferred.',
+      'Verified agent contacts, brokerage attribution, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 335, parcel_identity_count: 0, listing_backed_shell_count: 335, classified_count: 0, ownership_count: 0, valuation_count: 335, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 335, active_property_count: 335, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-10-21T00:21:53.368Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   mcKeesRocksPa: {
     key: 'mc-kees-rocks-pa', aliases: ['mc kees rocks', 'mc-kees-rocks', 'mc-kees-rocks-pa', 'mckees rocks', 'mckees-rocks'], label: 'McKees Rocks', publicLabel: 'McKees Rocks, PA',
     city: 'McKees Rocks', cityUpper: 'MC KEES ROCKS', county: 'Allegheny', state: 'PA', countyId: 1973350,
