@@ -261,6 +261,69 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  waynePa: {
+    key: 'wayne-pa',
+    aliases: ['wayne', 'wayne-pa'],
+    label: 'Wayne',
+    publicLabel: 'Wayne, PA',
+    city: 'Wayne',
+    cityUpper: 'WAYNE',
+    county: 'Montgomery',
+    state: 'PA',
+    countyId: 1973413,
+    latitude: 40.044,
+    longitude: -75.3877,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 36 active listings and zero unlinked rows; 22 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Wayne inventory is anchored to Montgomery county_id 1973413, which contains 30 active linked properties; 3 linked properties are in Chester county_id 817175 and 3 are in Delaware county_id 1429664. Coverage follows only the WAYNE listing-city label, is not county-wide, and cross-county records must not be described as Montgomery-only coverage.',
+      'Parcel identity and ownership support cover 14 properties each; valuation and classification cover 22, coordinates cover 11, and brokerage covers 36. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical-size support are absent. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-03-28T17:44:52.804Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 36,
+        ownership_count: 14,
+        valuation_count: 22,
+        classified_count: 22,
+        coordinate_count: 11,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 14,
+        listing_backed_shell_count: 22
+      },
+      listings: {
+        brokerage_count: 36,
+        listing_sources: ['redfin'],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: '2026-03-28T17:44:52.804Z',
+        active_listing_count: 36,
+        active_property_count: 36,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   kellerTx: {
     key: 'keller-tx',
     aliases: [
