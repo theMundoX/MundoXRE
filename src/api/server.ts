@@ -31589,6 +31589,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  mtLaurelTownshipNj: {
+    key: 'mt-laurel-township-nj', aliases: ['mt-laurel-township', 'mt laurel township', 'mt-laurel-township-nj', 'mt laurel township nj'], label: 'Mt Laurel Township', publicLabel: 'Mt Laurel Township, NJ',
+    city: 'Mt Laurel Township', cityUpper: 'MT LAUREL TOWNSHIP', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 39.9340, longitude: -74.8900, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, debt, physical, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the MT LAUREL TOWNSHIP listing city, linked into Burlington county_id 13680 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 27 active listings are linked to 27 active properties with no remaining unlinked rows. Twenty-four properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and year built each cover three active properties. Valuation support covers 27 properties, including listing-derived value on shells; ownership and physical-size support are absent and must not be inferred.',
+      'Only one active property has coordinates. Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Brokerage attribution covers all active listings and active status reflects stored source flags rather than a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 27, parcel_identity_count: 3, listing_backed_shell_count: 24, classified_count: 24, ownership_count: 0, valuation_count: 27, year_built_count: 3, size_count: 0, coordinate_count: 1, multifamily_count: 0 },
+      listings: { active_listing_count: 27, active_property_count: 27, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 27, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   goldRiverCa: {
     key: 'gold-river-ca', aliases: ['gold-river', 'gold-river-ca', 'gold river', 'gold river ca'], label: 'Gold River', publicLabel: 'Gold River, CA',
     city: 'Gold River', cityUpper: 'GOLD RIVER', county: 'Sacramento', state: 'CA', countyId: 773106,
