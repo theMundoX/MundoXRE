@@ -8705,6 +8705,30 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  berthoudCo: {
+    key: 'berthoud-co', aliases: ['berthoud', 'berthoud-co'], label: 'Berthoud', publicLabel: 'Berthoud, CO',
+    city: 'Berthoud', cityUpper: 'BERTHOUD', county: 'Larimer', state: 'CO', countyId: 75651,
+    latitude: 40.3083, longitude: -105.0811, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the BERTHOUD listing city, linked into Larimer county_id 75651 property rows; it is not county-wide or a verified municipal-boundary dataset.',
+      'All 134 active listings are linked to 134 active properties with no remaining unlinked rows. Thirty properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity covers all active properties; ownership covers 104, listing-derived valuation covers 30, classification covers 30, coordinates cover 27, and brokerage covers 134. Listing-derived values and classifications do not establish assessor verification.',
+      'Year built, verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 134, parcel_identity_count: 134, classified_count: 30, ownership_count: 104, valuation_count: 30, year_built_count: 0, coordinate_count: 27, multifamily_count: 0, listing_backed_shell_count: 30 },
+      listings: {
+        active_listing_count: 134, active_property_count: 134, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 134, creative_finance_count: 0,
+        latest_listing_seen: '2026-08-06T22:39:33.816055+00:00', listing_sources: ['redfin'], unlinked_listing_count: 0,
+      },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   portlandOr: {
     "key": "portland-or",
     "aliases": [
@@ -31645,6 +31669,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lyons',
   'livermore',
   'west-linn',
+  'berthoud-co',
   'red-oak',
 ]);
 const MARKET_DATA_DOMAINS = [
