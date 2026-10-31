@@ -19513,6 +19513,12 @@ const MARKET_CONFIGS: Record<string, {
       rentPropertyCount: 3073,
     }),
   },
+  livermore: {
+    key: 'livermore', aliases: ['livermore', 'livermore-co'], label: 'Livermore', publicLabel: 'Livermore, CO', city: 'Livermore', cityUpper: 'LIVERMORE', county: 'Larimer', state: 'CO', countyId: 75651, latitude: 40.7944, longitude: -105.2183, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Larimer parcel reconciliation and contact/debt coverage improve',
+    restrictions: ['Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.', 'Coverage is currently single-source Redfin inventory linked into Larimer County property rows for Livermore, including six clearly labeled listing-backed shells retained only where active listings did not resolve to parcel identity.', 'All 45 active listings are linked with no remaining unlinked rows; 39 linked properties have parcel identity and ownership support, while six shell-backed rows remain address-level fallback coverage pending assessor reconciliation.', 'Verified agent name, phone, and email fields, recorder/debt coverage, rent support, and most structure facts remain absent and must not be guessed or implied; valuation applies only to the listing-backed subset.'],
+    fallbackCoverageMetrics: { parcels: { parcel_count: 45, parcel_identity_count: 39, classified_count: 45, ownership_count: 39, valuation_count: 6, multifamily_count: 0 }, listings: { active_listing_count: 45, active_property_count: 45, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 45, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] }, debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null }, rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null } },
+  },
   westLinn: {
     key: 'west-linn', aliases: ['west-linn', 'west-linn-or', 'west linn'], label: 'West Linn', publicLabel: 'West Linn, OR', city: 'West Linn', cityUpper: 'WEST LINN', county: 'Clackamas', state: 'OR', countyId: 1741168, latitude: 45.3657, longitude: -122.6123, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Clackamas parcel reconciliation and contact/debt coverage improve',
@@ -31637,6 +31643,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'wylie-tx',
   'hudson-oh',
   'lyons',
+  'livermore',
   'west-linn',
   'red-oak',
 ]);
