@@ -387,6 +387,68 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  warminsterPa: {
+    key: 'warminster-pa',
+    aliases: ['warminster', 'warminster-pa'],
+    label: 'Warminster',
+    publicLabel: 'Warminster, PA',
+    city: 'Warminster',
+    cityUpper: 'WARMINSTER',
+    county: 'Sullivan',
+    state: 'PA',
+    countyId: 2228992,
+    latitude: 40.1984,
+    longitude: -75.0863,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 40 active listings and zero unlinked rows; 39 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 40 active listing properties currently resolve to Sullivan county_id 2228992. Coverage follows only the WARMINSTER listing-city label and does not establish complete municipal or county coverage; the county assignment and shell records remain subject to assessor reconciliation.',
+      'Parcel identity and ownership support cover 1 property each; valuation and classification cover 39, coordinates cover 0, and brokerage covers 40. Listing-derived valuation and classification do not establish assessor verification.',
+      'Year built and physical-size support are absent. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 40,
+        ownership_count: 1,
+        valuation_count: 39,
+        classified_count: 39,
+        coordinate_count: 0,
+        year_built_count: 0,
+        multifamily_count: 0,
+        parcel_identity_count: 1,
+        listing_backed_shell_count: 39
+      },
+      listings: {
+        brokerage_count: 40,
+        listing_sources: ['redfin'],
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        latest_listing_seen: null,
+        active_listing_count: 40,
+        active_property_count: 40,
+        creative_finance_count: 0,
+        unlinked_listing_count: 0
+      },
+      debt: {
+        latest_recording: null,
+        mortgage_amount_count: 0,
+        mortgage_record_count: 0,
+        properties_with_debt_coverage: 0,
+        properties_with_mortgage_records: 0
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        latest_rent_observed: null,
+        properties_with_rent_snapshots: 0
+      }
+    }
+  },
   kellerTx: {
     key: 'keller-tx',
     aliases: [
