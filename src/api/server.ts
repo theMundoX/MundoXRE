@@ -198,6 +198,37 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  modestoCa: {
+    key: 'modesto-ca',
+    aliases: ['modesto', 'modesto-ca'],
+    label: 'Modesto',
+    publicLabel: 'Modesto, CA',
+    city: 'Modesto',
+    cityUpper: 'MODESTO',
+    county: 'Stanislaus',
+    state: 'CA',
+    countyId: 2338928,
+    latitude: 37.6391,
+    longitude: -120.9969,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 72 active listings and zero unlinked rows; 20 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 72 active listing properties are assigned to Stanislaus county_id 2338928. Coverage follows only the MODESTO listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity covers 52 properties; listing-derived valuation and classification cover 20 shell properties, coordinates and ownership are absent, and brokerage covers all 72 listings. Listing-derived fields do not establish assessor verification.',
+      'Year built, physical size, verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 72, parcel_identity_count: 52, classified_count: 20, ownership_count: 0, valuation_count: 20, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0, listing_backed_shell_count: 20 },
+      listings: { active_listing_count: 72, active_property_count: 72, unlinked_listing_count: 0, listing_sources: ['redfin'], brokerage_count: 72, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, creative_finance_count: 0, latest_listing_seen: null },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   orangevaleCa: {
     key: 'orangevale-ca',
     aliases: ['orangevale', 'orangevale-ca'],
@@ -31861,6 +31892,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'modesto-ca',
   'orangevale-ca',
   'manhattan-beach-ca',
   'winston-salem-nc',
