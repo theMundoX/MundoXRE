@@ -2474,6 +2474,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  agouraHillsCa: {
+    key: 'agoura-hills-ca', aliases: ['agoura-hills-ca', 'agoura hills ca', 'agoura hills'], label: 'Agoura Hills', publicLabel: 'Agoura Hills, CA',
+    city: 'Agoura Hills', cityUpper: 'AGOURA HILLS', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 34.1364, longitude: -118.7745, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles County property rows; 55 of 89 active properties are clearly labeled listing-backed shells retained as address-level fallback coverage pending assessor reconciliation.',
+      'Active inventory is fully linked with no remaining unlinked rows after an exact address-and-ZIP linking pass; 34 active properties carry parcel identity and coordinate support, while valuation spans all 89 properties and classification covers the 55 shell-backed properties.',
+      'Ownership, verified agent contacts, recorder/debt coverage, and rent support are absent and must not be guessed or implied; brokerage spans all active listings, and the two multifamily candidates have no property-website, floorplan, or rent support.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 89, parcel_identity_count: 34, classified_count: 55, ownership_count: 0, valuation_count: 89, multifamily_count: 2 },
+      listings: { active_listing_count: 89, active_property_count: 89, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 89, creative_finance_count: 0, latest_listing_seen: '2026-08-10T13:44:17.610531+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   highlandParkMi: {
     key: 'highland-park-mi',
     aliases: ['highland-park', 'highland-park-mi', 'highland park'],
@@ -33189,6 +33207,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'la-mirada-ca',
   'bellflower-ca',
   'carson-ca',
+  'agoura-hills-ca',
   'highland-park-mi',
   'stow',
   'antioch-tn',
