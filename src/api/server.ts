@@ -31733,6 +31733,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  orangevaleCa: {
+    key: 'orangevale-ca', aliases: ['orangevale', 'orangevale-ca', 'orangevale ca'], label: 'Orangevale', publicLabel: 'Orangevale, CA',
+    city: 'Orangevale', cityUpper: 'ORANGEVALE', county: 'Sacramento', state: 'CA', countyId: 773106,
+    latitude: 38.6785, longitude: -121.2258, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Sacramento parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the ORANGEVALE listing city linked into Sacramento county_id 773106 property rows; it is city inventory, not countywide Sacramento coverage.',
+      'All 48 active listings are linked with no remaining unlinked rows; 11 properties are clearly labeled listing-backed shells while 37 carry parcel identity support, but ownership remains unavailable across the active set.',
+      'Verified agent contacts, year-built, square footage, debt, and rent coverage are absent and must not be guessed; valuation and classification cover the 11 listing-backed shell properties, brokerage covers all 48 active listings, and coordinates cover 37 properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 48, parcel_identity_count: 37, listing_backed_shell_count: 11, classified_count: 11, ownership_count: 0, valuation_count: 11, year_built_count: 0, size_count: 0, coordinate_count: 37, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 48, active_property_count: 48, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 48, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   warminsterPa: {
     key: 'warminster-pa', aliases: ['warminster', 'warminster-pa'], label: 'Warminster', publicLabel: 'Warminster, PA',
     city: 'Warminster', cityUpper: 'WARMINSTER', county: 'Bucks', state: 'PA', countyId: 2228992,
@@ -31866,6 +31892,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'rancho-cordova-ca',
   'fair-oaks-ca',
   'antelope-ca',
+  'orangevale-ca',
   'neptune',
   'morganville',
   'kendall-park',
