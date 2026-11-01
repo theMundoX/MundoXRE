@@ -31811,6 +31811,32 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  wiltonCa: {
+    key: 'wilton-ca', aliases: ['wilton', 'wilton-ca', 'wilton ca'], label: 'Wilton', publicLabel: 'Wilton, CA',
+    city: 'Wilton', cityUpper: 'WILTON', county: 'Sacramento', state: 'CA', countyId: 773106,
+    latitude: 38.4116, longitude: -121.2269, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Sacramento parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the WILTON listing city linked into Sacramento county_id 773106 property rows; it is city inventory, not countywide Sacramento coverage.',
+      'All 17 active listings are linked with no remaining unlinked rows; nine properties are clearly labeled listing-backed shells while eight carry parcel identity support, but ownership remains unavailable across the active set.',
+      'Verified agent contacts, year-built, square footage, debt, and rent coverage are absent and must not be guessed; valuation and classification cover the nine listing-backed shell properties, brokerage covers all 17 active listings, and coordinates cover eight properties.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 17, parcel_identity_count: 8, listing_backed_shell_count: 9, classified_count: 9, ownership_count: 0, valuation_count: 9, year_built_count: 0, size_count: 0, coordinate_count: 8, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 17, active_property_count: 17, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 17, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0, latest_recording: null,
+      },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   warminsterPa: {
     key: 'warminster-pa', aliases: ['warminster', 'warminster-pa'], label: 'Warminster', publicLabel: 'Warminster, PA',
     city: 'Warminster', cityUpper: 'WARMINSTER', county: 'Bucks', state: 'PA', countyId: 2228992,
@@ -31947,6 +31973,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'orangevale-ca',
   'folsom-ca',
   'citrus-heights-ca',
+  'wilton-ca',
   'neptune',
   'morganville',
   'kendall-park',
