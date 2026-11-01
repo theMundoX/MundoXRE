@@ -23414,17 +23414,18 @@ const MARKET_CONFIGS: Record<string, {
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until paid detail caps are approved',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'Coverage includes listing-backed property shells for active listings that did not yet resolve to assessor parcels; shell records remain source-labeled for later reconciliation.',
+      'Single-source Redfin inventory has 212 active listings and zero unlinked rows; 61 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Carrollton inventory is city-scoped across 134 Dallas county_id 7 linked properties and 78 Denton county_id 10 linked properties. Coverage follows only the CARROLLTON listing-city label and does not establish complete municipal or county coverage.',
+      'Parcel identity covers 151 properties; ownership covers 151, valuation covers 212, classification covers 61, coordinates cover 137, and brokerage covers all 212 listings. Listing-derived valuation and classification do not establish assessor verification.',
+      'Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 147 linked properties; snapshot presence does not establish current verified market rent.',
+      'The latest observed listing timestamp is 2026-05-28T00:46:54.386584Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.'
     ],
-    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
-      parcelCount: 212,
-      activeListingCount: 212,
-      agentEmailCount: 0,
-      ownershipCount: 151,
-      valuationCount: 212,
-      mortgagePropertyCount: 0,
-      rentPropertyCount: 147,
-    }),
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 212, parcel_identity_count: 151, classified_count: 61, ownership_count: 151, valuation_count: 212, coordinate_count: 137, multifamily_count: 1, listing_backed_shell_count: 61 },
+      listings: { brokerage_count: 212, listing_sources: ['redfin'], agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, latest_listing_seen: '2026-05-28T00:46:54.386584+00:00', active_listing_count: 212, active_property_count: 212, creative_finance_count: 0, unlinked_listing_count: 0 },
+      debt: { latest_recording: null, mortgage_amount_count: 0, mortgage_record_count: 0, properties_with_debt_coverage: 0, properties_with_mortgage_records: 0 },
+      rents: { rent_snapshot_count: 219, latest_rent_observed: '2026-03-26', properties_with_rent_snapshots: 147 }
+    },
   },
   lewisville: {
     key: 'lewisville',
@@ -31921,6 +31922,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'thornville',
   'lancaster-oh',
   'lancaster-tx',
+  'carrollton',
   'desoto',
   'rowlett',
   'garland',
