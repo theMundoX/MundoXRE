@@ -16756,7 +16756,7 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Harris County property rows for South Houston with no remaining unlinked active listings, including 5 listing-backed shells for active listings that did not resolve to parcel identity.',
       'Verified agent contact fields and recorder/debt coverage are absent for the current active inventory and must not be guessed or implied.',
-      'Ownership coverage currently exists on the 32 parcel-identity-backed rows, while year-built, size, and lat/lon coverage remain partial across the active set; multifamily rent support is currently empty.',
+      'Ownership coverage currently exists on the 32 parcel-identity-backed rows, while year-built, size, and lat/lon coverage remain partial across the active set; observed rent rows cover the 32 parcel-identity-backed properties, with no multifamily candidates in the active set.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
@@ -16786,9 +16786,9 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: null,
       },
       rents: {
-        rent_snapshot_count: 0,
-        properties_with_rent_snapshots: 0,
-        latest_rent_observed: null,
+        rent_snapshot_count: 32,
+        properties_with_rent_snapshots: 32,
+        latest_rent_observed: '2026-03-26',
       },
     },
   },
@@ -30614,6 +30614,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'circleville',
   'deer-park',
   'chardon',
+  'south-houston',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
