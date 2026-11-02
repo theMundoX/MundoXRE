@@ -2600,6 +2600,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  hooverAl: {
+    key: 'hoover-al', aliases: ['hoover-al', 'hoover al', 'hoover'], label: 'Hoover', publicLabel: 'Hoover, AL',
+    city: 'Hoover', cityUpper: 'HOOVER', county: 'Jefferson', state: 'AL', countyId: 1973348,
+    latitude: 33.4054, longitude: -86.8114, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Jefferson County parcel, ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Jefferson County property rows; all 270 active properties are clearly labeled listing-backed shells retained as address-level fallback coverage pending assessor reconciliation.',
+      'Active inventory is fully linked with no remaining unlinked rows after the exact address-and-ZIP linking audit; listing-derived classification and valuation span all 270 properties, but parcel identity, physical facts, and coordinates are absent.',
+      'Ownership, verified agent contacts, brokerage, recorder/debt coverage, rent support, multifamily detail, and creative-finance signals are absent and must not be guessed or implied.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 270, parcel_identity_count: 0, classified_count: 270, ownership_count: 0, valuation_count: 270, multifamily_count: 0 },
+      listings: { active_listing_count: 270, active_property_count: 270, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   walnutCa: {
     key: 'walnut-ca', aliases: ['walnut-ca', 'walnut ca', 'walnut'], label: 'Walnut', publicLabel: 'Walnut, CA',
     city: 'Walnut', cityUpper: 'WALNUT', county: 'Los Angeles', state: 'CA', countyId: 401712,
@@ -33358,6 +33376,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'san-fernando-ca',
   'glendale-ca',
   'lomita-ca',
+  'hoover-al',
   'walnut-ca',
   'westlake-village-ca',
   'highland-park-mi',
