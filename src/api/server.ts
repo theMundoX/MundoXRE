@@ -31925,6 +31925,24 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  northglenn: {
+    key: 'northglenn', aliases: ['northglenn', 'northglenn-co'], label: 'Northglenn', publicLabel: 'Northglenn, CO',
+    city: 'Northglenn', cityUpper: 'NORTHGLENN', county: 'Adams', state: 'CO', countyId: 29979,
+    latitude: 39.8855, longitude: -104.9872, status: 'live', readinessTarget: 30, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Adams parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment is incomplete and must not be presented as full-market underwriting coverage.',
+      'Coverage is limited to two currently active Redfin listings, both linked to existing Adams County property records; no listing-backed shells were required.',
+      'Brokerage is present, but verified agent contacts, recorder/debt coverage, rent support, unit counts, and most physical facts are incomplete or absent and must not be guessed or implied.',
+      'One linked property has classification support; this small, source-limited inventory requires field-level quality disclosures.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 2, parcel_identity_count: 2, classified_count: 1, ownership_count: 0, valuation_count: 2, multifamily_count: 0 },
+      listings: { active_listing_count: 2, active_property_count: 2, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 2, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32082,6 +32100,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'mt-laurel-township-nj',
   'red-oak',
   'lone-tree',
+  'northglenn',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
