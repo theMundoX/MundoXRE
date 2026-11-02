@@ -30612,6 +30612,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'germantown',
   'lone-tree',
   'circleville',
+  'deer-park',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
