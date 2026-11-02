@@ -31945,6 +31945,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'sugar-grove',
   'oxford-oh',
   'homestead',
+  'carnegie-pa',
   'mason',
   'fairborn',
   'hutchins',
