@@ -2546,6 +2546,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  sanFernandoCa: {
+    key: 'san-fernando-ca', aliases: ['san-fernando-ca', 'san fernando ca', 'san fernando'], label: 'San Fernando', publicLabel: 'San Fernando, CA',
+    city: 'San Fernando', cityUpper: 'SAN FERNANDO', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 34.2819, longitude: -118.4389, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles County property rows; 24 of 31 active properties are clearly labeled listing-backed shells retained as address-level fallback coverage pending assessor reconciliation.',
+      'Active inventory is fully linked with no remaining unlinked rows after the exact address-and-ZIP linking audit; seven active properties carry parcel identity, year-built, size, and coordinate support, valuation spans all 31 properties, and listing-derived classification spans 24.',
+      'Ownership, verified agent contacts, recorder/debt coverage, rent support, and creative-finance signals are absent and must not be guessed or implied; brokerage spans all active listings. Four multifamily candidates have no property-website, floorplan, or rent support.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 31, parcel_identity_count: 7, classified_count: 24, ownership_count: 0, valuation_count: 31, multifamily_count: 4 },
+      listings: { active_listing_count: 31, active_property_count: 31, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 31, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   walnutCa: {
     key: 'walnut-ca', aliases: ['walnut-ca', 'walnut ca', 'walnut'], label: 'Walnut', publicLabel: 'Walnut, CA',
     city: 'Walnut', cityUpper: 'WALNUT', county: 'Los Angeles', state: 'CA', countyId: 401712,
@@ -33301,6 +33319,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'brooklyn-md',
   'redondo-beach-ca',
   'south-el-monte-ca',
+  'san-fernando-ca',
   'walnut-ca',
   'westlake-village-ca',
   'highland-park-mi',
