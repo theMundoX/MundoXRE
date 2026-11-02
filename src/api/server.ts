@@ -2564,6 +2564,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  westlakeVillageCa: {
+    key: 'westlake-village-ca', aliases: ['westlake-village-ca', 'westlake village ca', 'westlake village'], label: 'Westlake Village', publicLabel: 'Westlake Village, CA',
+    city: 'Westlake Village', cityUpper: 'WESTLAKE VILLAGE', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 34.1466, longitude: -118.8074, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles County property rows; 43 of 56 active properties are clearly labeled listing-backed shells retained as address-level fallback coverage pending assessor reconciliation.',
+      'Active inventory is fully linked with no remaining unlinked rows after the exact address-and-ZIP linking audit; 13 active properties carry parcel identity, year-built, size, and coordinate support, while listing-derived classification and valuation span all 56 properties.',
+      'Ownership, verified agent contacts, recorder/debt coverage, rent support, and creative-finance signals are absent and must not be guessed or implied; brokerage spans all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 56, parcel_identity_count: 13, classified_count: 56, ownership_count: 0, valuation_count: 56, multifamily_count: 0 },
+      listings: { active_listing_count: 56, active_property_count: 56, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 56, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   highlandParkMi: {
     key: 'highland-park-mi',
     aliases: ['highland-park', 'highland-park-mi', 'highland park'],
@@ -33284,6 +33302,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'redondo-beach-ca',
   'south-el-monte-ca',
   'walnut-ca',
+  'westlake-village-ca',
   'highland-park-mi',
   'stow',
   'antioch-tn',
