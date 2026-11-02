@@ -2510,6 +2510,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  redondoBeachCa: {
+    key: 'redondo-beach-ca', aliases: ['redondo-beach-ca', 'redondo beach ca', 'redondo beach'], label: 'Redondo Beach', publicLabel: 'Redondo Beach, CA',
+    city: 'Redondo Beach', cityUpper: 'REDONDO BEACH', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 33.8492, longitude: -118.3884, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles County property rows; 61 of 83 active properties are clearly labeled listing-backed shells retained as address-level fallback coverage pending assessor reconciliation.',
+      'Active inventory is fully linked with no remaining unlinked rows after an exact address-and-ZIP linking pass; 22 active properties carry parcel identity, year-built, and coordinate support, while listing-derived classification spans all 83 properties and valuation spans 61.',
+      'Ownership, verified agent contacts, recorder/debt coverage, and rent support are absent and must not be guessed or implied; brokerage spans all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 83, parcel_identity_count: 22, classified_count: 83, ownership_count: 0, valuation_count: 61, multifamily_count: 0 },
+      listings: { active_listing_count: 83, active_property_count: 83, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 83, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:33:32.200Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   highlandParkMi: {
     key: 'highland-park-mi',
     aliases: ['highland-park', 'highland-park-mi', 'highland park'],
@@ -33227,6 +33245,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'carson-ca',
   'agoura-hills-ca',
   'brooklyn-md',
+  'redondo-beach-ca',
   'highland-park-mi',
   'stow',
   'antioch-tn',
