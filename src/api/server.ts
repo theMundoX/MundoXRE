@@ -31932,6 +31932,29 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  littleFerryNj: {
+    key: 'little-ferry-nj', aliases: ['little-ferry', 'little-ferry-nj', 'little ferry', 'little ferry nj'], label: 'Little Ferry', publicLabel: 'Little Ferry, NJ',
+    city: 'Little Ferry', cityUpper: 'LITTLE FERRY', county: 'Bergen', state: 'NJ', countyId: 13672,
+    latitude: 40.8523, longitude: -74.0421, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Bergen parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the LITTLE FERRY listing city linked into Bergen county_id 13672 property rows; it is city inventory, not countywide Bergen coverage.',
+      'All 14 active listings are linked with no remaining unlinked rows; 11 linked properties are clearly labeled listing-backed shells pending parcel reconciliation, while only 3 have parcel identity.',
+      'Listing-derived valuation covers all 14 active properties and classification covers 11 shells. Ownership, verified agent contacts, square footage, and most year-built and coordinate support are absent and must not be guessed; brokerage covers all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 14, parcel_identity_count: 3, listing_backed_shell_count: 11, classified_count: 11, ownership_count: 0, valuation_count: 14, year_built_count: 2, size_count: 0, coordinate_count: 3, multifamily_count: 1 },
+      listings: {
+        active_listing_count: 14, active_property_count: 14, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 14, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: { mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1, mortgage_amount_count: 1, latest_recording: null },
+      rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32046,6 +32069,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'enumclaw-wa',
   'wilmington-oh',
   'ferris-tx',
+  'little-ferry-nj',
   'neptune',
   'morganville',
   'kendall-park',
