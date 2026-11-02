@@ -2564,6 +2564,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  glendaleCa: {
+    key: 'glendale-ca', aliases: ['glendale-ca', 'glendale ca', 'glendale'], label: 'Glendale', publicLabel: 'Glendale, CA',
+    city: 'Glendale', cityUpper: 'GLENDALE', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 34.1425, longitude: -118.2551, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles County property rows; 23 of 29 active properties are clearly labeled listing-backed shells retained as address-level fallback coverage pending assessor reconciliation.',
+      'Active inventory is fully linked with no remaining unlinked rows after the exact address-and-ZIP linking audit; six active properties carry parcel identity, year-built, size, and coordinate support, valuation spans all 29 properties, and listing-derived classification spans 23.',
+      'Ownership, verified agent contacts, recorder/debt coverage, rent support, and creative-finance signals are absent and must not be guessed or implied; brokerage spans all active listings. Two multifamily candidates have no property-website, floorplan, or rent support.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 29, parcel_identity_count: 6, classified_count: 23, ownership_count: 0, valuation_count: 29, multifamily_count: 2 },
+      listings: { active_listing_count: 29, active_property_count: 29, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 29, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   walnutCa: {
     key: 'walnut-ca', aliases: ['walnut-ca', 'walnut ca', 'walnut'], label: 'Walnut', publicLabel: 'Walnut, CA',
     city: 'Walnut', cityUpper: 'WALNUT', county: 'Los Angeles', state: 'CA', countyId: 401712,
@@ -33320,6 +33338,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'redondo-beach-ca',
   'south-el-monte-ca',
   'san-fernando-ca',
+  'glendale-ca',
   'walnut-ca',
   'westlake-village-ca',
   'highland-park-mi',
