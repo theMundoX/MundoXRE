@@ -2528,6 +2528,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  southElMonteCa: {
+    key: 'south-el-monte-ca', aliases: ['south-el-monte-ca', 'south el monte ca', 'south el monte'], label: 'South El Monte', publicLabel: 'South El Monte, CA',
+    city: 'South El Monte', cityUpper: 'SOUTH EL MONTE', county: 'Los Angeles', state: 'CA', countyId: 401712,
+    latitude: 34.0519, longitude: -118.0467, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Los Angeles County ownership, contact, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Los Angeles County property rows; 24 of 32 active properties are clearly labeled listing-backed shells retained as address-level fallback coverage pending assessor reconciliation.',
+      'Active inventory is fully linked with no remaining unlinked rows after an exact address-and-ZIP linking pass; eight active properties carry parcel identity and year-built support, seven carry coordinates, listing-derived classification spans all 32 properties, and valuation spans 24.',
+      'Ownership, verified agent contacts, recorder/debt coverage, and rent support are absent and must not be guessed or implied; brokerage spans all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 32, parcel_identity_count: 8, classified_count: 32, ownership_count: 0, valuation_count: 24, multifamily_count: 0 },
+      listings: { active_listing_count: 32, active_property_count: 32, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 32, creative_finance_count: 0, latest_listing_seen: '2026-04-15T02:10:02.258Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   highlandParkMi: {
     key: 'highland-park-mi',
     aliases: ['highland-park', 'highland-park-mi', 'highland park'],
@@ -33246,6 +33264,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'agoura-hills-ca',
   'brooklyn-md',
   'redondo-beach-ca',
+  'south-el-monte-ca',
   'highland-park-mi',
   'stow',
   'antioch-tn',
