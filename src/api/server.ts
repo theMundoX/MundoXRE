@@ -30501,6 +30501,63 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  loneTree: {
+    key: 'lone-tree',
+    aliases: ['lone-tree', 'lone-tree-co', 'lone tree'],
+    label: 'Lone Tree',
+    publicLabel: 'Lone Tree, CO',
+    city: 'Lone Tree',
+    cityUpper: 'LONE TREE',
+    county: 'Douglas',
+    state: 'CO',
+    countyId: 62241,
+    latitude: 39.5360,
+    longitude: -104.8972,
+    status: 'live',
+    readinessTarget: 30,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Douglas parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment is incomplete and must not be presented as full-market underwriting coverage.',
+      'Coverage is limited to two currently active Redfin listings, both linked to existing Douglas County property records; no listing-backed shells were required.',
+      'Brokerage and asking-price coverage are present, while verified agent contacts, property classification, recorder/debt coverage, rent support, year-built, building-size, and coordinates are incomplete or absent and must not be guessed or implied.',
+      'Ownership and valuation are present on both linked properties; any use of this small inventory must retain source-limited coverage and field-level quality disclosures.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 2,
+        parcel_identity_count: 2,
+        classified_count: 0,
+        ownership_count: 2,
+        valuation_count: 2,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 2,
+        active_property_count: 2,
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        brokerage_count: 2,
+        creative_finance_count: 0,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0,
+        properties_with_mortgage_records: 0,
+        properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30553,6 +30610,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'southampton',
   'mason',
   'germantown',
+  'lone-tree',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
