@@ -15241,14 +15241,14 @@ const MARKET_CONFIGS: Record<string, {
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory with public-first enrichment; verified contact fields remain absent and must not be guessed.',
-      'All 142 current active listings are linked into Dallas County property rows, including 21 listing-backed shell rows alongside 121 assessor-backed properties.',
+      'All 142 current active listings are linked into Dallas County property rows, including 21 clearly labeled listing-backed shell rows alongside 121 parcel-identity-backed properties.',
       'Parcel classification is sparse on the linked active inventory, and recorder/debt coverage remains empty and should be treated as incomplete.',
       'Rent snapshot support exists for the small multifamily subset and parcel-backed rows with existing history, but shell-backed rows remain address-level fallback coverage pending later reconciliation.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 142,
-        parcel_identity_count: 142,
+        parcel_identity_count: 121,
         classified_count: 21,
         ownership_count: 121,
         valuation_count: 142,
@@ -15262,7 +15262,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_phone_count: 0,
         brokerage_count: 142,
         creative_finance_count: 0,
-        latest_listing_seen: null,
+        latest_listing_seen: '2026-05-27T19:22:32.570+00:00',
         listing_sources: ['redfin'],
       },
       debt: {
@@ -15273,8 +15273,8 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: null,
       },
       rents: {
-        rent_snapshot_count: 2,
-        properties_with_rent_snapshots: 2,
+        rent_snapshot_count: 240,
+        properties_with_rent_snapshots: 121,
         latest_rent_observed: '2026-03-26',
       },
     },
@@ -30615,6 +30615,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'deer-park',
   'chardon',
   'south-houston',
+  'lancaster-tx',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
