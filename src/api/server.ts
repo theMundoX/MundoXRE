@@ -32025,6 +32025,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  santaMariaCa: {
+    key: 'santa-maria-ca', aliases: ['santa-maria', 'santa-maria-ca', 'santa maria', 'santa maria california'], label: 'Santa Maria', publicLabel: 'Santa Maria, CA',
+    city: 'Santa Maria', cityUpper: 'SANTA MARIA', county: 'Santa Barbara', state: 'CA', countyId: 2338950,
+    latitude: 34.9530, longitude: -120.4357, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and ownership, contact, physical, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the SANTA MARIA listing city linked into Santa Barbara county_id 2338950 property rows; it is city inventory, not countywide Santa Barbara coverage.',
+      'All 77 active listings are linked to 77 active properties with no remaining unlinked rows. All 77 are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Listing-derived classification covers all 77 shell properties and listing-derived valuation covers 46; parcel identity, ownership, year built, physical size, unit counts, and coordinates are absent and must not be inferred.',
+      'Brokerage attribution covers all active listings. Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. The latest stored listing observation is 2026-04-15; active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 77, parcel_identity_count: 0, listing_backed_shell_count: 77, classified_count: 77, ownership_count: 0, valuation_count: 46, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 77, active_property_count: 77, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 77, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:32:59.004Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32049,6 +32068,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'santa-maria-ca',
   'ferris-tx',
   'modesto-ca',
   'orangevale-ca',
