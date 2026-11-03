@@ -31943,6 +31943,29 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  santaAnaCa: {
+    key: 'santa-ana-ca', aliases: ['santa-ana', 'santa-ana-ca', 'santa ana', 'santa ana ca'], label: 'Santa Ana', publicLabel: 'Santa Ana, CA',
+    city: 'Santa Ana', cityUpper: 'SANTA ANA', county: 'Orange', state: 'CA', countyId: 2338869,
+    latitude: 33.7455, longitude: -117.8677, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Orange parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the SANTA ANA listing city linked into Orange county_id 2338869 property rows; it is city inventory, not countywide Orange coverage.',
+      'All 68 active listings are linked with no remaining unlinked rows; 49 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 19 have parcel identity support.',
+      'Listing-derived valuation and classification each cover the 49 shells. Ownership, verified agent contacts, square footage, coordinates, debt, rent, multifamily candidates, and positive creative-finance evidence are absent and must not be guessed; year-built covers 14 properties and brokerage covers all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 68, parcel_identity_count: 19, listing_backed_shell_count: 49, classified_count: 49, ownership_count: 0, valuation_count: 49, year_built_count: 14, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 68, active_property_count: 68, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 68, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32101,6 +32124,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'red-oak',
   'lone-tree',
   'northglenn',
+  'santa-ana-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
