@@ -32001,6 +32001,29 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  pilotPointTx: {
+    key: 'pilot-point-tx', aliases: ['pilot-point', 'pilot-point-tx', 'pilot point', 'pilot point tx'], label: 'Pilot Point', publicLabel: 'Pilot Point, TX',
+    city: 'Pilot Point', cityUpper: 'PILOT POINT', county: 'Denton', state: 'TX', countyId: 10,
+    latitude: 33.3965, longitude: -96.9606, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Denton parcel reconciliation and contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the PILOT POINT listing city linked into Denton county_id 10 property rows; it is city inventory, not countywide Denton coverage.',
+      'All 94 active listings are linked with no remaining unlinked rows; 40 linked properties are clearly labeled listing-backed shells pending parcel reconciliation, while 54 have parcel identity and owner support.',
+      'Listing-derived valuation covers all 94 active properties and classification covers the 40 shells. Verified agent contacts, square footage, debt, rents, and positive creative-finance evidence are absent and must not be guessed; year-built covers 40 properties, coordinates cover 16, and brokerage covers all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 94, parcel_identity_count: 54, listing_backed_shell_count: 40, classified_count: 40, ownership_count: 54, valuation_count: 94, year_built_count: 40, size_count: 0, coordinate_count: 16, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 94, active_property_count: 94, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 94, creative_finance_count: 0,
+        latest_listing_seen: null, listing_sources: ['redfin'],
+      },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
