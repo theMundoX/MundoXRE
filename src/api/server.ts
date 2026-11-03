@@ -32228,6 +32228,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'gold-river-ca',
   'murphys-ca',
   'troy-oh',
+  'spartanburg-sc',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
