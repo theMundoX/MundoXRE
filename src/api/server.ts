@@ -32229,6 +32229,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'murphys-ca',
   'troy-oh',
   'spartanburg-sc',
+  'oceanside-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
