@@ -4637,7 +4637,7 @@ const MARKET_CONFIGS: Record<string, {
       "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
       "Single-source Redfin inventory has 69 active listings and zero unlinked rows; 20 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
       "All 69 active listing properties are assigned to Los Angeles county_id 401712. Coverage follows the MANHATTAN BEACH listing-city label and ZIP 90266 and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
-      "Parcel identity and ownership support cover 69 and 0 properties respectively; valuation covers 69, classification 20, coordinates 49, and brokerage 69. Listing-derived valuation and classification do not establish assessor verification.",
+      "Explicit parcel identity and ownership support cover 49 and 0 properties respectively; listing-derived valuation and classification cover 20 clearly labeled shells, while coordinates cover 49 parcel-backed properties and brokerage covers all 69 active listings. Listing-derived values and classifications do not establish assessor verification.",
       "Year built support covers 49 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 0 properties; snapshot presence does not establish current verified market rent.",
       "The latest pre-link listing update is 2026-08-07T00:43:00.886436+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
     ],
@@ -4645,12 +4645,12 @@ const MARKET_CONFIGS: Record<string, {
       "parcels": {
         "parcel_count": 69,
         "ownership_count": 0,
-        "valuation_count": 69,
+        "valuation_count": 20,
         "classified_count": 20,
         "coordinate_count": 49,
         "year_built_count": 49,
         "multifamily_count": 7,
-        "parcel_identity_count": 69,
+        "parcel_identity_count": 49,
         "listing_backed_shell_count": 20
       },
       "listings": {
@@ -32162,6 +32162,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'red-oak',
   'santa-maria-ca',
   'santa-ana-ca',
+  'manhattan-beach-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
