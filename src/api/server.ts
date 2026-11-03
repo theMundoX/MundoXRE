@@ -1167,23 +1167,23 @@ const MARKET_CONFIGS: Record<string, {
     "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.",
     "restrictions": [
       "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
-      "Single-source Redfin inventory has 347 active listings and zero unlinked rows; 347 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
-      "All 347 active listing properties are assigned to Miami county_id 2338898. Coverage follows the TROY listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
-      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 347, classification 347, coordinates 0, and brokerage 0. Listing-derived valuation and classification do not establish assessor verification.",
+      "Single-source Redfin inventory has 376 active listings and zero unlinked rows; all 376 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 376 active listing properties are assigned to Miami county_id 2338898. Coverage follows the TROY listing-city label and does not establish complete municipal or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 0 and 0 properties respectively; valuation covers 376, classification 376, coordinates 0, and brokerage 0. Listing-derived valuation and classification do not establish assessor verification.",
       "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
-      "The latest pre-link listing update is 2026-09-09T13:34:23.706+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+      "The latest source listing update is 2026-09-21T13:40:02.748+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
     ],
     "fallbackCoverageMetrics": {
       "parcels": {
-        "parcel_count": 347,
+        "parcel_count": 376,
         "ownership_count": 0,
-        "valuation_count": 347,
-        "classified_count": 347,
+        "valuation_count": 376,
+        "classified_count": 376,
         "coordinate_count": 0,
         "year_built_count": 0,
         "multifamily_count": 0,
         "parcel_identity_count": 0,
-        "listing_backed_shell_count": 347
+        "listing_backed_shell_count": 376
       },
       "listings": {
         "brokerage_count": 0,
@@ -1193,9 +1193,9 @@ const MARKET_CONFIGS: Record<string, {
         "agent_name_count": 0,
         "agent_email_count": 0,
         "agent_phone_count": 0,
-        "latest_listing_seen": "2026-09-10T11:51:24.435723+00:00",
-        "active_listing_count": 347,
-        "active_property_count": 347,
+        "latest_listing_seen": "2026-09-21T13:40:02.748+00:00",
+        "active_listing_count": 376,
+        "active_property_count": 376,
         "creative_finance_count": 0,
         "unlinked_listing_count": 0
       },
@@ -32137,6 +32137,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'citrus-heights-ca',
   'wilton-ca',
   'enumclaw-wa',
+  'troy-oh',
   'wilmington-oh',
   'ferris-tx',
   'little-ferry-nj',
