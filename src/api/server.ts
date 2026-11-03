@@ -31986,6 +31986,26 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  goldRiverCa: {
+    key: 'gold-river-ca', aliases: ['gold-river', 'gold-river-ca', 'gold river', 'gold river california'], label: 'Gold River', publicLabel: 'Gold River, CA',
+    city: 'Gold River', cityUpper: 'GOLD RIVER', county: 'Sacramento', state: 'CA', countyId: 773106,
+    latitude: 38.6263, longitude: -121.2466, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and ownership, contact, physical, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the GOLD RIVER listing city, linked into Sacramento county_id 773106 property rows; it is city inventory, not countywide Sacramento coverage.',
+      'All 26 active listings are linked to 26 active properties with no remaining unlinked rows. One property is a clearly labeled address-level listing-backed shell pending assessor reconciliation.',
+      'Parcel identity and coordinates each cover 25 active properties. Listing-derived valuation and classification cover the one shell; ownership, year built, physical size, and unit counts are absent and must not be inferred.',
+      'Brokerage attribution covers all active listings. Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 26, parcel_identity_count: 25, listing_backed_shell_count: 1, classified_count: 1, ownership_count: 0, valuation_count: 1, year_built_count: 0, size_count: 0, coordinate_count: 25, multifamily_count: 0 },
+      listings: { active_listing_count: 26, active_property_count: 26, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 26, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32146,6 +32166,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'northglenn',
   'santa-ana-ca',
   'sacramento-ca',
+  'gold-river-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
