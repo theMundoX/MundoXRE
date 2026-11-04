@@ -30689,6 +30689,63 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  timnath: {
+    key: 'timnath',
+    aliases: ['timnath', 'timnath-co'],
+    label: 'Timnath',
+    publicLabel: 'Timnath, CO',
+    city: 'Timnath',
+    cityUpper: 'TIMNATH',
+    county: 'Larimer',
+    state: 'CO',
+    countyId: 75651,
+    latitude: 40.5286,
+    longitude: -104.9850,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Larimer parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Larimer County property rows for Timnath, including 14 clearly labeled listing-backed shells retained only where active listings did not resolve to parcel identity.',
+      'All 101 active listings are linked with no remaining unlinked rows; 87 linked properties have ownership support, while 14 shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent name, phone, and email fields, recorder/debt coverage, rent support, and most structure facts remain absent and must not be guessed or implied; valuation and classification apply only to the listing-backed subset.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 101,
+        parcel_identity_count: 87,
+        classified_count: 14,
+        ownership_count: 87,
+        valuation_count: 14,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 101,
+        active_property_count: 101,
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        brokerage_count: 101,
+        creative_finance_count: 0,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0,
+        properties_with_mortgage_records: 0,
+        properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30744,6 +30801,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'livermore',
   'lone-tree',
   'red-feather-lakes',
+  'timnath',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
