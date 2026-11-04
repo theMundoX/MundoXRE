@@ -32024,6 +32024,29 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  circlevilleOh: {
+    key: 'circleville', aliases: ['circleville', 'circleville-oh'], label: 'Circleville', publicLabel: 'Circleville, OH',
+    city: 'Circleville', cityUpper: 'CIRCLEVILLE', county: 'Fairfield', state: 'OH', countyId: 31,
+    latitude: 39.6006, longitude: -82.9460, status: 'live', readinessTarget: 28, scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Fairfield parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the CIRCLEVILLE listing city linked into Fairfield county_id 31 property rows; it is city inventory, not countywide Fairfield coverage.',
+      'All 54 active listings are linked with no remaining unlinked rows; 53 properties are clearly labeled listing-backed shells pending parcel reconciliation, while one has parcel identity and owner support.',
+      'Listing-derived valuation and classification cover the 53 shells. Verified agent contacts are absent and must not be guessed; year-built, square footage, and coordinates each cover one property. Mortgage records cover three properties with one populated amount and one rent snapshot exists, which do not establish comprehensive debt or rent coverage; brokerage spans all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 54, parcel_identity_count: 1, listing_backed_shell_count: 53, classified_count: 54, ownership_count: 1, valuation_count: 54, year_built_count: 1, size_count: 1, coordinate_count: 1, multifamily_count: 0 },
+      listings: {
+        active_listing_count: 54, active_property_count: 54, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
+        agent_phone_count: 0, brokerage_count: 54, creative_finance_count: 0,
+        latest_listing_seen: '2026-03-30T00:13:38.485Z', listing_sources: ['redfin'],
+      },
+      debt: { mortgage_record_count: 3, properties_with_mortgage_records: 3, properties_with_debt_coverage: 3, mortgage_amount_count: 1, latest_recording: '2026-02-26' },
+      rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-03-27' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
