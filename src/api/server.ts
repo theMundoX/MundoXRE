@@ -30860,6 +30860,63 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  homestead: {
+    key: 'homestead',
+    aliases: ['homestead', 'homestead-pa'],
+    label: 'Homestead',
+    publicLabel: 'Homestead, PA',
+    city: 'Homestead',
+    cityUpper: 'HOMESTEAD',
+    county: 'Allegheny',
+    state: 'PA',
+    countyId: 1973350,
+    latitude: 40.4081,
+    longitude: -79.9117,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Allegheny parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Allegheny County property rows for Homestead, including five clearly labeled listing-backed shells retained where active listings did not resolve to parcel identity.',
+      'All 55 active listings are linked with no remaining unlinked rows; 50 linked properties have parcel identity and ownership support, while five shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent name, phone, and email fields, recorder/debt coverage, rent support, and structure facts remain absent and must not be guessed or implied; valuation and classification apply only to the listing-backed subset.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 55,
+        parcel_identity_count: 50,
+        classified_count: 5,
+        ownership_count: 50,
+        valuation_count: 5,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 55,
+        active_property_count: 55,
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        brokerage_count: 55,
+        creative_finance_count: 0,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0,
+        properties_with_mortgage_records: 0,
+        properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30918,6 +30975,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'timnath',
   'braddock',
   'fairborn',
+  'homestead',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
