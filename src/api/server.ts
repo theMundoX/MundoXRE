@@ -199,6 +199,23 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  littleFerry: {
+    key: 'little-ferry', aliases: ['little-ferry', 'little-ferry-nj', 'little ferry'], label: 'Little Ferry', publicLabel: 'Little Ferry, NJ', city: 'Little Ferry', cityUpper: 'LITTLE FERRY', county: 'Bergen', state: 'NJ', countyId: 13672, latitude: 40.8523, longitude: -74.0421, status: 'live', readinessTarget: 30, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment is incomplete and must not be presented as full-market underwriting coverage.',
+      'Coverage is limited to source-limited Redfin-derived active listings rather than a guaranteed full MLS inventory.',
+      'All 14 active listing rows are linked: 3 resolve to parcel identity while 11 are clearly labeled listing-backed shells retained as address-level fallback coverage.',
+      'Brokerage labels are present, but owner names and verified agent name, phone, and email fields are absent and must not be guessed; coordinate coverage is limited to the 3 parcel-identity-backed rows.',
+      'Valuation spans all linked active rows, while asset classification covers 11 rows; debt coverage is available for 1 active property and the sole multifamily property has one rent snapshot.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 14, parcel_identity_count: 3, classified_count: 11, ownership_count: 0, valuation_count: 14, multifamily_count: 1 },
+      listings: { active_listing_count: 14, active_property_count: 14, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 14, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1, mortgage_amount_count: 1, latest_recording: null },
+      rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-03-28' },
+    },
+  },
   hotSpringsVillage: {
     key: 'hot-springs-village',
     aliases: ['hot-springs-village', 'hot-springs-village-ar', 'hot springs village'],
@@ -30501,6 +30518,63 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  livermore: {
+    key: 'livermore',
+    aliases: ['livermore', 'livermore-co', 'livermore co'],
+    label: 'Livermore',
+    publicLabel: 'Livermore, CO',
+    city: 'Livermore',
+    cityUpper: 'LIVERMORE',
+    county: 'Larimer',
+    state: 'CO',
+    countyId: 75651,
+    latitude: 40.7944,
+    longitude: -105.2183,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Larimer parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Larimer County property rows for Livermore, including six clearly labeled listing-backed shells retained only where active listings did not resolve to parcel identity.',
+      'All 45 active listings are linked with no remaining unlinked rows; 39 linked properties have parcel identity and ownership support, while six shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent name, phone, and email fields, recorder/debt coverage, rent support, and most structure facts remain absent and must not be guessed or implied; valuation and classification apply only to the listing-backed subset.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 45,
+        parcel_identity_count: 39,
+        classified_count: 6,
+        ownership_count: 39,
+        valuation_count: 6,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 45,
+        active_property_count: 45,
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        brokerage_count: 45,
+        creative_finance_count: 0,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0,
+        properties_with_mortgage_records: 0,
+        properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
   loneTree: {
     key: 'lone-tree',
     aliases: ['lone-tree', 'lone-tree-co', 'lone tree'],
@@ -30610,6 +30684,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'southampton',
   'mason',
   'germantown',
+  'livermore',
   'lone-tree',
 ]);
 const MARKET_DATA_DOMAINS = [
@@ -38935,6 +39010,7 @@ serve({ fetch: app.fetch, port, hostname }, (info) => {
 
 export { app };
 
+/* Duplicate Little Ferry config from the prior publish commit; the active copy is in MARKET_CONFIGS above.
 
 
   littleFerry: {
@@ -38995,3 +39071,4 @@ export { app };
       },
     },
   },
+*/
