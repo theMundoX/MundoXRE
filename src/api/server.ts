@@ -30632,6 +30632,63 @@ const MARKET_CONFIGS: Record<string, {
       },
     },
   },
+  redFeatherLakes: {
+    key: 'red-feather-lakes',
+    aliases: ['red-feather-lakes', 'red-feather-lakes-co', 'red feather lakes'],
+    label: 'Red Feather Lakes',
+    publicLabel: 'Red Feather Lakes, CO',
+    city: 'Red Feather Lakes',
+    cityUpper: 'RED FEATHER LAKES',
+    county: 'Larimer',
+    state: 'CO',
+    countyId: 75651,
+    latitude: 40.8061,
+    longitude: -105.5753,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Larimer parcel reconciliation and contact/debt coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Larimer County property rows for Red Feather Lakes, including 11 clearly labeled listing-backed shells retained only where active listings did not resolve to parcel identity.',
+      'All 81 active listings are linked with no remaining unlinked rows; 70 linked properties have parcel identity and ownership support, while 11 shell-backed rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent name, phone, and email fields, recorder/debt coverage, rent support, and most structure facts remain absent and must not be guessed or implied; valuation and classification apply only to the listing-backed subset.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: {
+        parcel_count: 81,
+        parcel_identity_count: 70,
+        classified_count: 11,
+        ownership_count: 70,
+        valuation_count: 11,
+        multifamily_count: 0,
+      },
+      listings: {
+        active_listing_count: 81,
+        active_property_count: 81,
+        agent_name_count: 0,
+        agent_email_count: 0,
+        agent_phone_count: 0,
+        brokerage_count: 81,
+        creative_finance_count: 0,
+        latest_listing_seen: null,
+        listing_sources: ['redfin'],
+      },
+      debt: {
+        mortgage_record_count: 0,
+        properties_with_mortgage_records: 0,
+        properties_with_debt_coverage: 0,
+        mortgage_amount_count: 0,
+        latest_recording: null,
+      },
+      rents: {
+        rent_snapshot_count: 0,
+        properties_with_rent_snapshots: 0,
+        latest_rent_observed: null,
+      },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -30686,6 +30743,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'germantown',
   'livermore',
   'lone-tree',
+  'red-feather-lakes',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
