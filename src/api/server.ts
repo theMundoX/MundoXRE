@@ -32535,6 +32535,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'peachtree_corners',
   'millsap-tx',
   'waverly-oh',
   'helena-mt',
