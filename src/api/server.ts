@@ -198,6 +198,38 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  bartonvilleIl: {
+    key: 'bartonville-il',
+    aliases: ['bartonville', 'bartonville-il'],
+    label: 'Bartonville',
+    publicLabel: 'Bartonville, IL',
+    city: 'Bartonville',
+    cityUpper: 'BARTONVILLE',
+    county: 'Peoria',
+    state: 'IL',
+    countyId: 2338837,
+    latitude: 40.6503,
+    longitude: -89.6523,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; assessor reconciliation and verified contact, debt, and coordinate support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 43 active listings and zero unlinked rows; 11 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 43 active listing properties resolve to Peoria county_id 2338837. Coverage follows only the BARTONVILLE listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership cover 32 properties; valuation covers all 43 properties, and listing-derived classification covers the 11 shell properties. Listing-derived fields do not establish assessor verification.',
+      'Coordinates, listing brokerage, verified agent contacts, mortgage/debt coverage, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots exist for 33 properties but are not a substitute for complete rental coverage.',
+      'The latest observed listing timestamp is 2026-10-19T22:47:15.317731+00:00; stored active status is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 43, parcel_identity_count: 32, classified_count: 11, ownership_count: 32, valuation_count: 43, coordinate_count: 0, multifamily_count: 0, listing_backed_shell_count: 11 },
+      listings: { active_listing_count: 43, active_property_count: 43, unlinked_listing_count: 0, listing_sources: ['redfin'], brokerage_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-10-19T22:47:15.317731+00:00' },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 33, properties_with_rent_snapshots: 33, latest_rent_observed: '2026-05-27' },
+    },
+  },
   millsapTx: {
     key: 'millsap-tx',
     aliases: ['millsap', 'millsap-tx'],
