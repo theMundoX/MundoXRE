@@ -28680,25 +28680,27 @@ const MARKET_CONFIGS: Record<string, {
     city: 'Middleburg Heights', cityUpper: 'MIDDLEBURG HEIGHTS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
     latitude: 41.3614, longitude: -81.8129, status: 'live', readinessTarget: 30, scope: 'city',
     metricScope: 'active_listing_properties',
-    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Cuyahoga contact, structure, debt, rent, and shell reconciliation coverage improve',
+    refreshCadence: 'Public-first listing refresh and enrichment; assessor reconciliation and verified contact, debt, and rent support remain incomplete.',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Middleburg Heights, including seven clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
-      'All 13 active listings are linked with zero unlinked rows; six active properties have parcel identity while the seven shell rows remain address-level fallback coverage pending assessor reconciliation.',
-      'Verified agent contacts, year-built, debt, and rent coverage are absent and must not be guessed or implied; valuation spans all 13 properties, ownership and building size cover six, coordinates cover five, classification covers the seven shell rows, and brokerage covers two listings.',
+      'Single-source Redfin inventory has 41 active listings and zero unlinked rows; 18 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 41 active listing properties resolve to Cuyahoga county_id 1698988. Coverage follows only the MIDDLEBURG HEIGHTS listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity, ownership, and physical-size coverage each cover 23 properties; valuation covers all 41 properties, coordinates cover 18 properties, and listing-derived classification covers the 18 shell properties. Listing-derived fields do not establish assessor verification.',
+      'Verified agent contacts, year built, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Three amount-less mortgage records cover two properties, and one rent snapshot is not a substitute for complete rental coverage. Brokerage labels cover two listings.',
+      'The latest observed listing timestamp is 2026-10-20T16:07:10.804242+00:00; stored active status is not a guarantee of current availability.',
     ],
     fallbackCoverageMetrics: {
-      parcels: { parcel_count: 13, parcel_identity_count: 6, classified_count: 7, ownership_count: 6, valuation_count: 13, year_built_count: 0, size_count: 6, coordinate_count: 5, multifamily_count: 0 },
+      parcels: { parcel_count: 41, parcel_identity_count: 23, classified_count: 19, ownership_count: 23, valuation_count: 41, year_built_count: 0, size_count: 23, coordinate_count: 18, multifamily_count: 0, listing_backed_shell_count: 18 },
       listings: {
-        active_listing_count: 13, active_property_count: 13, agent_name_count: 0, agent_email_count: 0,
+        active_listing_count: 41, active_property_count: 41, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
         agent_phone_count: 0, brokerage_count: 2, creative_finance_count: 0,
-        latest_listing_seen: '2026-08-05T14:31:48.631+00:00', listing_sources: ['redfin'],
+        latest_listing_seen: '2026-10-20T16:07:10.804242+00:00', listing_sources: ['redfin'],
       },
       debt: {
-        mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0,
-        mortgage_amount_count: 0, latest_recording: null,
+        mortgage_record_count: 3, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 0, latest_recording: '2025-12-30',
       },
-      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-06-12' },
     },
   },
   'garfield-heights': {
@@ -32535,6 +32537,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'middleburg-heights',
   'east-windsor',
   'peachtree_corners',
   'millsap-tx',
