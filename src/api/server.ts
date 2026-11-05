@@ -32065,6 +32065,24 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  mcKeesRocksPa: {
+    key: 'mc-kees-rocks-pa', aliases: ['mc-kees-rocks', 'mc kees rocks', 'mc-kees-rocks-pa', 'mc kees rocks pa'], label: 'McKees Rocks', publicLabel: 'McKees Rocks, PA',
+    city: 'Mc Kees Rocks', cityUpper: 'MC KEES ROCKS', county: 'Allegheny', state: 'PA', countyId: 1973350,
+    latitude: 40.4656, longitude: -80.0598, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Allegheny parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the MC KEES ROCKS listing city linked into Allegheny county_id 1973350 property rows; it is city inventory, not countywide Allegheny coverage.',
+      'All 53 active listings are linked with no remaining unlinked rows; 6 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 47 carry parcel identity and ownership support.',
+      'Listing-derived valuation and classification cover the 6 shells. Verified agent contacts, year-built, square footage, debt, rent, and positive creative-finance evidence are absent and must not be guessed; coordinates cover 44 properties and brokerage covers all active listings.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 53, parcel_identity_count: 47, listing_backed_shell_count: 6, classified_count: 6, ownership_count: 47, valuation_count: 6, year_built_count: 0, size_count: 0, coordinate_count: 44, multifamily_count: 0 },
+      listings: { active_listing_count: 53, active_property_count: 53, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 53, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32231,6 +32249,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'calabasas-ca',
   'modesto-ca',
   'league-city-tx',
+  'mc-kees-rocks-pa',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
