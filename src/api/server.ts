@@ -198,6 +198,38 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  littleFallsNj: {
+    key: 'little-falls-nj',
+    aliases: ['little-falls', 'little-falls-nj', 'little falls'],
+    label: 'Little Falls',
+    publicLabel: 'Little Falls, NJ',
+    city: 'Little Falls',
+    cityUpper: 'LITTLE FALLS',
+    county: 'Passaic',
+    state: 'NJ',
+    countyId: 13611,
+    latitude: 40.8689,
+    longitude: -74.2082,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; assessor reconciliation and verified contact and debt support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 13 active listings and zero unlinked rows; 6 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 13 active listing properties resolve to Passaic county_id 13611. Coverage follows only the LITTLE FALLS listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity covers 7 properties; coordinates cover those 7 properties, valuation covers all 13 properties, and listing-derived classification covers the 6 shell properties. Ownership is absent and listing-derived fields do not establish assessor verification.',
+      'Brokerage labels are present, but verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. One multifamily property has 7 rent snapshots; this is not complete rental coverage.',
+      'The latest observed listing timestamp is 2026-06-08T15:50:56.173409+00:00; stored active status is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 13, parcel_identity_count: 7, classified_count: 6, ownership_count: 0, valuation_count: 13, coordinate_count: 7, multifamily_count: 1, listing_backed_shell_count: 6 },
+      listings: { active_listing_count: 13, active_property_count: 13, unlinked_listing_count: 0, listing_sources: ['redfin'], brokerage_count: 13, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-06-08T15:50:56.173409+00:00' },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 7, properties_with_rent_snapshots: 7, latest_rent_observed: '2026-03-28' },
+    },
+  },
   bartonvilleIl: {
     key: 'bartonville-il',
     aliases: ['bartonville', 'bartonville-il'],
