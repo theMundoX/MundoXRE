@@ -198,6 +198,37 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  millsapTx: {
+    key: 'millsap-tx',
+    aliases: ['millsap', 'millsap-tx'],
+    label: 'Millsap',
+    publicLabel: 'Millsap, TX',
+    city: 'Millsap',
+    cityUpper: 'MILLSAP',
+    county: 'Parker',
+    state: 'TX',
+    countyId: 2338849,
+    latitude: 32.7487,
+    longitude: -98.0092,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; assessor reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 47 active listings and zero unlinked rows; 32 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All linked active listing properties resolve to Parker county_id 2338849. Coverage follows only the MILLSAP listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership cover 15 properties; valuation covers all 47 properties, listing-derived classification covers 32 shell properties, year built covers 9 properties, and brokerage covers all 47 listings. Listing-derived fields do not establish assessor verification.',
+      'Physical size, coordinates, verified agent contacts, mortgage/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 47, parcel_identity_count: 15, classified_count: 32, ownership_count: 15, valuation_count: 47, year_built_count: 9, size_count: 0, coordinate_count: 0, multifamily_count: 0, listing_backed_shell_count: 32 },
+      listings: { active_listing_count: 47, active_property_count: 47, unlinked_listing_count: 0, listing_sources: ['redfin'], brokerage_count: 47, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, creative_finance_count: 0 },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   waverlyOh: {
     key: 'waverly-oh',
     aliases: ['waverly', 'waverly-oh'],
@@ -32440,6 +32471,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'millsap-tx',
   'waverly-oh',
   'helena-mt',
   'south-fulton-ga',
