@@ -198,6 +198,38 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  waverlyOh: {
+    key: 'waverly-oh',
+    aliases: ['waverly', 'waverly-oh'],
+    label: 'Waverly',
+    publicLabel: 'Waverly, OH',
+    city: 'Waverly',
+    cityUpper: 'WAVERLY',
+    county: 'Pike',
+    state: 'OH',
+    countyId: 2338942,
+    latitude: 39.1287,
+    longitude: -82.5357,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; assessor reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 49 active listings and zero unlinked rows; 32 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 49 active listing properties resolve to Pike county_id 2338942. Coverage follows only the WAVERLY listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation.',
+      'Parcel identity and ownership cover 17 properties; valuation covers 38 properties, and listing-derived classification covers 32 shell properties. Listing-derived fields do not establish assessor verification.',
+      'Year built, physical size, coordinates, listing brokerage, verified agent contacts, mortgage/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest observed listing timestamp is 2026-05-12T04:49:54.979+00:00; stored active status is not a guarantee of current availability.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 49, parcel_identity_count: 17, classified_count: 32, ownership_count: 17, valuation_count: 38, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0, listing_backed_shell_count: 32 },
+      listings: { active_listing_count: 49, active_property_count: 49, unlinked_listing_count: 0, listing_sources: ['redfin'], brokerage_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-05-12T04:49:54.979+00:00' },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   helenaMt: {
     key: 'helena-mt',
     aliases: ['helena', 'helena-mt'],
@@ -32408,6 +32440,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'waverly-oh',
   'helena-mt',
   'south-fulton-ga',
   'queen-creek-az',
