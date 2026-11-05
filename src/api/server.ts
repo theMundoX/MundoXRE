@@ -198,6 +198,37 @@ const MARKET_CONFIGS: Record<string, {
   restrictions: string[];
   fallbackCoverageMetrics?: Record<string, unknown>;
 }> = {
+  queenCreekAz: {
+    key: 'queen-creek-az',
+    aliases: ['queen-creek', 'queen-creek-az'],
+    label: 'Queen Creek',
+    publicLabel: 'Queen Creek, AZ',
+    city: 'Queen Creek',
+    cityUpper: 'QUEEN CREEK',
+    county: 'Pinal',
+    state: 'AZ',
+    countyId: 2338859,
+    latitude: 33.2487,
+    longitude: -111.6343,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first listing refresh and enrichment; assessor reconciliation and verified contact, debt, and rent support remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Single-source Redfin inventory has 50 active listings and zero unlinked rows; all 50 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'All 50 active listing properties resolve to Pinal county_id 2338859. Coverage follows only the QUEEN CREEK listing-city label and does not establish complete municipal or county coverage; Queen Creek spans Pinal and Maricopa counties, and shell county assignments remain subject to assessor reconciliation.',
+      'Listing-derived valuation and classification cover all 50 shell properties, and brokerage covers all 50 listings. Listing-derived fields do not establish assessor verification.',
+      'Parcel identity, ownership, year built, physical size, coordinates, verified agent contacts, mortgage/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied.'
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 50, parcel_identity_count: 0, classified_count: 50, ownership_count: 0, valuation_count: 50, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0, listing_backed_shell_count: 50 },
+      listings: { active_listing_count: 50, active_property_count: 50, unlinked_listing_count: 0, listing_sources: ['redfin'], brokerage_count: 50, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-11-05T05:05:26.643086+00:00' },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   lovejoyGa: {
     key: 'lovejoy-ga',
     aliases: ['lovejoy', 'lovejoy-ga'],
@@ -32313,6 +32344,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'queen-creek-az',
   'lovejoy-ga',
   'athens-oh',
   'santa-maria-ca',
