@@ -32537,6 +32537,7 @@ validateMarketConfigs();
 
 const SUPPORTED_MARKETS = Object.values(MARKET_CONFIGS).map((market) => market.key);
 const BBC_PUBLISHED_MARKET_IDS = new Set([
+  'fair-lawn',
   'edgewater-nj',
   'middleburg-heights',
   'east-windsor',
