@@ -32121,6 +32121,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  murphysCa: {
+    key: 'murphys-ca', aliases: ['murphys', 'murphys-ca'], label: 'Murphys', publicLabel: 'Murphys, CA',
+    city: 'Murphys', cityUpper: 'MURPHYS', county: 'Calaveras', state: 'CA', countyId: 2338931,
+    latitude: 38.1374, longitude: -120.4683, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Calaveras parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the MURPHYS listing city linked into Calaveras county_id 2338931 property rows; it is city-label inventory, not countywide Calaveras coverage.',
+      'All 66 active listings are linked with no remaining unlinked rows; 22 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 44 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 45 properties and listing-derived classification covers the 22 shells. Ownership, year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed; brokerage covers all active listings.',
+      'The latest stored listing observation is 2026-11-01T16:26:32.127076Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 66, parcel_identity_count: 44, listing_backed_shell_count: 22, classified_count: 22, ownership_count: 0, valuation_count: 45, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 66, active_property_count: 66, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 66, creative_finance_count: 0, latest_listing_seen: '2026-11-01T16:26:32.127076Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32290,6 +32309,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'mc-kees-rocks-pa',
   'san-jose-ca',
   'placentia-ca',
+  'murphys-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
