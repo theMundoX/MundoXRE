@@ -32140,6 +32140,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  marysvilleOh: {
+    key: 'marysville-oh', aliases: ['marysville', 'marysville-oh'], label: 'Marysville', publicLabel: 'Marysville, OH',
+    city: 'Marysville', cityUpper: 'MARYSVILLE', county: 'Union', state: 'OH', countyId: 2338937,
+    latitude: 40.2364, longitude: -83.3671, status: 'live', readinessTarget: 27, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Union parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the MARYSVILLE listing city linked into Union county_id 2338937 property rows; it is city-label inventory, not countywide Union coverage.',
+      'All 57 active listings are linked with no remaining unlinked rows; 47 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 10 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Listing-derived valuation and classification cover 44 and 47 properties respectively. Ownership covers 10 properties; year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage covers all active listings.',
+      'Active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 57, parcel_identity_count: 10, listing_backed_shell_count: 47, classified_count: 47, ownership_count: 10, valuation_count: 44, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 57, active_property_count: 57, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 57, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32311,6 +32330,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'placentia-ca',
   'murphys-ca',
   'mc-donald-pa',
+  'marysville-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
