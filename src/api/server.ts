@@ -32102,6 +32102,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  placentiaCa: {
+    key: 'placentia-ca', aliases: ['placentia', 'placentia-ca'], label: 'Placentia', publicLabel: 'Placentia, CA',
+    city: 'Placentia', cityUpper: 'PLACENTIA', county: 'Orange', state: 'CA', countyId: 2338869,
+    latitude: 33.8722, longitude: -117.8703, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Orange parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the PLACENTIA listing city linked into Orange county_id 2338869 property rows; it is city-label inventory, not countywide Orange coverage.',
+      'All 68 active listings are linked with no remaining unlinked rows; 52 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 16 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Listing-derived valuation and classification cover the 52 shells. Ownership, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed; year-built support covers 13 properties and brokerage covers all active listings.',
+      'The latest stored listing observation is 2026-04-14T08:53:55.921Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 68, parcel_identity_count: 16, listing_backed_shell_count: 52, classified_count: 52, ownership_count: 0, valuation_count: 52, year_built_count: 13, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 68, active_property_count: 68, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 68, creative_finance_count: 0, latest_listing_seen: '2026-04-14T08:53:55.921Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32270,6 +32289,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'league-city-tx',
   'mc-kees-rocks-pa',
   'san-jose-ca',
+  'placentia-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
