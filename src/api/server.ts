@@ -31579,11 +31579,11 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
       'Coverage is single-source Redfin inventory for the MC DONALD listing city, linked into Allegheny county_id 1973350 property rows; it is not county-wide or a verified municipal-boundary dataset.',
       'All 37 active listings are linked to 37 active properties with no remaining unlinked rows. Thirty-six properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
-      'Only one active property has parcel identity and ownership support. Listing-derived valuation covers 36, coordinates cover one, and year built, physical size, unit counts, and classification support must not be inferred.',
+      'Only one active property has parcel identity and ownership support. Listing-derived valuation and classification each cover 36 clearly labeled shells, coordinates cover one, and year built, physical size, and unit counts are absent and must not be inferred.',
       'Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Brokerage attribution covers all active listings and active status reflects stored source flags rather than a guarantee of current availability.',
     ],
     fallbackCoverageMetrics: {
-      parcels: { parcel_count: 37, parcel_identity_count: 1, listing_backed_shell_count: 36, classified_count: 0, ownership_count: 1, valuation_count: 36, year_built_count: 0, size_count: 0, coordinate_count: 1, multifamily_count: 0 },
+      parcels: { parcel_count: 37, parcel_identity_count: 1, listing_backed_shell_count: 36, classified_count: 36, ownership_count: 1, valuation_count: 36, year_built_count: 0, size_count: 0, coordinate_count: 1, multifamily_count: 0 },
       listings: { active_listing_count: 37, active_property_count: 37, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 37, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
       debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
@@ -32310,6 +32310,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'san-jose-ca',
   'placentia-ca',
   'murphys-ca',
+  'mc-donald-pa',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
