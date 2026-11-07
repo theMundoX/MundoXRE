@@ -32379,6 +32379,25 @@ const MARKET_CONFIGS: Record<string, {
       debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null }, rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  millsapTx: {
+    key: 'millsap-tx', aliases: ['millsap', 'millsap-tx'], label: 'Millsap', publicLabel: 'Millsap, TX',
+    city: 'Millsap', cityUpper: 'MILLSAP', county: 'Parker', state: 'TX', countyId: 2338849,
+    latitude: 32.7487, longitude: -98.0092, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Parker parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the MILLSAP listing city linked into Parker county_id 2338849 property rows; it is city-label inventory, not countywide Parker coverage.',
+      'All 47 active listings are linked with no remaining unlinked rows; 32 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 15 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers all 47 properties and listing-derived classification covers the 32 shells. Ownership covers 15 properties and year-built support covers 9; square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage support covers all active listings.',
+      'The latest stored listing observation is 2026-11-05T09:06:53.654349Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 47, parcel_identity_count: 15, listing_backed_shell_count: 32, classified_count: 32, ownership_count: 15, valuation_count: 47, year_built_count: 9, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 47, active_property_count: 47, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 47, creative_finance_count: 0, latest_listing_seen: '2026-11-05T09:06:53.654349Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32564,6 +32583,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'san-carlos-ca',
   'lexington-ne',
   'mount-vernon-oh',
+  'millsap-tx',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
