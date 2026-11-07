@@ -32292,6 +32292,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  southFultonGa: {
+    key: 'south-fulton-ga', aliases: ['south-fulton', 'south fulton', 'south-fulton-ga'], label: 'South Fulton', publicLabel: 'South Fulton, GA',
+    city: 'South Fulton', cityUpper: 'SOUTH FULTON', county: 'Fulton', state: 'GA', countyId: 1741139,
+    latitude: 33.59259, longitude: -84.67294, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Fulton parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the SOUTH FULTON listing city linked into Fulton county_id 1741139 property rows; it is city-label inventory, not countywide Fulton coverage.',
+      'All 50 active listings are linked with no remaining unlinked rows; 32 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 18 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 39 properties and listing-derived classification covers the 32 shells. Ownership covers 18 properties; year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage support covers 24 active listings.',
+      'The latest stored listing observation is 2026-11-05T06:05:01.892816Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 50, parcel_identity_count: 18, listing_backed_shell_count: 32, classified_count: 32, ownership_count: 18, valuation_count: 39, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 50, active_property_count: 50, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 24, creative_finance_count: 0, latest_listing_seen: '2026-11-05T06:05:01.892816Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32470,6 +32489,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'athens-oh',
   'lovejoy-ga',
   'sandy-springs-ga',
+  'south-fulton-ga',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
