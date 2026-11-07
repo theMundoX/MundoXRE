@@ -32178,6 +32178,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  gwynnOakMd: {
+    key: 'gwynn-oak-md', aliases: ['gwynn-oak', 'gwynn-oak-md', 'gwynn oak'], label: 'Gwynn Oak', publicLabel: 'Gwynn Oak, MD',
+    city: 'Gwynn Oak', cityUpper: 'GWYNN OAK', county: 'Baltimore', state: 'MD', countyId: 2338913,
+    latitude: 39.3493, longitude: -76.758, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Baltimore parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the GWYNN OAK listing city linked into Baltimore county_id 2338913 property rows; it is city-label inventory, not countywide Baltimore coverage.',
+      'All 52 active listings are linked with no remaining unlinked rows; 23 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 29 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers all 52 properties and listing-derived classification covers the 23 shells. Ownership and year-built support cover 29 properties; square footage covers 23. Coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage covers all active listings.',
+      'Active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 52, parcel_identity_count: 29, listing_backed_shell_count: 23, classified_count: 23, ownership_count: 29, valuation_count: 52, year_built_count: 29, size_count: 23, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 52, active_property_count: 52, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 52, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   athensOh: {
     key: 'athens-oh', aliases: ['athens', 'athens-oh'], label: 'Athens', publicLabel: 'Athens, OH',
     city: 'Athens', cityUpper: 'ATHENS', county: 'Athens', state: 'OH', countyId: 2338938,
