@@ -32216,6 +32216,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  sandySpringsGa: {
+    key: 'sandy-springs-ga', aliases: ['sandy-springs', 'sandy-springs-ga', 'sandy springs'], label: 'Sandy Springs', publicLabel: 'Sandy Springs, GA',
+    city: 'Sandy Springs', cityUpper: 'SANDY SPRINGS', county: 'Fulton', state: 'GA', countyId: 1741139,
+    latitude: 33.9304, longitude: -84.3733, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Fulton parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the SANDY SPRINGS listing city linked into Fulton county_id 1741139 property rows; it is city-label inventory, not countywide Fulton coverage.',
+      'All 52 active listings are linked with no remaining unlinked rows; 39 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 13 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 42 properties and listing-derived classification covers the 39 shells. Ownership covers 13 properties; year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage support covers 9 active listings.',
+      'The latest stored listing observation is 2026-11-04T21:58:13.129215Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 52, parcel_identity_count: 13, listing_backed_shell_count: 39, classified_count: 39, ownership_count: 13, valuation_count: 42, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 52, active_property_count: 52, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 9, creative_finance_count: 0, latest_listing_seen: '2026-11-04T21:58:13.129215Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32391,6 +32410,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'nottingham-md',
   'athens-oh',
   'lovejoy-ga',
+  'sandy-springs-ga',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
