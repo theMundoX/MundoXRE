@@ -32398,6 +32398,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  ashvilleOh: {
+    key: 'ashville-oh', aliases: ['ashville', 'ashville-oh'], label: 'Ashville', publicLabel: 'Ashville, OH',
+    city: 'Ashville', cityUpper: 'ASHVILLE', county: 'Pickaway', state: 'OH', countyId: 2338949,
+    latitude: 39.7156, longitude: -82.9524, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Pickaway parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the ASHVILLE listing city linked into Pickaway county_id 2338949 property rows; it is city-label inventory, not countywide Pickaway coverage.',
+      'All 41 active listings are linked with no remaining unlinked rows; 16 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 25 carry parcel identity and ownership support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 12 properties and listing-derived classification covers the 16 shells. Year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage support covers all active listings.',
+      'The latest stored listing observation is 2026-11-05T20:34:20.392143Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 41, parcel_identity_count: 25, listing_backed_shell_count: 16, classified_count: 16, ownership_count: 25, valuation_count: 12, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 41, active_property_count: 41, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 41, creative_finance_count: 0, latest_listing_seen: '2026-11-05T20:34:20.392143Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32584,6 +32603,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lexington-ne',
   'mount-vernon-oh',
   'millsap-tx',
+  'ashville-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
