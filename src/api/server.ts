@@ -32362,6 +32362,23 @@ const MARKET_CONFIGS: Record<string, {
       debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null }, rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  mountVernonOh: {
+    key: 'mount-vernon-oh', aliases: ['mount vernon', 'mount-vernon', 'mount-vernon-oh'], label: 'Mount Vernon', publicLabel: 'Mount Vernon, OH', city: 'Mount Vernon', cityUpper: 'MOUNT VERNON', county: 'Knox', state: 'OH', countyId: 2338945,
+    latitude: 40.3934, longitude: -82.4857, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Knox parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the MOUNT VERNON listing city linked into Knox county_id 2338945 property rows; it is city-label inventory, not countywide Knox coverage.',
+      'All 47 active listings are linked with no remaining unlinked rows; 11 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 36 carry parcel identity and ownership support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation and listing-derived classification each cover the 11 shells. Coordinates cover the 36 parcel-backed rows; year-built, square footage, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage support covers all active listings.',
+      'The latest stored listing observation is 2026-03-30T00:13:16.052Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 47, parcel_identity_count: 36, listing_backed_shell_count: 11, classified_count: 11, ownership_count: 36, valuation_count: 10, year_built_count: 0, size_count: 0, coordinate_count: 36, multifamily_count: 0 },
+      listings: { active_listing_count: 47, active_property_count: 47, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 47, creative_finance_count: 0, latest_listing_seen: '2026-03-30T00:13:16.052Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null }, rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32546,6 +32563,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'bensalem-pa',
   'san-carlos-ca',
   'lexington-ne',
+  'mount-vernon-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
