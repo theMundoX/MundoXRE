@@ -32159,6 +32159,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  nottinghamMd: {
+    key: 'nottingham-md', aliases: ['nottingham', 'nottingham-md'], label: 'Nottingham', publicLabel: 'Nottingham, MD',
+    city: 'Nottingham', cityUpper: 'NOTTINGHAM', county: 'Baltimore', state: 'MD', countyId: 2338913,
+    latitude: 39.36389, longitude: -76.45222, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Baltimore parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the NOTTINGHAM listing city linked into Baltimore county_id 2338913 property rows; it is city-label inventory, not countywide Baltimore coverage.',
+      'All 56 active listings are linked with no remaining unlinked rows; 21 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 35 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 53 properties and listing-derived classification covers the 21 shells. Ownership covers 35 properties; year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage covers all active listings.',
+      'The latest stored listing observation is 2026-11-04T10:46:47.855128Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 56, parcel_identity_count: 35, listing_backed_shell_count: 21, classified_count: 21, ownership_count: 35, valuation_count: 53, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 56, active_property_count: 56, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 56, creative_finance_count: 0, latest_listing_seen: '2026-11-04T10:46:47.855128Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32331,6 +32350,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'murphys-ca',
   'mc-donald-pa',
   'marysville-oh',
+  'nottingham-md',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
