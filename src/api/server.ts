@@ -32178,6 +32178,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  athensOh: {
+    key: 'athens-oh', aliases: ['athens', 'athens-oh'], label: 'Athens', publicLabel: 'Athens, OH',
+    city: 'Athens', cityUpper: 'ATHENS', county: 'Athens', state: 'OH', countyId: 2338938,
+    latitude: 39.3292, longitude: -82.1013, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Athens parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the ATHENS listing city linked into Athens county_id 2338938 property rows; it is city-label inventory, not countywide Athens coverage.',
+      'All 56 active listings are linked with no remaining unlinked rows; 33 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 23 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 50 properties and listing-derived classification covers the 33 shells. Ownership covers 23 properties; year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage covers all active listings.',
+      'The latest stored listing observation is 2026-11-04T18:51:47.698288Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 56, parcel_identity_count: 23, listing_backed_shell_count: 33, classified_count: 33, ownership_count: 23, valuation_count: 50, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 56, active_property_count: 56, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 56, creative_finance_count: 0, latest_listing_seen: '2026-11-04T18:51:47.698288Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32351,6 +32370,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'mc-donald-pa',
   'marysville-oh',
   'nottingham-md',
+  'athens-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
