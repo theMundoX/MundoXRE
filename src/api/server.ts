@@ -32345,6 +32345,23 @@ const MARKET_CONFIGS: Record<string, {
       debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null }, rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  lexingtonNe: {
+    key: 'lexington-ne', aliases: ['lexington', 'lexington-ne'], label: 'Lexington', publicLabel: 'Lexington, NE', city: 'Lexington', cityUpper: 'LEXINGTON', county: 'Dawson', state: 'NE', countyId: 2338944,
+    latitude: 40.78084, longitude: -99.7415, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Dawson parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the LEXINGTON listing city linked into Dawson county_id 2338944 property rows; it is city-label inventory, not countywide Dawson coverage.',
+      'All 47 active listings are linked with no remaining unlinked rows; 12 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 35 carry parcel identity and ownership support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation and listing-derived classification each cover the 12 shells. Year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage support covers all active listings.',
+      'The latest stored listing observation is 2026-04-15T01:43:00.500Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 47, parcel_identity_count: 35, listing_backed_shell_count: 12, classified_count: 12, ownership_count: 35, valuation_count: 12, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 47, active_property_count: 47, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 47, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:43:00.500Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null }, rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32528,6 +32545,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'waverly-oh',
   'bensalem-pa',
   'san-carlos-ca',
+  'lexington-ne',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
