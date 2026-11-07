@@ -32197,6 +32197,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  lovejoyGa: {
+    key: 'lovejoy-ga', aliases: ['lovejoy', 'lovejoy-ga'], label: 'Lovejoy', publicLabel: 'Lovejoy, GA',
+    city: 'Lovejoy', cityUpper: 'LOVEJOY', county: 'Clayton', state: 'GA', countyId: 1741142,
+    latitude: 33.44417, longitude: -84.315, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Clayton parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the LOVEJOY listing city linked into Clayton county_id 1741142 property rows; it is city-label inventory, not countywide Clayton coverage.',
+      'All 54 active listings are linked with no remaining unlinked rows; all 54 properties are clearly labeled listing-backed shells pending parcel reconciliation. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 3 properties and listing-derived classification covers all 54 shells. Ownership, year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage covers all active listings.',
+      'The latest stored listing observation is 2026-11-04T19:46:16.014423Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 54, parcel_identity_count: 0, listing_backed_shell_count: 54, classified_count: 54, ownership_count: 0, valuation_count: 3, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 54, active_property_count: 54, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 54, creative_finance_count: 0, latest_listing_seen: '2026-11-04T19:46:16.014423Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32371,6 +32390,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'marysville-oh',
   'nottingham-md',
   'athens-oh',
+  'lovejoy-ga',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
