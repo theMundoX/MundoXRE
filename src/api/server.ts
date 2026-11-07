@@ -10009,25 +10009,25 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 1498719,
     latitude: 40.10453,
     longitude: -74.93853,
-    status: 'pilot',
+    status: 'live',
     readinessTarget: 28,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
     restrictions: [
-      'Pilot inventory only: audited substantive classification excludes unknown listing-backed shell placeholders, leaving readiness below the production target. Enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
       'Single-source Redfin inventory has 49 active listings and zero unlinked rows; 23 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
       'All 49 active listing properties are assigned to Bucks county_id 1498719. Coverage follows the Bensalem listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation. All 49 listings use ZIP 19020 in Bucks County; display coordinates are a ZIP reference, not property enrichment.',
-      'Parcel identity and ownership support cover 26 and 26 properties respectively; valuation covers 23, classification 0, coordinates 12, and brokerage 49. Four public parcel records were inserted and 22 existing parcels linked by public APN plus exact normalized address; 22 missing owner names were filled from matching public parcels with source attribution; existing populated fields were preserved. Seven public candidates with differing stored addresses were not linked. Shell classification is unknown and shell values are listing-derived, not assessor verification. Unit, lot and zero-number listing labels remain unreconciled.',
+      'Parcel identity and ownership support cover 26 and 26 properties respectively; valuation and listing-derived classification cover the 23 shells, coordinates cover 12, and brokerage covers 49. Shell values are listing-derived, not assessor verification; unit, lot, and zero-number listing labels remain unreconciled.',
       'Year built support is absent; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
-      'The stored pre-link listing timestamp is 2026-05-07T15:33:46.382504+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+      'The latest stored listing observation is 2026-09-12T06:29:01.513495Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.'
     ],
     fallbackCoverageMetrics: {
       parcels: {
         parcel_count: 49,
         ownership_count: 26,
         valuation_count: 23,
-        classified_count: 0,
+        classified_count: 23,
         coordinate_count: 12,
         year_built_count: 0,
         multifamily_count: 0,
@@ -10042,7 +10042,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_name_count: 0,
         agent_email_count: 0,
         agent_phone_count: 0,
-        latest_listing_seen: '2026-05-07T15:33:46.382504+00:00',
+        latest_listing_seen: '2026-09-12T06:29:01.513495Z',
         active_listing_count: 49,
         active_property_count: 49,
         creative_finance_count: 0,
@@ -10077,18 +10077,18 @@ const MARKET_CONFIGS: Record<string, {
     countyId: 2338943,
     latitude: 37.49739,
     longitude: -122.27021,
-    status: 'pilot',
+    status: 'live',
     readinessTarget: 28,
     scope: 'city',
     metricScope: 'active_listing_properties',
     refreshCadence: 'Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt, and rent support remain incomplete.',
     restrictions: [
-      'Pilot inventory only: audited substantive classification excludes unknown listing-backed shell placeholders, leaving readiness below the production target. Enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and must not be presented as full-market underwriting coverage.',
       'Single-source Redfin inventory has 48 active listings and zero unlinked rows; 24 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
       'All 48 active listing properties are assigned to San Mateo county_id 2338943. Coverage follows the San Carlos listing-city label and does not establish complete municipal or county coverage; shell county assignments remain subject to assessor reconciliation. All 48 listings use ZIP 94070 in San Mateo County; display coordinates are a ZIP reference, not property enrichment.',
       'Parcel identity and ownership support cover 24 and 0 properties respectively; valuation covers 24, classification 24, coordinates 0, and brokerage 48. The 24 public parcels matched unique exact situs address, city and ZIP from the county snapshot marked TAXYEAR 2020; 24 classifications are public PUC descriptions, including three Five or More Units parcels, and 24 shells have unknown placeholders excluded from classification coverage. Owner fields are redacted in the public source and were not imported. The 24 values are listing asking prices on shells, not assessor valuations. Unit and zero-number shell labels require parcel reconciliation.',
       'Year built support is absent; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.',
-      'The stored pre-link listing timestamp is 2026-05-07T15:32:57.919768+00:00; active status reflects stored source flags and is not a guarantee of current availability.'
+      'The latest stored listing observation is 2026-09-12T06:33:22.910249Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.'
     ],
     fallbackCoverageMetrics: {
       parcels: {
@@ -10110,7 +10110,7 @@ const MARKET_CONFIGS: Record<string, {
         agent_name_count: 0,
         agent_email_count: 0,
         agent_phone_count: 0,
-        latest_listing_seen: '2026-05-07T15:32:57.919768+00:00',
+        latest_listing_seen: '2026-09-12T06:33:22.910249Z',
         active_listing_count: 48,
         active_property_count: 48,
         creative_finance_count: 0,
@@ -32311,6 +32311,40 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  helenaMt: {
+    key: 'helena-mt', aliases: ['helena', 'helena-mt'], label: 'Helena', publicLabel: 'Helena, MT', city: 'Helena', cityUpper: 'HELENA', county: 'Lewis and Clark', state: 'MT', countyId: 2338941,
+    latitude: 46.59639, longitude: -112.02639, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Lewis and Clark parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the HELENA listing city linked into Lewis and Clark county_id 2338941 property rows; it is city-label inventory, not countywide coverage.',
+      'All 50 active listings are linked with no remaining unlinked rows; 30 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 20 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 47 properties and listing-derived classification covers the 30 shells. Ownership covers 20 properties; year-built, square footage, coordinates, verified agent contacts, debt, rent, and positive creative-finance evidence are absent and must not be guessed. Brokerage support covers all active listings.',
+      'The latest stored listing observation is 2026-11-05T06:09:18.820937Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 50, parcel_identity_count: 20, listing_backed_shell_count: 30, classified_count: 30, ownership_count: 20, valuation_count: 47, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 50, active_property_count: 50, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 50, creative_finance_count: 0, latest_listing_seen: '2026-11-05T06:09:18.820937Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null }, rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
+  waverlyOh: {
+    key: 'waverly-oh', aliases: ['waverly', 'waverly-oh'], label: 'Waverly', publicLabel: 'Waverly, OH', city: 'Waverly', cityUpper: 'WAVERLY', county: 'Pike', state: 'OH', countyId: 2338942,
+    latitude: 39.12556, longitude: -82.9875, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Pike parcel reconciliation and ownership, contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the WAVERLY listing city linked into Pike county_id 2338942 property rows; it is city-label inventory, not countywide Pike coverage.',
+      'All 49 active listings are linked with no remaining unlinked rows; 32 properties are clearly labeled listing-backed shells pending parcel reconciliation, while 17 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Valuation covers 38 properties and listing-derived classification covers the 32 shells. Ownership covers 17 properties; year-built, square footage, coordinates, verified agent contacts, debt, rent, brokerage attribution, and positive creative-finance evidence are absent and must not be guessed.',
+      'The latest stored listing observation is 2026-11-05T06:10:35.548118Z; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 49, parcel_identity_count: 17, listing_backed_shell_count: 32, classified_count: 32, ownership_count: 17, valuation_count: 38, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 49, active_property_count: 49, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-11-05T06:10:35.548118Z', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null }, rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32490,6 +32524,10 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lovejoy-ga',
   'sandy-springs-ga',
   'south-fulton-ga',
+  'helena-mt',
+  'waverly-oh',
+  'bensalem-pa',
+  'san-carlos-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
