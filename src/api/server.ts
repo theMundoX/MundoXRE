@@ -32197,6 +32197,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  libertyTownshipOh: {
+    key: 'liberty-township-oh', aliases: ['liberty-township', 'liberty township', 'liberty-township-oh'], label: 'Liberty Township', publicLabel: 'Liberty Township, OH',
+    city: 'Liberty Township', cityUpper: 'LIBERTY TOWNSHIP', county: 'Butler', state: 'OH', countyId: 1741128,
+    latitude: 39.3948, longitude: -84.5603, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Butler parcel reconciliation and verified contact, physical, debt, and rent coverage improve',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is currently single-source Redfin inventory for the LIBERTY TOWNSHIP listing city linked into Butler county_id 1741128 property rows; it is city-label inventory, not countywide Butler coverage.',
+      'All 104 active listings are linked to 104 active properties with no remaining unlinked rows. Thirty-eight properties are clearly labeled address-level listing-backed shells pending parcel reconciliation, while 66 carry parcel identity support. Shell county assignments remain subject to assessor reconciliation.',
+      'Ownership support covers 66 properties and valuation support covers 100. The 38 listing-backed shells carry listing-derived asset labels only; year-built, physical-size, verified agent-contact, multifamily, rent, and positive creative-finance support are absent and must not be guessed or implied. Coordinates cover 50 properties and brokerage attribution covers two active listings.',
+      'Thirty-five public mortgage-record rows cover 17 properties, but amount and payment fields are absent; this is presence-only debt evidence, not balance or payment coverage. Active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 104, parcel_identity_count: 66, listing_backed_shell_count: 38, classified_count: 38, ownership_count: 66, valuation_count: 100, year_built_count: 0, size_count: 0, coordinate_count: 50, multifamily_count: 0 },
+      listings: { active_listing_count: 104, active_property_count: 104, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 2, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 35, properties_with_mortgage_records: 17, properties_with_debt_coverage: 17, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
   athensOh: {
     key: 'athens-oh', aliases: ['athens', 'athens-oh'], label: 'Athens', publicLabel: 'Athens, OH',
     city: 'Athens', cityUpper: 'ATHENS', county: 'Athens', state: 'OH', countyId: 2338938,
@@ -32427,6 +32446,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'mc-donald-pa',
   'marysville-oh',
   'nottingham-md',
+  'liberty-township-oh',
   'athens-oh',
   'lovejoy-ga',
   'sandy-springs-ga',
