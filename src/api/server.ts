@@ -32925,6 +32925,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  mountHollyNj: {
+    key: 'mount-holly-nj', aliases: ['mount-holly', 'mount-holly-nj', 'mount holly', 'mount holly nj'], label: 'Mount Holly', publicLabel: 'Mount Holly, NJ',
+    city: 'Mount Holly', cityUpper: 'MOUNT HOLLY', county: 'Burlington', state: 'NJ', countyId: 13680,
+    latitude: 39.9929, longitude: -74.7877, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; parcel reconciliation and verified agent-contact enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as complete market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the MOUNT HOLLY listing city linked into Burlington county_id 13680 property rows; it is city-label inventory, not countywide coverage.',
+      'All 36 active listings are linked to 36 active properties with no remaining unlinked rows. Nine properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and year built each cover 27 active properties, coordinates cover 16, and listing-derived classification covers the 9 shells. Ownership and physical-size support are absent and must not be inferred.',
+      'Brokerage attribution covers all active listings. Verified agent contacts remain absent; public debt coverage reaches 6 properties, and two multifamily properties have rent snapshots. Missing debt, rent, and positive creative-finance signals must remain explicit unknown or no_data states.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 36, parcel_identity_count: 27, listing_backed_shell_count: 9, classified_count: 9, ownership_count: 0, valuation_count: 36, year_built_count: 27, size_count: 0, coordinate_count: 16, multifamily_count: 3 },
+      listings: { active_listing_count: 36, active_property_count: 36, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 36, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 7, properties_with_mortgage_records: 6, properties_with_debt_coverage: 6, mortgage_amount_count: 7, latest_recording: null },
+      rents: { rent_snapshot_count: 2, properties_with_rent_snapshots: 2, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -33009,6 +33028,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'jacksonville',
   'tampa',
   'circleville',
+  'mount-holly-nj',
   'severance',
   'commerce-city',
   'louisville-co',
