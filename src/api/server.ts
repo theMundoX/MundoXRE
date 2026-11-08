@@ -33191,6 +33191,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  jeffersonNc: {
+    key: 'jefferson-nc', aliases: ['jefferson', 'jefferson-nc', 'jefferson nc'], label: 'Jefferson', publicLabel: 'Jefferson, NC',
+    city: 'Jefferson', cityUpper: 'JEFFERSON', county: 'Ashe', state: 'NC', countyId: 35170,
+    latitude: 36.4204, longitude: -81.4734, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified agent-contact enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as complete market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the JEFFERSON listing city, assigned to Ashe county_id 35170 from 10 pre-existing linked property rows; it is city-label inventory, not countywide coverage.',
+      'All 38 active listings are linked to 38 active properties with no remaining unlinked rows. Twenty-eight address/ZIP-qualified residual listings received clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and ownership each cover 10 active properties. Listing-derived valuation covers all 38 properties and classification covers the 28 shells; year built, physical size, coordinates, and unit counts are absent and must not be inferred.',
+      'Brokerage attribution covers all active listings. Verified agent contacts, mortgage/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must remain explicit unknown or no_data states.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 38, parcel_identity_count: 10, listing_backed_shell_count: 28, classified_count: 28, ownership_count: 10, valuation_count: 38, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 38, active_property_count: 38, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 38, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -33403,6 +33422,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'falls-church-va',
   'murrysville-pa',
   'halethorpe-md',
+  'jefferson-nc',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
