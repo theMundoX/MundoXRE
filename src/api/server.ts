@@ -1730,8 +1730,8 @@ const MARKET_CONFIGS: Record<string, {
       "Single-source Redfin inventory has 131 active listings and zero unlinked rows; 125 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
       "All 131 active listing properties are assigned to Los Angeles county_id 401712. Sylmar is a neighborhood of Los Angeles. Coverage follows only the SYLMAR listing-city label, not all Los Angeles or separate city-label variants. Shell county assignments remain subject to assessor reconciliation.",
       "Parcel identity and ownership support cover 6 and 0 properties respectively; valuation covers 131, classification 125, coordinates 6, and brokerage 131. Listing-derived valuation and classification do not establish assessor verification.",
-      "Year built support covers 6 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
-      "The latest pre-link listing update is 2026-05-25T10:34:13.491744+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+      "Year built and physical-size support each cover 6 properties. Verified agent contacts, mortgage/debt coverage, rent support, and positive creative-finance evidence are absent and must not be guessed or implied.",
+      "The latest observed listing update is 2026-04-15T02:09:57.865+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
     ],
     "fallbackCoverageMetrics": {
       "parcels": {
@@ -1741,6 +1741,7 @@ const MARKET_CONFIGS: Record<string, {
         "classified_count": 125,
         "coordinate_count": 6,
         "year_built_count": 6,
+        "size_count": 6,
         "multifamily_count": 1,
         "parcel_identity_count": 6,
         "listing_backed_shell_count": 125
@@ -1753,7 +1754,7 @@ const MARKET_CONFIGS: Record<string, {
         "agent_name_count": 0,
         "agent_email_count": 0,
         "agent_phone_count": 0,
-        "latest_listing_seen": "2026-05-25T10:34:13.491744+00:00",
+        "latest_listing_seen": "2026-04-15T02:09:57.865+00:00",
         "active_listing_count": 131,
         "active_property_count": 131,
         "creative_finance_count": 0,
@@ -33114,6 +33115,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'gates-mills-oh',
   'rancho-cordova-ca',
   'elk-grove-ca',
+  'sylmar-ca',
   'fair-oaks-ca',
   'antelope-ca',
   'folsom-ca',
