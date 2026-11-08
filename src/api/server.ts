@@ -33134,6 +33134,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  fallsChurchVa: {
+    key: 'falls-church-va', aliases: ['falls church', 'falls-church', 'falls-church-va'], label: 'Falls Church', publicLabel: 'Falls Church, VA',
+    city: 'Falls Church', cityUpper: 'FALLS CHURCH', county: 'Fairfax', state: 'VA', countyId: 2338951,
+    latitude: 38.8823, longitude: -77.1711, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified agent-contact enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as complete market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the FALLS CHURCH listing city, assigned to Fairfax county_id 2338951 from five linked property rows; it is city-label inventory, not countywide coverage.',
+      'All 40 active listings are linked to 40 active properties with no remaining unlinked rows. Thirty-five address/ZIP-qualified residual listings received clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Listing-derived valuation and classification cover all 40 properties. Parcel identity, ownership, year built, physical size, coordinates, and unit counts are absent and must not be inferred.',
+      'Brokerage attribution covers all active listings. Verified agent contacts, mortgage/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must remain explicit unknown or no_data states.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 40, parcel_identity_count: 0, listing_backed_shell_count: 40, classified_count: 40, ownership_count: 0, valuation_count: 40, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 40, active_property_count: 40, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 40, creative_finance_count: 0, latest_listing_seen: '2026-04-15T01:30:50.115+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -33343,6 +33362,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'baytown',
   'mount-vernon-oh',
   'shaker_heights',
+  'falls-church-va',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
