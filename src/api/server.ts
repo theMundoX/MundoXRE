@@ -33232,6 +33232,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'camp-verde-az',
   'hurst-tx',
   'rancho-palos-verdes-ca',
+  'newport-beach-ca',
   'rosedale-md',
   'pilot-point-tx',
   'wall-township-nj',
