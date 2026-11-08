@@ -32831,6 +32831,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  fairOaksCa: {
+    key: 'fair-oaks-ca', aliases: ['fair-oaks', 'fair-oaks-ca', 'fair oaks', 'fair oaks ca', 'fair oaks california'], label: 'Fair Oaks', publicLabel: 'Fair Oaks, CA',
+    city: 'Fair Oaks', cityUpper: 'FAIR OAKS', county: 'Sacramento', state: 'CA', countyId: 773106,
+    latitude: 38.6446, longitude: -121.2722, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and ownership, contact, physical, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the FAIR OAKS listing city linked into Sacramento county_id 773106 property rows; it is city-label inventory, not countywide Sacramento coverage.',
+      'All 95 active listings are linked to 95 active properties with no remaining unlinked rows. Twenty properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and coordinates each cover 75 active properties. Listing-derived valuation and classification each cover the 20 shells; ownership, year built, physical size, and unit counts are absent and must not be inferred.',
+      'Brokerage attribution covers all active listings. Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 95, parcel_identity_count: 75, listing_backed_shell_count: 20, classified_count: 20, ownership_count: 0, valuation_count: 20, year_built_count: 0, size_count: 0, coordinate_count: 75, multifamily_count: 0 },
+      listings: { active_listing_count: 95, active_property_count: 95, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 95, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -33021,6 +33040,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'gates-mills-oh',
   'rancho-cordova-ca',
   'elk-grove-ca',
+  'fair-oaks-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
