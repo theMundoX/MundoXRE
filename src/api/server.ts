@@ -32812,6 +32812,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  elkGroveCa: {
+    key: 'elk-grove-ca', aliases: ['elk-grove', 'elk-grove-ca', 'elk grove', 'elk grove ca', 'elk grove california'], label: 'Elk Grove', publicLabel: 'Elk Grove, CA',
+    city: 'Elk Grove', cityUpper: 'ELK GROVE', county: 'Sacramento', state: 'CA', countyId: 773106,
+    latitude: 38.388274, longitude: -121.407038, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and ownership, contact, physical, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the ELK GROVE listing city linked into Sacramento county_id 773106 property rows; it is city-label inventory, not countywide Sacramento coverage.',
+      'All 174 active listings are linked to 174 active properties with no remaining unlinked rows. Thirty-five properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and coordinates each cover 139 active properties. Listing-derived valuation and classification each cover the 35 shells; ownership, year built, physical size, and unit counts are absent and must not be inferred.',
+      'Brokerage attribution covers all active listings. Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 174, parcel_identity_count: 139, listing_backed_shell_count: 35, classified_count: 35, ownership_count: 0, valuation_count: 35, year_built_count: 0, size_count: 0, coordinate_count: 139, multifamily_count: 0 },
+      listings: { active_listing_count: 174, active_property_count: 174, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 174, creative_finance_count: 0, latest_listing_seen: '2026-09-11T10:12:37.279806+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -33001,6 +33020,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'wall-township-nj',
   'gates-mills-oh',
   'rancho-cordova-ca',
+  'elk-grove-ca',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
