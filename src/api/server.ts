@@ -32774,6 +32774,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 9, properties_with_rent_snapshots: 9, latest_rent_observed: '2026-03-28' },
     },
   },
+  gatesMillsOh: {
+    key: 'gates-mills-oh', aliases: ['gates-mills', 'gates-mills-oh', 'gates mills', 'gates mills oh'], label: 'Gates Mills', publicLabel: 'Gates Mills, OH',
+    city: 'Gates Mills', cityUpper: 'GATES MILLS', county: 'Cuyahoga', state: 'OH', countyId: 1698988,
+    latitude: 41.530434, longitude: -81.415909, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, physical, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the GATES MILLS listing city linked into Cuyahoga county_id 1698988 property rows; it is city-label inventory, not countywide Cuyahoga coverage.',
+      'Exact address-and-ZIP matching linked one active listing and one further active listing with address and ZIP was retained as a clearly labeled listing-backed shell. All 27 active listings are now linked with no remaining unlinked rows; seven properties are listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and ownership each cover 20 active properties. Valuation and classification cover all 27 properties; coordinates cover 14 and physical size 20, while year-built is absent. Listing-derived fields do not establish assessor verification.',
+      'Brokerage attribution covers 11 active listings. Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 27, parcel_identity_count: 20, listing_backed_shell_count: 7, classified_count: 27, ownership_count: 20, valuation_count: 27, year_built_count: 0, size_count: 20, coordinate_count: 14, multifamily_count: 0 },
+      listings: { active_listing_count: 27, active_property_count: 27, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 11, creative_finance_count: 0, latest_listing_seen: '2026-09-21T14:41:03.379+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32961,6 +32980,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'rosedale-md',
   'pilot-point-tx',
   'wall-township-nj',
+  'gates-mills-oh',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
