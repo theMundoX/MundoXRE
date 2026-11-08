@@ -33424,6 +33424,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'halethorpe-md',
   'jefferson-nc',
   'scranton-pa',
+  'vestavia-hills-al',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
