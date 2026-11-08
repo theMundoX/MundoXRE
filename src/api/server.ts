@@ -28805,20 +28805,20 @@ const MARKET_CONFIGS: Record<string, {
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation and contact, structure, debt-amount, and rent coverage improve',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Shaker Heights, including 44 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
-      'All 95 active listings are linked with zero unlinked rows after exact matching resolved 16 rows and 19 address-and-ZIP-qualified shells were added; 51 active properties have parcel identity and ownership coverage, while all 44 shell rows remain address-level fallback coverage pending assessor reconciliation.',
-      'Verified agent contacts, year-built, and rent coverage are absent and must not be guessed or implied; classification and valuation span all 95 linked properties, building size covers 51, coordinates cover 44, and brokerage covers 8 listings.',
-      'Thirty-one public mortgage or lien rows cover six properties, but none currently contains a usable loan, balance, or payment amount; this proves document linkage only and must not be represented as amount-level debt coverage.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows for Shaker Heights, including 97 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 187 active listings are linked with zero unlinked rows after exact matching resolved 43 rows and 57 address-and-ZIP-qualified shells were added; 90 active properties have parcel identity and ownership coverage, while all 97 shell rows remain address-level fallback coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, and rent coverage are absent and must not be guessed or implied; valuation spans all 187 linked properties, classification covers 102, coordinates cover 74, and brokerage covers 8 listings.',
+      'Forty-one public mortgage or lien rows cover nine properties, but none currently contains a usable loan, balance, or payment amount; this proves document linkage only and must not be represented as amount-level debt coverage.',
     ],
     fallbackCoverageMetrics: {
-      parcels: { parcel_count: 95, parcel_identity_count: 51, classified_count: 95, ownership_count: 51, valuation_count: 95, multifamily_count: 0 },
+      parcels: { parcel_count: 187, parcel_identity_count: 90, classified_count: 102, ownership_count: 90, valuation_count: 187, coordinate_count: 74, multifamily_count: 0 },
       listings: {
-        active_listing_count: 95, active_property_count: 95, agent_name_count: 0, agent_email_count: 0,
+        active_listing_count: 187, active_property_count: 187, agent_name_count: 0, agent_email_count: 0,
         agent_phone_count: 0, brokerage_count: 8, creative_finance_count: 0,
         latest_listing_seen: '2026-08-05T14:31:37.08+00:00', listing_sources: ['redfin'],
       },
       debt: {
-        mortgage_record_count: 31, properties_with_mortgage_records: 6, properties_with_debt_coverage: 6,
+        mortgage_record_count: 41, properties_with_mortgage_records: 9, properties_with_debt_coverage: 9,
         mortgage_amount_count: 0, latest_recording: '2026-04-02',
       },
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
@@ -33242,6 +33242,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'folsom-ca',
   'citrus-heights-ca',
   'league-city-tx',
+  'shaker_heights',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
