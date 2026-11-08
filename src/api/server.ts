@@ -2247,6 +2247,74 @@ const MARKET_CONFIGS: Record<string, {
       }
     }
   },
+  libertyTownshipOh: {
+    "key": "liberty-township-oh",
+    "aliases": [
+      "liberty-township",
+      "liberty-township-oh"
+    ],
+    "label": "Liberty Township",
+    "publicLabel": "Liberty Township, OH",
+    "city": "Liberty Township",
+    "cityUpper": "LIBERTY TOWNSHIP",
+    "county": "Butler",
+    "state": "OH",
+    "countyId": 1741128,
+    "latitude": 39.397138,
+    "longitude": -84.376618,
+    "status": "live",
+    "readinessTarget": 28,
+    "scope": "city",
+    "metricScope": "active_listing_properties",
+    "refreshCadence": "Public-first listing refresh and enrichment; parcel reconciliation and verified contact, debt amount, rent, and physical support remain incomplete.",
+    "restrictions": [
+      "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
+      "Single-source Redfin inventory has 104 active listings and zero unlinked rows; 38 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
+      "All 104 active listing properties are assigned to Butler county_id 1741128. Coverage follows only the LIBERTY TOWNSHIP listing-city label and does not establish complete township or county coverage. Shell county assignments remain subject to assessor reconciliation.",
+      "Parcel identity and ownership support cover 66 properties; valuation covers 100, classification 38, coordinates 50, and brokerage 2. Listing-derived valuation and classification do not establish assessor verification.",
+      "Year built, physical size, verified agent contacts, rent support, and positive creative-finance evidence are absent and must not be guessed or implied. Thirty-five public mortgage rows cover 17 properties but contain no loan or balance amounts.",
+      "The latest listing observation is 2026-09-21T13:39:03.387+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
+    ],
+    "fallbackCoverageMetrics": {
+      "parcels": {
+        "parcel_count": 104,
+        "ownership_count": 66,
+        "valuation_count": 100,
+        "classified_count": 38,
+        "coordinate_count": 50,
+        "year_built_count": 0,
+        "multifamily_count": 0,
+        "parcel_identity_count": 66,
+        "listing_backed_shell_count": 38
+      },
+      "listings": {
+        "brokerage_count": 2,
+        "listing_sources": [
+          "redfin"
+        ],
+        "agent_name_count": 0,
+        "agent_email_count": 0,
+        "agent_phone_count": 0,
+        "latest_listing_seen": "2026-09-21T13:39:03.387+00:00",
+        "active_listing_count": 104,
+        "active_property_count": 104,
+        "creative_finance_count": 0,
+        "unlinked_listing_count": 0
+      },
+      "debt": {
+        "latest_recording": null,
+        "mortgage_amount_count": 0,
+        "mortgage_record_count": 35,
+        "properties_with_debt_coverage": 17,
+        "properties_with_mortgage_records": 17
+      },
+      "rents": {
+        "rent_snapshot_count": 0,
+        "latest_rent_observed": null,
+        "properties_with_rent_snapshots": 0
+      }
+    }
+  },
   bedfordTx: {
     "key": "bedford-tx",
     "aliases": [
