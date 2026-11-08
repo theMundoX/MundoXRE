@@ -33423,6 +33423,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'murrysville-pa',
   'halethorpe-md',
   'jefferson-nc',
+  'scranton-pa',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
