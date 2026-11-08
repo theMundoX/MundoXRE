@@ -33230,6 +33230,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'spartanburg-sc',
   'oceanside-ca',
   'camp-verde-az',
+  'hurst-tx',
   'rosedale-md',
   'pilot-point-tx',
   'wall-township-nj',
