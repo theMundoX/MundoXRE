@@ -32905,6 +32905,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  leagueCityTx: {
+    key: 'league-city-tx', aliases: ['league-city', 'league-city-tx', 'league city', 'league city tx'], label: 'League City', publicLabel: 'League City, TX',
+    city: 'League City', cityUpper: 'LEAGUE CITY', county: 'Galveston', state: 'TX', countyId: 2338920,
+    latitude: 29.5075, longitude: -95.0949, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and ownership, contact, physical, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the LEAGUE CITY listing city linked into Galveston county_id 2338920 property rows; it is city-label inventory, not countywide Galveston coverage.',
+      'All 72 active listings are linked to 72 active properties with no remaining unlinked rows. All 72 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Listing-derived classification spans all 72 active properties and valuation covers 55. Parcel identity, ownership, year built, physical size, coordinates, and unit counts are absent and must not be inferred from listing records.',
+      'Brokerage attribution covers all active listings. Verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 72, parcel_identity_count: 0, listing_backed_shell_count: 72, classified_count: 72, ownership_count: 0, valuation_count: 55, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 72, active_property_count: 72, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 72, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -33099,6 +33118,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'antelope-ca',
   'folsom-ca',
   'citrus-heights-ca',
+  'league-city-tx',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
