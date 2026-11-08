@@ -32963,6 +32963,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  lexingtonNe: {
+    key: 'lexington-ne', aliases: ['lexington-ne', 'lexington ne', 'lexington nebraska'], label: 'Lexington', publicLabel: 'Lexington, NE',
+    city: 'Lexington', cityUpper: 'LEXINGTON', county: 'Dawson', state: 'NE', countyId: 2338944,
+    latitude: 40.7808, longitude: -99.7415, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified agent-contact enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as complete market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the LEXINGTON listing city linked into Dawson county_id 2338944 property rows; it is city-label inventory, not countywide coverage.',
+      'All 47 active listings are linked to 47 active properties with no remaining unlinked rows. Twelve properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and ownership each cover 35 active properties. Listing-derived valuation and classification cover the 12 shells; year built, physical size, coordinates, and unit counts are absent and must not be inferred.',
+      'Brokerage attribution covers all active listings. Verified agent contacts, mortgage/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must remain explicit unknown or no_data states.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 47, parcel_identity_count: 35, listing_backed_shell_count: 12, classified_count: 12, ownership_count: 35, valuation_count: 12, year_built_count: 0, size_count: 0, coordinate_count: 0, multifamily_count: 0 },
+      listings: { active_listing_count: 47, active_property_count: 47, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 47, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -33049,6 +33068,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'circleville',
   'mount-holly-nj',
   'davenport-fl',
+  'lexington-ne',
   'severance',
   'commerce-city',
   'louisville-co',
