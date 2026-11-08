@@ -32755,6 +32755,25 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 5, properties_with_rent_snapshots: 5, latest_rent_observed: '2026-03-26' },
     },
   },
+  wallTownshipNj: {
+    key: 'wall-township-nj', aliases: ['wall-township', 'wall-township-nj', 'wall township', 'wall township nj'], label: 'Wall Township', publicLabel: 'Wall Township, NJ',
+    city: 'Wall Township', cityUpper: 'WALL TOWNSHIP', county: 'Monmouth', state: 'NJ', countyId: 13586,
+    latitude: 40.165326, longitude: -74.065876, status: 'live', readinessTarget: 28, scope: 'city', metricScope: 'active_listing_properties',
+    refreshCadence: 'daily public-first listing refresh; assessor reconciliation and verified contact, physical, debt, and rent enrichment remain incomplete',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; incomplete enrichment must not be presented as full-market underwriting coverage.',
+      'Coverage is single-source Redfin inventory for the WALL TOWNSHIP listing city linked into Monmouth county_id 13586 property rows; it is city-label inventory, not countywide Monmouth coverage.',
+      'All 18 active listings are linked to 18 active properties with no remaining unlinked rows. Nine properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.',
+      'Parcel identity and ownership each cover nine active properties. Valuation and classification cover all 18 properties; year-built covers five, coordinates eight, and physical size is absent. Listing-derived fields do not establish assessor verification.',
+      'Brokerage attribution covers all active listings. One public mortgage record with an amount covers one property, and nine properties have rent snapshots; verified agent contacts and positive creative-finance evidence are absent and must not be guessed or implied. Active status reflects stored source flags and is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 18, parcel_identity_count: 9, listing_backed_shell_count: 9, classified_count: 18, ownership_count: 9, valuation_count: 18, year_built_count: 5, size_count: 0, coordinate_count: 8, multifamily_count: 1 },
+      listings: { active_listing_count: 18, active_property_count: 18, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 18, creative_finance_count: 0, latest_listing_seen: '2026-03-28T17:43:46.63+00:00', listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1, mortgage_amount_count: 1, latest_recording: '2025-01-21' },
+      rents: { rent_snapshot_count: 9, properties_with_rent_snapshots: 9, latest_rent_observed: '2026-03-28' },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -32941,6 +32960,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'oceanside-ca',
   'rosedale-md',
   'pilot-point-tx',
+  'wall-township-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
