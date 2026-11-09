@@ -28576,23 +28576,23 @@ const MARKET_CONFIGS: Record<string, {
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, verified contact, and rent coverage improve',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows, including 27 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
-      'Active inventory is fully linked with no remaining unlinked rows, but only 44 of 71 active properties are parcel-identity-backed; shell-backed rows remain address-level coverage pending assessor reconciliation.',
-      'Verified agent contacts, year-built, and rent coverage are currently absent and must not be guessed or implied; valuation spans all 71 linked properties, ownership and size cover the 44 parcel-backed properties, coordinates cover 31, and brokerage is present on 5 active listings.',
-      'Eight public recorder rows cover 4 active properties, but loan, balance, and payment amounts are absent; debt amounts must be treated as unknown rather than zero.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga county_id 1698988 property rows, including 75 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 226 active listings are linked to 226 active properties with no remaining unlinked rows. Seventy-five shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'Verified agent contacts are absent and must not be guessed or implied; valuation spans all 226 linked properties, parcel identity and ownership cover 151, coordinates cover 114, year-built and size each cover one, and brokerage is present on 5 active listings.',
+      'Sixty-four debt records cover 13 active properties, but only two contain recorded amounts; rent support is limited to one multifamily property and one snapshot. Debt amounts, rent, and multifamily coverage must not be generalized beyond those source-backed rows.',
     ],
     fallbackCoverageMetrics: {
-      parcels: { parcel_count: 71, parcel_identity_count: 44, classified_count: 27, ownership_count: 44, valuation_count: 71, multifamily_count: 0 },
+      parcels: { parcel_count: 226, parcel_identity_count: 151, listing_backed_shell_count: 75, classified_count: 96, ownership_count: 151, valuation_count: 226, year_built_count: 1, size_count: 1, coordinate_count: 114, multifamily_count: 1 },
       listings: {
-        active_listing_count: 71, active_property_count: 71, agent_name_count: 0, agent_email_count: 0,
+        active_listing_count: 226, active_property_count: 226, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
         agent_phone_count: 0, brokerage_count: 5, creative_finance_count: 0,
-        latest_listing_seen: '2026-08-05T15:10:37.985144+00:00', listing_sources: ['redfin'],
+        latest_listing_seen: null, listing_sources: ['redfin'],
       },
       debt: {
-        mortgage_record_count: 8, properties_with_mortgage_records: 4, properties_with_debt_coverage: 4,
-        mortgage_amount_count: 0, latest_recording: '2025-12-17',
+        mortgage_record_count: 64, properties_with_mortgage_records: 13, properties_with_debt_coverage: 13,
+        mortgage_amount_count: 2, latest_recording: null,
       },
-      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+      rents: { rent_snapshot_count: 1, properties_with_rent_snapshots: 1, latest_rent_observed: '2026-06-12' },
     },
   },
   johnstown: {
@@ -33533,6 +33533,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'cedar-hill',
   'lake-dallas',
   'franklin-lakes-nj',
+  'cleveland-heights',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
