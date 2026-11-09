@@ -33451,6 +33451,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'newark-tx',
   'wilmer',
   'balch-springs',
+  'corinth',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
