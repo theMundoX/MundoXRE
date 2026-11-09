@@ -33428,6 +33428,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'south-houston',
   'willingboro',
   'haddonfield',
+  'gloucester-city',
   'maple-heights',
   'oaklyn',
   'paramus',
