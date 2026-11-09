@@ -23238,7 +23238,7 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into county_id 12 property rows for Starke, including 25 listing-backed shells for active listings that did not resolve to parcel identity.',
       'Active inventory is fully linked with no remaining unlinked rows; 25 active properties currently carry parcel identity and ownership support while 25 remain address-level listing shells pending assessor reconciliation.',
-      'Verified agent contact fields and recorder/debt coverage are currently absent and must not be guessed or implied; valuation spans the full active inventory and rent snapshots cover 25 linked active properties.',
+      'Verified agent contact fields and recorder/debt coverage are currently absent and must not be guessed or implied; valuation spans the full active inventory, while rent support is limited to one multifamily property.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
@@ -23268,8 +23268,8 @@ const MARKET_CONFIGS: Record<string, {
         latest_recording: null,
       },
       rents: {
-        rent_snapshot_count: 25,
-        properties_with_rent_snapshots: 25,
+        rent_snapshot_count: 1,
+        properties_with_rent_snapshots: 1,
         latest_rent_observed: '2026-03-26',
       },
     },
@@ -33453,6 +33453,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'balch-springs',
   'corinth',
   'addison',
+  'starke',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
