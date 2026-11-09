@@ -33450,6 +33450,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'vienna-va',
   'newark-tx',
   'wilmer',
+  'balch-springs',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
