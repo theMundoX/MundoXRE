@@ -33532,6 +33532,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'glenn-heights',
   'cedar-hill',
   'lake-dallas',
+  'franklin-lakes-nj',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
