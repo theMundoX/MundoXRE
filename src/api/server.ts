@@ -20475,17 +20475,19 @@ const MARKET_CONFIGS: Record<string, {
     cityUpper: 'FORT WORTH',
     county: 'Tarrant',
     state: 'TX',
-    countyId: 0,
+    countyId: 7,
     latitude: 32.7555,
     longitude: -97.3308,
     status: 'live',
     readinessTarget: 30,
     scope: 'city',
     metricScope: 'active_listing_properties',
-    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until paid detail caps are approved',
+    refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until Dallas parcel classification, contact, and recorder/debt coverage improve',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'County identifier is pending canonical county-table audit; use marketId/city/state for BBC routing.',
+      'Coverage is currently single-source Redfin inventory linked into Dallas county_id 7 property rows for Richardson, including 181 clearly labeled listing-backed shells for active listings that did not resolve to parcel identity.',
+      'Active inventory is fully linked with no remaining unlinked rows; 568 active properties currently carry parcel identity and ownership support while 181 remain address-level listing shells pending assessor reconciliation.',
+      'Verified agent contact fields are absent; valuations cover 733 active properties, classification is limited to the listing-backed shells, and two debt records lack loan/balance/payment amounts. These gaps must remain visible in BBC quality flags.',
     ],
     fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
       parcelCount: 3967,
@@ -20625,15 +20627,12 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'County identifier is pending canonical county-table audit; use marketId/city/state for BBC routing.',
     ],
-    fallbackCoverageMetrics: bbcListingReadyFallbackMetrics({
-      parcelCount: 380,
-      activeListingCount: 380,
-      agentEmailCount: 0,
-      ownershipCount: 273,
-      valuationCount: 369,
-      mortgagePropertyCount: 0,
-      rentPropertyCount: 269,
-    }),
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 749, parcel_identity_count: 568, listing_backed_shell_count: 181, classified_count: 181, ownership_count: 568, valuation_count: 733, year_built_count: 546, size_count: 0, coordinate_count: 533, multifamily_count: 4 },
+      listings: { active_listing_count: 749, active_property_count: 749, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, brokerage_count: 248, creative_finance_count: 0, latest_listing_seen: null, listing_sources: ['redfin'] },
+      debt: { mortgage_record_count: 2, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 4, properties_with_rent_snapshots: 4, latest_rent_observed: '2026-03-26' },
+    },
   },
   addison: {
     key: 'addison',
@@ -33455,6 +33454,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'corinth',
   'addison',
   'starke',
+  'richardson',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
