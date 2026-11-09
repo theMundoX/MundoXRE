@@ -23352,7 +23352,7 @@ const MARKET_CONFIGS: Record<string, {
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
       'Coverage is currently single-source Redfin inventory linked into Boulder county_id 68359 property rows for Superior, including 4 listing-backed shells for active listings that did not resolve to parcel identity.',
       'Active inventory is fully linked with no remaining unlinked rows; 19 active properties currently carry parcel identity and ownership support while 4 remain address-level listing shells pending assessor reconciliation.',
-      'Verified agent contact fields are absent, valuation/classification coverage is thin, and recorder/debt coverage is partial; these gaps must remain visible in BBC quality flags.',
+      'Verified agent contact fields are absent; valuation coverage is listing-backed, classification is limited to the four listing-backed shells, and recorder/debt coverage is partial. These gaps must remain visible in BBC quality flags.',
     ],
     fallbackCoverageMetrics: {
       parcels: {
@@ -23360,7 +23360,7 @@ const MARKET_CONFIGS: Record<string, {
         parcel_identity_count: 19,
         classified_count: 4,
         ownership_count: 19,
-        valuation_count: 4,
+        valuation_count: 23,
         multifamily_count: 0,
       },
       listings: {
@@ -33325,6 +33325,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'severance',
   'commerce-city',
   'louisville-co',
+  'superior',
   'littleton-co',
   'xenia',
   'springboro',
