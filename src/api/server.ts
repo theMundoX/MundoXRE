@@ -28481,21 +28481,21 @@ const MARKET_CONFIGS: Record<string, {
     refreshCadence: 'daily listing refresh is enabled; enrichment remains public-first until parcel reconciliation, verified contact, year-built, debt, and rent coverage improve',
     restrictions: [
       'Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.',
-      'Coverage is currently single-source Redfin inventory linked into Cuyahoga County property rows, including 48 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
-      'Active inventory is fully linked with no remaining unlinked rows, but only 43 of 91 active properties are parcel-identity-backed; shell-backed rows remain address-level coverage pending assessor reconciliation.',
-      'Verified agent contacts, year-built, and rent coverage are currently absent and must not be guessed or implied; classification and valuation span all 91 linked properties, ownership and size cover the 43 parcel-backed properties, coordinates cover 34, and brokerage is present on 21 active listings.',
-      'One public recorder row covers one active property, but loan, balance, and payment amounts are absent; debt amounts must be treated as unknown rather than zero.',
+      'Coverage is currently single-source Redfin inventory linked into Cuyahoga county_id 1698988 property rows, including 62 clearly labeled listing-backed shells retained only for active listings that did not resolve to parcel identity.',
+      'All 141 active listings are linked to 141 active properties with no remaining unlinked rows. Sixty-two shell-backed rows remain address-level coverage pending assessor reconciliation.',
+      'Verified agent contacts, year-built, size, and rent coverage are absent and must not be guessed or implied; classification and valuation span 62 and 141 linked properties respectively, ownership and parcel identity cover 79, coordinates cover 61, and brokerage is present on 21 active listings.',
+      'Three public recorder rows cover two active properties, but loan, balance, and payment amounts are absent; debt amounts must be treated as unknown rather than zero.',
     ],
     fallbackCoverageMetrics: {
-      parcels: { parcel_count: 91, parcel_identity_count: 43, classified_count: 91, ownership_count: 43, valuation_count: 91, multifamily_count: 0 },
+      parcels: { parcel_count: 141, parcel_identity_count: 79, listing_backed_shell_count: 62, classified_count: 62, ownership_count: 79, valuation_count: 141, year_built_count: 0, size_count: 0, coordinate_count: 61, multifamily_count: 0 },
       listings: {
-        active_listing_count: 91, active_property_count: 91, agent_name_count: 0, agent_email_count: 0,
+        active_listing_count: 141, active_property_count: 141, unlinked_listing_count: 0, agent_name_count: 0, agent_email_count: 0,
         agent_phone_count: 0, brokerage_count: 21, creative_finance_count: 0,
-        latest_listing_seen: '2026-08-05T14:31:23.08+00:00', listing_sources: ['redfin'],
+        latest_listing_seen: null, listing_sources: ['redfin'],
       },
       debt: {
-        mortgage_record_count: 1, properties_with_mortgage_records: 1, properties_with_debt_coverage: 1,
-        mortgage_amount_count: 0, latest_recording: '2025-12-29',
+        mortgage_record_count: 3, properties_with_mortgage_records: 2, properties_with_debt_coverage: 2,
+        mortgage_amount_count: 0, latest_recording: null,
       },
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
@@ -33534,6 +33534,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'lake-dallas',
   'franklin-lakes-nj',
   'cleveland-heights',
+  'rocky-river',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
