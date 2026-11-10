@@ -33390,6 +33390,38 @@ const MARKET_CONFIGS: Record<string, {
       rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
     },
   },
+  kentWa: {
+    key: 'kent-wa',
+    aliases: ['kent', 'kent-wa'],
+    label: 'Kent',
+    publicLabel: 'Kent, WA',
+    city: 'Kent',
+    cityUpper: 'KENT',
+    county: 'King',
+    state: 'WA',
+    countyId: 748414,
+    latitude: 47.3809,
+    longitude: -122.2348,
+    status: 'live',
+    readinessTarget: 28,
+    scope: 'city',
+    metricScope: 'active_listing_properties',
+    refreshCadence: 'Public-first daily listing refresh; assessor reconciliation and verified contact, debt, rent, and physical-property enrichment remain incomplete.',
+    restrictions: [
+      'Production searchable inventory is enabled for BBC with field-level quality flags; this is not complete market underwriting coverage.',
+      'Coverage is limited to 11 active single-source Redfin listings carrying the KENT city label, all linked into King county_id 748414 property rows; it does not establish citywide or countywide coverage.',
+      'Ten active properties have parcel identity support. One property is clearly labeled address-level listing-backed shell coverage pending assessor reconciliation.',
+      'Only three active properties have a valuation signal. Listing-derived classification covers the shell only and brokerage attribution spans the active inventory; neither should be represented as assessor-verified property data.',
+      'Ownership, verified agent contacts, recorder/debt coverage, rent support, multifamily support, and positive creative-finance evidence are absent and must not be guessed or implied.',
+      'The latest stored listing observation is 2026-09-11T08:08:48.388974+00:00; stored active status is not a guarantee of current availability.',
+    ],
+    fallbackCoverageMetrics: {
+      parcels: { parcel_count: 11, parcel_identity_count: 10, classified_count: 1, ownership_count: 0, valuation_count: 3, coordinate_count: 2, multifamily_count: 0, listing_backed_shell_count: 1 },
+      listings: { active_listing_count: 11, active_property_count: 11, unlinked_listing_count: 0, listing_sources: ['redfin'], brokerage_count: 11, agent_name_count: 0, agent_email_count: 0, agent_phone_count: 0, creative_finance_count: 0, latest_listing_seen: '2026-09-11T08:08:48.388974+00:00' },
+      debt: { mortgage_record_count: 0, properties_with_mortgage_records: 0, properties_with_debt_coverage: 0, mortgage_amount_count: 0, latest_recording: null },
+      rents: { rent_snapshot_count: 0, properties_with_rent_snapshots: 0, latest_rent_observed: null },
+    },
+  },
 };
 
 function validateMarketConfigs() {
@@ -33632,6 +33664,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'cleveland-heights',
   'rocky-river',
   'north-royalton',
+  'kent-wa',
 ]);
 const MARKET_DATA_DOMAINS = [
   'parcel_identity',
