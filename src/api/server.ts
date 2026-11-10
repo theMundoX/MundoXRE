@@ -33628,6 +33628,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'cedar-hill',
   'lake-dallas',
   'franklin-lakes-nj',
+  'severance',
   'cleveland-heights',
   'rocky-river',
   'north-royalton',
