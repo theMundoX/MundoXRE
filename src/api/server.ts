@@ -5328,7 +5328,7 @@ const MARKET_CONFIGS: Record<string, {
       "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
       "Single-source Redfin inventory has 42 active listings and zero unlinked rows; 9 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
       "All 42 active listing properties are assigned to Larimer county_id 75651. Coverage follows the BELLVUE unincorporated community and postal listing label, including rural postal addresses, not an incorporated municipality or complete county boundary. Shell county assignments remain subject to assessor reconciliation.",
-      "Parcel identity and ownership support cover 42 and 33 properties respectively; valuation covers 9, classification 9, coordinates 20, and brokerage 42. Listing-derived valuation and classification do not establish assessor verification.",
+      "Assessor parcel identity and ownership each cover 33 properties. The other 9 rows are clearly labeled synthetic listing-backed shells; listing-derived valuation and classification each cover those shells, while coordinates cover 20 properties and brokerage covers all 42. Listing-derived fields do not establish assessor verification.",
       "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 0 properties; snapshot presence does not establish current verified market rent.",
       "The latest pre-link listing update is 2026-08-06T22:36:44.739319+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
     ],
@@ -5341,7 +5341,7 @@ const MARKET_CONFIGS: Record<string, {
         "coordinate_count": 20,
         "year_built_count": 0,
         "multifamily_count": 0,
-        "parcel_identity_count": 42,
+        "parcel_identity_count": 33,
         "listing_backed_shell_count": 9
       },
       "listings": {
@@ -33536,6 +33536,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'timnath-co',
   'red-feather-lakes-co',
   'new-castle-co',
+  'bellvue-co',
   'broomfield',
   'thornton-co',
   'wimauma',
