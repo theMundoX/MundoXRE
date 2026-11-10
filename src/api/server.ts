@@ -5260,7 +5260,7 @@ const MARKET_CONFIGS: Record<string, {
       "Production searchable inventory is enabled for BBC with field-level quality flags; enrichment remains incomplete and should not be presented as full-market underwriting coverage.",
       "Single-source Redfin inventory has 62 active listings and zero unlinked rows; 34 properties are clearly labeled address-level listing-backed shells pending assessor reconciliation.",
       "All 62 active listing properties are assigned to Garfield county_id 71224. Coverage follows the NEW CASTLE listing-city/postal label, including surrounding postal addresses, and does not establish complete town or county coverage. Shell county assignments remain subject to assessor reconciliation.",
-      "Parcel identity and ownership support cover 62 and 28 properties respectively; valuation covers 34, classification 34, coordinates 14, and brokerage 62. Listing-derived valuation and classification do not establish assessor verification.",
+      "Assessor parcel identity and ownership each cover 28 properties. The other 34 rows are clearly labeled synthetic listing-backed shells; listing-derived valuation and classification each cover those shells, while coordinates cover 14 properties and brokerage covers all 62. Listing-derived fields do not establish assessor verification.",
       "Year built support covers 0 properties; physical size remains incomplete. Verified agent contacts, mortgage/debt coverage, and positive creative-finance evidence are absent and must not be guessed or implied. Rent snapshots cover 10 properties; snapshot presence does not establish current verified market rent.",
       "The latest pre-link listing update is 2026-08-06T21:41:25.43747+00:00; active status reflects stored source flags and is not a guarantee of current availability. Linkage can advance updated_at without a new source observation."
     ],
@@ -5273,7 +5273,7 @@ const MARKET_CONFIGS: Record<string, {
         "coordinate_count": 14,
         "year_built_count": 0,
         "multifamily_count": 0,
-        "parcel_identity_count": 62,
+        "parcel_identity_count": 28,
         "listing_backed_shell_count": 34
       },
       "listings": {
@@ -33535,6 +33535,7 @@ const BBC_PUBLISHED_MARKET_IDS = new Set([
   'longmont',
   'timnath-co',
   'red-feather-lakes-co',
+  'new-castle-co',
   'broomfield',
   'thornton-co',
   'wimauma',
